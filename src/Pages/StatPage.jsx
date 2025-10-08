@@ -92,7 +92,7 @@ const StatPage = () => {
 
   return (
     <div className="flex flex-col md:flex-row gap-4 md:gap-6 p-4 md:p-6 w-full max-w-screen-2xl mx-auto md:h-[640px]">
-      {/* Cột trái: Lịch */}
+      {/* Calendar */}
       <div className="w-full flex flex-col md:w-[60%] bg-white rounded-xl shadow-md p-4 md:p-6 md:h-full dark:bg-[#2E2E33] dark:border dark:border-slate-700">
         <div className="flex items-center justify-between mb-4">
           <div className="flex gap-4">

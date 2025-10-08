@@ -156,7 +156,7 @@ const BudgetPage = () => {
             years={years}
             token={token}
             onClose={() => {
-              fetchBudget(); // Gọi lại API khi form đóng
+              fetchBudget();
             }}
           />
         )}

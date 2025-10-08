@@ -100,7 +100,7 @@ export const createTransaction = createAsyncThunk(
 
 export const updateTransaction = createAsyncThunk(
   'transaction/updateTransaction',
-  async ({ id, fields }, { getState, rejectWithValue }) => { // 👈 đổi `formData` => `fields`
+  async ({ id, fields }, { getState, rejectWithValue }) => { 
     try {
       const { token } = getState().auth;
 

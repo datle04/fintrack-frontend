@@ -37,7 +37,7 @@ export default function Login() {
         setIsAppLoading(true);
         setTimeout(() => {
           if (user?.role === "admin") {
-            navigate("/admin");
+            navigate("/admin/dashboard");
           } else {
             navigate("/dashboard");
           }

@@ -166,7 +166,7 @@ const TransactionPage = () => {
   return (
     <div className="min-h-screen w-full bg-[#F5F6FA] p-4 2xl:px-6 2xl:py-2 3xl:px-8 3xl:py-2 dark:bg-[#35363A] ">
       <div className="flex flex-col lg:flex-row justify-between gap-4 2xl:gap-6 3xl:gap-8 bg-[#F5F6FA] p-4 2xl:p-6 3xl:p-8 rounded-md flex-wrap dark:bg-[#35363A]">
-        {/* FILTERS - bên trái */}
+        {/* Filters */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 2xl:gap-6 3xl:gap-8 flex-[3]">
           <Select
             label={t("type")}

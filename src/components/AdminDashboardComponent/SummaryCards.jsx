@@ -15,19 +15,19 @@ const SummaryCards = ({
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 font-mono">
       <div className={cardStyle}>
-        <div className={titleStyle}>💹 Total Income</div>
+        <div className={titleStyle}>💹 Tổng thu nhập</div>
         <div className={valueStyle}>{formatCurrency(totalIncome)} đ</div>
       </div>
       <div className={cardStyle}>
-        <div className={titleStyle}>💸 Total Expense</div>
+        <div className={titleStyle}>💸 Tổng chi tiêu</div>
         <div className={valueStyle}>{formatCurrency(totalExpense)} đ</div>
       </div>
       <div className={cardStyle}>
-        <div className={titleStyle}>👥 Total Users</div>
+        <div className={titleStyle}>👥 Người dùng</div>
         <div className={valueStyle}>{userCount}</div>
       </div>
       <div className={cardStyle}>
-        <div className={titleStyle}>📊 Total Transactions</div>
+        <div className={titleStyle}>📊 Tổng giao dịch</div>
         <div className={valueStyle}>{transactionCount}</div>
       </div>
     </div>

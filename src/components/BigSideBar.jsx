@@ -30,13 +30,9 @@ const BigSideBar = () => {
           label: t("transactions"),
           path: "/admin/transactions",
         },
-        { icon: <BsFillPeopleFill />, label: "Users", path: "/admin/users" },
-        {
-          icon: <IoMdAnalytics />,
-          label: t("analytics"),
-          path: "/admin/analytics",
-        },
-        { icon: <RxActivityLog />, label: "Logs", path: "/admin/logs" },
+        { icon: <BsFillPeopleFill />, label: t("users"), path: "/admin/users" },
+        { icon: <RxActivityLog />, label: t("logs"), path: "/admin/logs" },
+        { icon: <MdSettings />, label: t("setting"), path: "/settings" },
       ]);
     } else {
       setNavArr([

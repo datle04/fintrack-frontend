@@ -62,7 +62,6 @@ function App() {
       {isAppLoading && <FullScreenLottie />}
       <ThemeProvider>
         <Routes>
-          {/* Routes không cần layout */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
 

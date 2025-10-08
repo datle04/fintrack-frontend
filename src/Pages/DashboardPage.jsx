@@ -1,12 +1,19 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Header from "../components/Header";
 import DashboardBalanceInfo from "../components/DashboardPageComponent/DashboardBalanceInfo";
 import DashboardRecentTransactions from "../components/DashboardPageComponent/DashboardRecentTransactions";
 import DashboardBudgetInfo from "../components/DashboardPageComponent/DashboardBudgetInfo";
 import DashboardStat from "../components/DashboardPageComponent/DashboardStat";
 import DashboardOverview from "../components/DashboardPageComponent/DashboardOverview";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router";
 
 const DashboardPage = () => {
+  const user = useSelector((state) => state.auth.user);
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (user.role === "admin") navigate("/admin/dashboard");
+  }, [user]);
   return (
     <div className="w-full h-full">
       {/* Balance information */}

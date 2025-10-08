@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   adminUpdateTransaction,
@@ -8,6 +8,9 @@ import {
 import toast from "react-hot-toast";
 import getUsedCategories from "../thunks/getUsedCategories";
 import { useTranslation } from "react-i18next";
+import { getNotifications } from "../features/notificationSlice";
+import { debounce } from "lodash";
+import getCategorySuggestion from "../thunks/getCategorySuggestion";
 
 const now = new Date();
 const initialState = {
@@ -23,10 +26,12 @@ const initialState = {
 
 const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const { t, i18n } = useTranslation();
   const dispatch = useDispatch();
   const [formData, setFormData] = useState(initialState);
   const [existingImages, setExistingImages] = useState([]);
+  const [categorySuggest, setCategorySuggest] = useState("");
 
   useEffect(() => {
     if (transaction) {
@@ -47,8 +52,24 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
     console.log(transaction);
   }, []);
 
+  //Category Suggestion
+  const debouncedSuggest = useMemo(
+    () =>
+      debounce(async (typeVal, noteVal) => {
+        const suggestion = await getCategorySuggestion(typeVal, noteVal, token);
+        setCategorySuggest(suggestion);
+        console.log("Suggestion:", suggestion);
+      }, 500),
+    []
+  );
+
+  // Change handler
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
+
+    if (name === "note") {
+      debouncedSuggest(formData.type, value);
+    }
 
     if (type === "checkbox") {
       setFormData((prev) => ({ ...prev, [name]: checked }));
@@ -133,6 +154,7 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
           ).unwrap();
         }
         toast.success("Cập nhật thành công!");
+        dispatch(getNotifications());
       } else {
         await dispatch(createTransaction(formPayload)).unwrap(); // tương tự
         toast.success("Tạo giao dịch thành công!");
@@ -184,6 +206,17 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
           </div>
 
           <div>
+            <label className="block text-sm font-medium">{t("note")}</label>
+            <textarea
+              name="note"
+              value={formData.note}
+              onChange={handleChange}
+              className="w-full border px-3 py-2 rounded"
+              rows="2"
+            ></textarea>
+          </div>
+
+          <div className="flex flex-col gap-2">
             <label className="block text-sm font-medium">
               {t("categoriesLabel")}
             </label>
@@ -206,17 +239,12 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
                   </option>
                 ))}
             </select>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium">{t("note")}</label>
-            <textarea
-              name="note"
-              value={formData.note}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded"
-              rows="2"
-            ></textarea>
+            {categorySuggest !== "" && formData.note !== "" && (
+              <span className="text-sm font-medium text-slate-500">
+                {t("suggestion")}: {categorySuggest}
+              </span>
+            )}
           </div>
 
           {!formData.isRecurring && (
