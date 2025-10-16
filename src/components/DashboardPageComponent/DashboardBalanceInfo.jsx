@@ -14,10 +14,20 @@ const DashboardBalanceInfo = ({ className = "" }) => {
   const { t, i18n } = useTranslation();
   const dispatch = useDispatch();
 
+  const today = new Date();
+
+  // 🗓️ Lấy ngày đầu tháng
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  // 🗓️ Lấy ngày cuối tháng
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
   useEffect(() => {
     const date = new Date();
     dispatch(
-      getDashboard({ month: date.getMonth() + 1, year: date.getFullYear() })
+      getDashboard({
+        start: firstDay.toISOString().split("T")[0],
+        end: lastDay.toISOString().split("T")[0],
+      })
     );
   }, []);
 

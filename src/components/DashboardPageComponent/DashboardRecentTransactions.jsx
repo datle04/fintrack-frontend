@@ -14,6 +14,11 @@ const DashboardRecentTransactions = ({ className = "" }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const today = new Date();
+  // 🗓️ Lấy ngày đầu tháng
+  const firstDay = new Date(today.getFullYear(), 1, 1);
+  // 🗓️ Lấy ngày cuối tháng
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
   useEffect(() => {
     dispatch(
@@ -21,8 +26,8 @@ const DashboardRecentTransactions = ({ className = "" }) => {
         type: "",
         category: "",
         keyword: "",
-        month: "",
-        year: "",
+        startDate: firstDay.toISOString().split("T")[0],
+        endDate: lastDay.toISOString().split("T")[0],
       })
     );
   }, []);

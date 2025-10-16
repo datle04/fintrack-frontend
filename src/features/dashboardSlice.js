@@ -13,10 +13,10 @@ const initialState = {
 
 export const getDashboard = createAsyncThunk('dashboard/getDashboard', async (date, { getState, rejectWithValue }) => {
     try {
-        const { month, year } = date;
+        const { start, end } = date;
         const { token } = getState().auth;
         const res = await axios.get(
-            `${BACK_END_URL}/api/dashboard?month=${month}&year=${year}`,
+            `${BACK_END_URL}/api/dashboard?startDate=${start}&endDate=${end}`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`

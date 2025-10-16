@@ -15,12 +15,13 @@ const DashboardStat = ({ className = "" }) => {
   const loading = useSelector((state) => state.stat.loading);
 
   useEffect(() => {
-    const now = new Date(); // di chuyển vào đây
+    const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     if (stats.length === 0 && !loading) {
       dispatch(
         getExpenseStat({
+          type: "expense",
           startDate: startOfMonth.toISOString().split("T")[0],
           endDate: endOfMonth.toISOString().split("T")[0],
         })

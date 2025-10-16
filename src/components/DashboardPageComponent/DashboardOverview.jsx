@@ -34,7 +34,7 @@ const DashboardOverview = ({ className = "" }) => {
       "Nov",
       "Dec",
     ];
-    return monthNames.slice(0, currentMonth + 1);
+    return monthNames.slice(0, currentMonth + 2);
   };
 
   useEffect(() => {
@@ -42,35 +42,47 @@ const DashboardOverview = ({ className = "" }) => {
     const months = Array.from({ length: now.getMonth() + 1 }, (_, i) => i + 1);
 
     const fetchDashboardData = async () => {
-      const incomeArr = [];
-      const expenseArr = [];
+      try {
+        setLoading(true);
+        const res = await axios.get(`${BACK_END_URL}/api/dashboard/by-months`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setIncomeData((prev) => (prev = res.data.map((item) => item.income)));
+        setExpenseData((prev) => (prev = res.data.map((item) => item.expense)));
 
-      for (const month of months) {
-        try {
-          setLoading(true);
-          const res = await axios.get(
-            `${BACK_END_URL}/api/dashboard?month=${month}&year=${now.getFullYear()}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          const { totalIncome = 0, totalExpense = 0 } = res.data || {};
-          incomeArr.push(totalIncome);
-          expenseArr.push(totalExpense);
-
-          setLoading(false);
-        } catch (error) {
-          setLoading(false);
-          incomeArr.push(0);
-          expenseArr.push(0);
-        }
+        setLoading(false);
+      } catch (error) {
+        setLoading(false);
       }
 
-      setIncomeData(incomeArr);
-      setExpenseData(expenseArr);
+      // for (const month of months) {
+      //   try {
+      //     setLoading(true);
+      //     const res = await axios.get(
+      //       `${BACK_END_URL}/api/dashboard?month=${month}&year=${now.getFullYear()}`,
+      //       {
+      //         headers: {
+      //           Authorization: `Bearer ${token}`,
+      //         },
+      //       }
+      //     );
+
+      //     const { totalIncome = 0, totalExpense = 0 } = res.data || {};
+      //     incomeArr.push(totalIncome);
+      //     expenseArr.push(totalExpense);
+
+      //     setLoading(false);
+      //   } catch (error) {
+      //     setLoading(false);
+      //     incomeArr.push(0);
+      //     expenseArr.push(0);
+      //   }
+      // }
+      // setIncomeData(incomeArr);
+      // setExpenseData(expenseArr);
+
       setLabels(getMonthLabels());
     };
 

@@ -35,7 +35,8 @@
       "bonus": "Bonus",
       "salary": "Salary",
       "food": "Food",
-      "investment": "Investment"
+      "investment": "Investment",
+      "other": "Other"
   },
   "type": "Type",
   "month": "Month",
@@ -89,5 +90,7 @@
   "dob": "Date of birth",
   "address": "Address",
   "email": "Email",
-  "password": "Password"
+  "password": "Password",
+  "startDate": "From",
+  "endDate": "To"
 }

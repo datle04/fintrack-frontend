@@ -119,7 +119,7 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
       formPayload.append("amount", String(formData.amount));
       formPayload.append("category", formData.category);
       formPayload.append("note", formData.note);
-      formPayload.append("date", formData.date);
+      formPayload.append("date", formData?.date);
       formPayload.append(
         "isRecurring",
         formData.isRecurring ? "true" : "false"
@@ -242,7 +242,7 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
 
             {categorySuggest !== "" && formData.note !== "" && (
               <span className="text-sm font-medium text-slate-500">
-                {t("suggestion")}: {categorySuggest}
+                {t("suggestion")}: {t(`categories.${categorySuggest}`)}
               </span>
             )}
           </div>

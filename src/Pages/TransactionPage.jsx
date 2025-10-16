@@ -36,6 +36,7 @@ const TransactionPage = () => {
     { key: "salary", icon: "💰", color: "#22c55e" }, // xanh lá cây
     { key: "food", icon: "🍽️", color: "#c084fc" }, // tím
     { key: "investment", icon: "📈", color: "#0ea5e9" }, // xanh cyan
+    { key: "other", icon: "🏳️", color: "#808080" },
   ];
 
   const categoryOptions = [
@@ -49,6 +50,10 @@ const TransactionPage = () => {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [detailTransaction, setDetailTransaction] = useState(null);
   const today = new Date();
+  // 🗓️ Lấy ngày đầu tháng
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  // 🗓️ Lấy ngày cuối tháng
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   const [rawKeyword, setRawKeyword] = useState("");
   const [rawCategory, setRawCategory] = useState("");
   const typeOptions = ["All", "income", "expense"];
@@ -56,8 +61,8 @@ const TransactionPage = () => {
   const [filters, setFilters] = useState({
     type: "",
     category: "",
-    month: String(today.getMonth() + 1),
-    year: String(today.getFullYear()),
+    startDate: firstDay,
+    endDate: lastDay,
     keyword: "",
   });
   const debouncedSearch = useMemo(
@@ -84,15 +89,15 @@ const TransactionPage = () => {
     debouncedSearch(rawKeyword, val);
   };
 
-  const { type, category, month, year, keyword } = filters;
+  const { type, category, startDate, endDate, keyword } = filters;
 
   useEffect(() => {
-    dispatch(getDashboard({ month, year }));
-  }, [dispatch, month, year]);
+    dispatch(getDashboard({ start: startDate, end: endDate }));
+  }, [dispatch, startDate, endDate]);
 
   useEffect(() => {
     dispatch(getTransactions(filters));
-  }, [dispatch, type, category, month, year, keyword]);
+  }, [dispatch, type, category, startDate, endDate, keyword]);
 
   useEffect(() => {
     if (shouldRefetch) {
@@ -168,10 +173,11 @@ const TransactionPage = () => {
       <div className="flex flex-col lg:flex-row justify-between gap-4 2xl:gap-6 3xl:gap-8 bg-[#F5F6FA] p-4 2xl:p-6 3xl:p-8 rounded-md flex-wrap dark:bg-[#35363A]">
         {/* Filters */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 2xl:gap-6 3xl:gap-8 flex-[3]">
+          {/* Loại giao dịch */}
           <Select
             label={t("type")}
             name="type"
-            value={type}
+            value={filters.type}
             options={typeOptions}
             onChange={handleFilterChange}
             render={(opt) => {
@@ -187,10 +193,12 @@ const TransactionPage = () => {
               }
             }}
           />
+
+          {/* Danh mục */}
           <Select
             label={t("categoriesLabel")}
             name="category"
-            value={category}
+            value={filters.category}
             options={categoryOptions.map((opt) => opt.label)}
             onChange={(e) => {
               const selectedLabel = e.target.value;
@@ -202,23 +210,38 @@ const TransactionPage = () => {
               });
             }}
           />
-          <Select
-            label={t("month")}
-            name="month"
-            value={month}
-            options={[
-              "All",
-              ...Array.from({ length: 12 }, (_, i) => String(i + 1)),
-            ]}
-            onChange={handleFilterChange}
-          />
-          <Select
-            label={t("year")}
-            name="year"
-            value={year}
-            options={years}
-            onChange={handleFilterChange}
-          />
+
+          {/* Ngày bắt đầu */}
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-1">
+              {t("startDate")}
+            </label>
+            <input
+              type="date"
+              name="startDate"
+              value={filters.startDate}
+              onChange={handleFilterChange}
+              max={filters.endDate} // Không cho chọn ngày vượt quá endDate
+              className="bg-white text-gray-400 px-3 py-2 2xl:px-4 2xl:py-2 3xl:px-5 3xl:py-3 pr-8 rounded-md border border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-300 cursor-pointer text-sm 2xl:text-sm
+            dark:bg-[#2E2E33] dark:text-white/90 dark:border-slate-700"
+            />
+          </div>
+
+          {/* Ngày kết thúc */}
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-1">
+              {t("endDate")}
+            </label>
+            <input
+              type="date"
+              name="endDate"
+              value={filters.endDate}
+              onChange={handleFilterChange}
+              min={filters.startDate} // Không cho chọn ngày nhỏ hơn startDate
+              className="bg-white text-gray-400 px-3 py-2 2xl:px-4 2xl:py-2 3xl:px-5 3xl:py-3 pr-8 rounded-md border border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-300 cursor-pointer text-sm 2xl:text-sm
+            dark:bg-[#2E2E33] dark:text-white/90 dark:border-slate-700"
+            />
+          </div>
         </div>
 
         {/* SUMMARY - bên phải */}

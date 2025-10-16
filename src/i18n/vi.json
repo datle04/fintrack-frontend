@@ -35,7 +35,8 @@
     "bonus": "Thưởng",
     "salary": "Tiền lương",
     "food": "Ăn uống",
-    "investment": "Đầu tư"
+    "investment": "Đầu tư",
+    "other": "Khác"
 },
   "type": "Loại",
   "month": "Tháng",
@@ -89,5 +90,7 @@
   "dob": "Ngày sinh",
   "address": "Địa chỉ",
   "email": "Email",
-  "password": "Mật khẩu"
+  "password": "Mật khẩu",
+  "startDate": "Từ",
+  "endDate": "Đến"
 }

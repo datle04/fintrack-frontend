@@ -9,14 +9,14 @@ const initialState = {
     stats:[]
 }
 
-export const getExpenseStat = createAsyncThunk('stat/getExpenseStat', async (dates, { getState, rejectWithValue }) => {
+export const getExpenseStat = createAsyncThunk('stat/getCategoryStat', async (data, { getState, rejectWithValue }) => {
     const { token } = getState().auth;
 
     try {
-        const { startDate, endDate } = dates;
+        const { type, startDate, endDate } = data;
 
         const res = await axios.get(
-            `${BACK_END_URL}/api/stats/category-expense?startDate=${startDate}&endDate=${endDate}`,
+            `${BACK_END_URL}/api/stats/category-stats?type=${type}&startDate=${startDate}&endDate=${endDate}`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`
