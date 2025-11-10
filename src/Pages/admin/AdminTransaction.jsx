@@ -21,18 +21,24 @@ import { useTranslation } from "react-i18next";
 import formatDateToString from "../../utils/formatDateToString";
 import TransactionModal from "../../components/TransactionModal";
 import DetailTransaction from "../../components/DetailTransaction";
+import { getCurrentMonthRange } from "../../utils/dateHelper";
+import { SlMagnifier } from "react-icons/sl";
+import ConfirmModal from "../../components/ConfirmModal";
 
 const AdminTransaction = () => {
   const { t, i18n } = useTranslation();
+  const { startOfYear, present } = getCurrentMonthRange();
 
   const [category, setCategory] = useState("");
   const [type, setType] = useState("");
-  const [startDate, setStartDate] = useState(new Date(2025, 7, 1));
-  const [endDate, setEndDate] = useState(new Date(2025, 7, 31));
+  const [startDate, setStartDate] = useState(startOfYear);
+  const [endDate, setEndDate] = useState(present);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [selectingStartDate, setSelectingStartDate] = useState(true);
+  const [idSearch, setIdSearch] = useState("");
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   const datePickerRef = useRef(null);
 
@@ -75,6 +81,7 @@ const AdminTransaction = () => {
         page: 1,
       })
     );
+    console.log(transactions);
   }, [dispatch, category, type, endDate]);
 
   useEffect(() => {
@@ -264,6 +271,12 @@ const AdminTransaction = () => {
     };
   }, []);
 
+  const handleOpenConfirmModal = (e, transaction) => {
+    e.stopPropagation();
+    setSelectedTransaction(transaction);
+    setIsConfirmModalOpen(true);
+  };
+
   return (
     <div className="p-4 sm:p-6 bg-blue-50 min-h-screen">
       {/* Ẩn hoàn toàn trên điện thoại */}
@@ -373,6 +386,16 @@ const AdminTransaction = () => {
               </div>
             )}
           </div>
+
+          <div className="px-2 py-1 flex flex-1 items-center bg-white border border-slate-300 rounded">
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo ID người dùng..."
+              onChange={(e) => setIdSearch(e.target.value)}
+              className="w-full outline-none text-slate-700"
+            />
+            <SlMagnifier size={20} className="h-full self-end flex" />
+          </div>
         </div>
 
         {isDetailOpen && (
@@ -446,7 +469,7 @@ const AdminTransaction = () => {
                       <FaEdit />
                     </button>
                     <button
-                      onClick={(e) => handleDelete(e, tx._id)}
+                      onClick={(e) => handleOpenConfirmModal(e, tx)}
                       className="
                         p-1 text-red-500 hover:bg-red-100 cursor-pointer transition-all border border-red-300 rounded lg:text-base 3xl:text-base
                     "
@@ -458,6 +481,17 @@ const AdminTransaction = () => {
               ))}
             </tbody>
           </table>
+
+          {isConfirmModalOpen && (
+            <ConfirmModal
+              modalType={"transaction"}
+              isOpen={isConfirmModalOpen}
+              onClose={() => setIsConfirmModalOpen(false)}
+              // onConfirm={handleBan}
+              type={"delete"}
+              transaction={selectedTransaction}
+            />
+          )}
         </div>
         <Pagination
           page={page}

@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import formatCurrency from "../utils/formatCurrency";
+import { formatCurrency } from "../utils/formatCurrency";
 
 const DetailTransaction = ({ transaction, onClose }) => {
   if (!transaction) return null;
@@ -19,7 +19,11 @@ const DetailTransaction = ({ transaction, onClose }) => {
           />
           <Info
             label={t("amount")}
-            value={formatCurrency(transaction.amount) + " đ"}
+            value={formatCurrency(
+              transaction.amount,
+              transaction.currency,
+              i18n.language
+            )}
           />
           <Info
             label={t("categoriesLabel")}

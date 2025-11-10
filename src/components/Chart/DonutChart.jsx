@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { Doughnut } from "react-chartjs-2";
 import { useTranslation } from "react-i18next";
+import { formatCurrency, getCurrencyInfo } from "../../utils/formatCurrency"; // Import helper của bạn
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -17,16 +18,44 @@ const COLORS = [
   "#3B82F6",
 ];
 
-const DonutChart = ({ categoryStats = [], totalBudget = 0 }) => {
+// --- SỬA 1: CHỈ NHẬN 1 PROP 'budget' ---
+const DonutChart = ({ budget }) => {
   const [activeIndex, setActiveIndex] = useState(null);
-  const filteredStats = categoryStats.filter((item) => item.spentAmount > 0);
   const { t, i18n } = useTranslation();
 
+  // --- SỬA 2: Trích xuất dữ liệu từ 'budget' ---
+  // Dùng '?' để tránh lỗi nếu 'budget' ban đầu là null/undefined
+  const categoryStats = budget?.categoryStats || [];
+  const totalBudget = budget?.totalBudget || 0; // Đây là base amount (VND)
+
+  // Lấy thông tin tiền tệ (ví dụ: { displayCurrency: "EUR", exchangeRate: 27000 })
+  const { displayCurrency, exchangeRate } = useMemo(
+    () => getCurrencyInfo(budget),
+    [budget]
+  );
+
+  // Xử lý mảng categoryStats (thêm displayAmount)
+  const processedStats = useMemo(() => {
+    return categoryStats
+      .map((item) => {
+        const baseAmount = item.spentAmount; // spentAmount từ API là base (VND)
+        const displayAmount = baseAmount / exchangeRate; // Quy đổi sang EUR/USD...
+
+        return {
+          ...item,
+          baseAmount: baseAmount,
+          displayAmount: displayAmount,
+        };
+      })
+      .filter((item) => item.baseAmount > 0);
+  }, [categoryStats, exchangeRate]);
+
+  // Dùng 'baseAmount' (VND) để vẽ biểu đồ
   const chartData = {
-    labels: filteredStats.map((item) => item.category),
+    labels: processedStats.map((item) => item.category),
     datasets: [
       {
-        data: filteredStats.map((item) => item.spentAmount),
+        data: processedStats.map((item) => item.baseAmount), // Luôn dùng base
         backgroundColor: COLORS,
         borderWidth: 2,
       },
@@ -44,6 +73,8 @@ const DonutChart = ({ categoryStats = [], totalBudget = 0 }) => {
         color: "#fff",
         font: { weight: "bold", size: 13 },
         formatter: (value) => {
+          // 'value' là baseAmount, 'totalBudget' là baseTotalBudget
+          // Cả hai đều là VND, nên phép tính này ĐÚNG
           const percent = totalBudget
             ? ((value / totalBudget) * 100).toFixed(0)
             : 0;
@@ -60,24 +91,27 @@ const DonutChart = ({ categoryStats = [], totalBudget = 0 }) => {
     },
     elements: {
       arc: {
-        borderWidth: 2,
-        hoverBorderWidth: 2,
-        hoverBackgroundColor: (ctx) => {
-          const i = ctx.index;
-          return COLORS[i] + "CC"; // Thêm opacity
-        },
+        /* ... (không đổi) */
       },
     },
   };
 
+  // --- SỬA 3: Cập nhật centerData để dùng formatCurrency ---
   const centerData =
-    activeIndex !== null && filteredStats[activeIndex]
+    activeIndex !== null && processedStats[activeIndex]
       ? {
-          label: filteredStats[activeIndex].category,
-          amount: filteredStats[activeIndex].spentAmount.toLocaleString() + "đ",
+          label: processedStats[activeIndex].category,
+
+          // Dùng hàm formatCurrency mới
+          formattedAmount: formatCurrency(
+            processedStats[activeIndex].displayAmount, // Số tiền (ví dụ: 100.5)
+            displayCurrency, // Tiền tệ (ví dụ: "EUR")
+            i18n.language // Ngôn ngữ (ví dụ: "vi")
+          ),
+
           percent: totalBudget
             ? (
-                (filteredStats[activeIndex].spentAmount / totalBudget) *
+                (processedStats[activeIndex].baseAmount / totalBudget) *
                 100
               ).toFixed(0)
             : 0,
@@ -86,21 +120,20 @@ const DonutChart = ({ categoryStats = [], totalBudget = 0 }) => {
 
   return (
     <div className="relative w-full max-w-[320px] h-[280px] mx-auto">
-      {/* Biểu đồ */}
       <Doughnut
         data={chartData}
         options={options}
         plugins={[ChartDataLabels]}
       />
 
-      {/* Text ở giữa */}
       {centerData && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-10 pointer-events-none">
           <div className="text-[14px] text-gray-700 font-medium dark:text-white">
             {t(`categories.${centerData.label}`)} - {centerData.percent}%
           </div>
           <div className="text-[12px] text-gray-900 font-semibold mt-1 dark:text-white/83">
-            {centerData.amount}
+            {/* --- SỬA 4: Chỉ cần render 1 biến duy nhất --- */}
+            {centerData.formattedAmount}
           </div>
         </div>
       )}

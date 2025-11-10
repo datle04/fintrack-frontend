@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { getTransactions } from "../../features/transactionSlice";
 import { getDashboard } from "../../features/dashboardSlice";
 import formatDateToString from "../../utils/formatDateToString";
-import formatCurrencyVN from "../../utils/formatCurrency";
+import { formatCurrency } from "../../utils/formatCurrency";
 import { useNavigate } from "react-router";
 import RecentTransactionsLoading from "../Loading/DashboardLoading/RecentTransactionsLoading";
 import { useTranslation } from "react-i18next";
@@ -80,14 +80,14 @@ const DashboardRecentTransactions = ({ className = "" }) => {
               </span>
               <span>{formatDateToString(item.date)}</span>
               <span
-                className={`${
+                className={`text-ellipsis line-clamp-1 ${
                   item.type === "expense"
                     ? "text-[#FB2C36] dark:text-[#d45158]"
                     : "text-[#00C951] dark:text-[#3b995a]"
-                }`}
+                } `}
               >
                 {item.type === "expense" ? "-" : "+"}
-                {formatCurrencyVN(item.amount)}
+                {formatCurrency(item.amount, item.currency, i18n.language)}
               </span>
             </div>
           ))}

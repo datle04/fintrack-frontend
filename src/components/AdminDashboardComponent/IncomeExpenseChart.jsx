@@ -75,7 +75,7 @@ const IncomeExpenseChart = ({ monthlyStats }) => {
   };
 
   return (
-    <div className="bg-white p-4 shadow-md rounded-xl">
+    <div className="bg-white p-4 border border-slate-300 shadow-md rounded-xl">
       <h2 className="my-2 text-base text-center lg:text-lg 3xl:text-xl font-semibold text-gray-800">
         Tổng thu chi hàng tháng
       </h2>

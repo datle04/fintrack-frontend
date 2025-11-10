@@ -13,6 +13,9 @@ import CategoryPieChart from "../../components/AdminDashboardComponent/CategoryP
 import SessionBarChart from "../../components/AdminDashboardComponent/SessionBarChart";
 import axios from "axios";
 import WeeklyDurationChart from "../../components/AdminDashboardComponent/WeeklyDurationChart";
+import axiosInstance from "../../api/axiosInstance";
+import RecentErrorLogs from "../../components/AdminDashboardComponent/RecentErrorLogs";
+import NewUserSignupsChart from "../../components/AdminDashboardComponent/NewUserSignUpChart";
 
 const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
 
@@ -40,13 +43,8 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const fetchSessions = async () => {
-      const res = await axios.get(
-        `${BACK_END_URL}/api/admin/session/weekly-duration?mode=${mode}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const res = await axiosInstance.get(
+        `${BACK_END_URL}/api/admin/session/weekly-duration?mode=${mode}`
       );
       setSessions(res.data);
     };
@@ -56,13 +54,8 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const fetchMostUsedCategories = async () => {
-      const res = await axios.get(
-        `${BACK_END_URL}/api/admin/categories/summary`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const res = await axiosInstance.get(
+        `${BACK_END_URL}/api/admin/categories/summary`
       );
       setMostUsedCategories(res.data);
     };
@@ -82,10 +75,12 @@ const AdminDashboard = () => {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CategoryPieChart data={mostUsedCategories} />
+        <RecentErrorLogs />
+        <WeeklyDurationChart data={sessions} mode={mode} setMode={setMode} />
+        <NewUserSignupsChart />
         <IncomeExpenseChart monthlyStats={monthlyStats} />
         <TransactionBarChart transactionData={transactionData} />
-        <CategoryPieChart data={mostUsedCategories} />
-        <WeeklyDurationChart data={sessions} mode={mode} setMode={setMode} />
       </div>
     </div>
   );

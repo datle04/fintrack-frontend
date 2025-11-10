@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getBudget } from "../features/budgetSlice";
-import formatCurrencyVN from "../utils/formatCurrency";
+import { deleteBudget, getBudget } from "../features/budgetSlice";
+import { formatCurrency, getDisplaySpentValue } from "../utils/formatCurrency";
 import MyBudgetCircle from "../components/BudgetPageComponent/MyBudgetCircle";
 import BudgetByCategory from "../components/BudgetPageComponent/BudgetByCategory";
 import BudgetModal from "../components/BudgetPageComponent/BudgetModal";
 import BudgetPageLoading from "../components/Loading/BudgetLoading/BudgetPageLoading";
 import { useTranslation } from "react-i18next";
+import { getCurrencySymbol } from "../utils/currencies";
+import toast from "react-hot-toast";
 
 const BudgetPage = () => {
   const now = new Date();
@@ -59,7 +61,46 @@ const BudgetPage = () => {
     fetchBudget();
   }, [selectedMonth, selectedYear]);
 
+  const handleDelete = async () => {
+    toast.promise(
+      dispatch(
+        deleteBudget({ month: selectedMonth, year: selectedYear })
+      ).unwrap(),
+      {
+        loading: "Removing...",
+        success: <b>Xóa thành công</b>,
+        error: (err) => (
+          <b>{err?.message || String(err) || "Gặp lỗi khi xóa"}</b>
+        ),
+      }
+    );
+  };
+
   if (budget.loading) return <BudgetPageLoading />;
+
+  // --- TÍNH TOÁN HIỂN THỊ ---
+  let displayBudget = 0;
+  let displaySpent = 0;
+  let displayRemaining = 0;
+  let displayCurrency = "VND"; // Mặc định
+
+  if (budget.month) {
+    // --- SỬA: Lấy đúng trường originalCurrency ---
+    const { originalAmount, currency, totalBudget, totalSpent } = budget;
+
+    const processed = getDisplaySpentValue(budget);
+    displayCurrency = processed.displayCurrency; // Sẽ là "EUR"
+    displaySpent = processed.displaySpent; // Sẽ là số tiền EUR
+
+    if (displayCurrency === "VND") {
+      displayBudget = totalBudget;
+    } else {
+      displayBudget = originalAmount; // Sẽ là số tiền EUR
+    }
+
+    displayRemaining = displayBudget - displaySpent;
+  }
+  // --- KẾT THÚC TÍNH TOÁN ---
 
   return (
     <section
@@ -132,17 +173,31 @@ const BudgetPage = () => {
               ))}
             </select>
           </div>
-          <div className="flex-1 flex flex-col">
-            <div className="flex-1"></div>
-            <button
-              onClick={() => setIsFormOpen(true)}
-              className="
-                flex-1 font-bold text-lg bg-[#767CFF] text-[#FFF7FF] rounded cursor-pointer hover:bg-[#8476ff] dark:bg-indigo-600 dark:hover:bg-indigo-700 transition-all
-                lg:self-start lg:px-8
+          <div className="w-full flex-2 flex gap-2">
+            <div className="flex-1 flex flex-col">
+              <div className="flex-1"></div>
+              <button
+                onClick={() => setIsFormOpen(true)}
+                className="
+                w-full flex-1 font-bold text-lg bg-[#767CFF] text-[#FFF7FF] rounded cursor-pointer hover:bg-[#8476ff] dark:bg-indigo-600 dark:hover:bg-indigo-700 transition-all
+                lg:self-start lg:px-8 lg:py-2
           "
-            >
-              + {t("add")}
-            </button>
+              >
+                {t("add")}
+              </button>
+            </div>
+            <div className="flex-1 flex flex-col">
+              <div className="flex-1"></div>
+              <button
+                onClick={() => handleDelete()}
+                className="
+                w-full flex-1 font-bold text-lg bg-red-600 text-[#FFF7FF] rounded cursor-pointer hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 transition-all
+                lg:self-start lg:px-8 lg:py-2
+          "
+              >
+                {t("remove")}
+              </button>
+            </div>
           </div>
         </section>
 
@@ -171,12 +226,18 @@ const BudgetPage = () => {
       "
           >
             <div className="flex-1 flex flex-col gap-3 sm:justify-center sm:gap-4 sm:text-lg sm:p-3">
+              {/* --- BẮT ĐẦU SỬA LỖI HIỂN THỊ --- */}
               <div className="flex flex-col gap-1 sm:flex-row">
                 <p className="text-[#464646] font-semibold dark:text-white/83">
                   {t("totalBudget")}:
                 </p>
                 <span className="text-[#767CFF] dark:text-indigo-600">
-                  {formatCurrencyVN(budget.totalBudget)} đ
+                  {/* Sửa: Dùng displayBudget và displayCurrency */}
+                  {formatCurrency(
+                    displayBudget,
+                    displayCurrency,
+                    i18n.language
+                  )}
                 </span>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row">
@@ -184,7 +245,8 @@ const BudgetPage = () => {
                   {t("totalSpent")}:
                 </p>
                 <span className="text-red-500 dark:text-red-600">
-                  {formatCurrencyVN(budget.totalSpent)} đ
+                  {/* Sửa: Dùng displaySpent và displayCurrency */}
+                  {formatCurrency(displaySpent, displayCurrency, i18n.language)}
                 </span>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row">
@@ -192,9 +254,15 @@ const BudgetPage = () => {
                   {t("totalRemain")}:
                 </p>
                 <span className="text-green-500 dark:text-green-600">
-                  {formatCurrencyVN(+budget.totalBudget - +budget.totalSpent)} đ
+                  {/* Sửa: Dùng displayRemaining và displayCurrency */}
+                  {formatCurrency(
+                    displayRemaining,
+                    displayCurrency,
+                    i18n.language
+                  )}
                 </span>
               </div>
+              {/* --- KẾT THÚC SỬA LỖI HIỂN THỊ --- */}
             </div>
 
             <div className="flex-1 self-center flex flex-col items-center gap-5">
@@ -239,6 +307,7 @@ const BudgetPage = () => {
         <BudgetByCategory
           categoryList={categoryList}
           categoryStats={budget.categoryStats}
+          currency={budget.currency}
         />
       </section>
     </section>

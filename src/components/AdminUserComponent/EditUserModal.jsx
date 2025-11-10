@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { currencyMap } from "../../utils/currencies";
 
 const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
   const [formData, setFormData] = useState({
@@ -8,6 +10,8 @@ const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
     dob: user?.dob || "",
     address: user?.address || "",
     phone: user?.phone || "",
+    currency: user?.currency || "VND",
+    reason: "",
   });
 
   useEffect(() => {
@@ -20,6 +24,8 @@ const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
         dob: user.dob || "",
         address: user.address || "",
         phone: user.phone || "",
+        currency: user.currency || "VND",
+        reason: "",
       });
     }
   }, [user]);
@@ -56,7 +62,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
               value={formData.name}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              placeholder="Nhập tên người dùng"
+              placeholder="Nhập tên người dùng..."
             />
           </div>
 
@@ -70,7 +76,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
               value={formData.email}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              placeholder="Nhập email"
+              placeholder="Nhập email..."
             />
           </div>
 
@@ -84,7 +90,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
               value={formData.dob}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              placeholder="Nhập ngày sinh"
+              placeholder="Nhập ngày sinh..."
             />
           </div>
 
@@ -98,7 +104,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
               value={formData.phone}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              placeholder="Nhập SĐT"
+              placeholder="Nhập SĐT..."
             />
           </div>
 
@@ -112,7 +118,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
               value={formData.address}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              placeholder="Nhập địa chỉ"
+              placeholder="Nhập địa chỉ..."
             />
           </div>
 
@@ -129,6 +135,38 @@ const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block mb-1 text-sm font-medium text-gray-700">
+              Đơn vị tiền tệ
+            </label>
+            <select
+              name="currency"
+              value={formData.currency}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            >
+              {[...currencyMap].map(([code, label]) => (
+                <option key={code} value={code} className="dark:bg-[#2E2E33]">
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block mb-1 text-sm font-medium text-gray-700">
+              Lý do
+            </label>
+            <input
+              type="text"
+              name="reason"
+              value={formData.reason}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              placeholder="Nhập lý do cho các thay đổi..."
+            />
           </div>
         </div>
 

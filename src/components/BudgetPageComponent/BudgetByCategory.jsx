@@ -1,11 +1,12 @@
 import React, { useEffect } from "react";
 import { getBudget } from "../../features/budgetSlice";
 import { useDispatch, useSelector } from "react-redux";
-import formatCurrencyVN from "../../utils/formatCurrency";
+import { formatCurrency } from "../../utils/formatCurrency";
 import { IoWarningOutline } from "react-icons/io5";
 import { useTranslation } from "react-i18next";
+import { getCurrencySymbol } from "../../utils/currencies";
 
-const BudgetByCategory = ({ categoryList, categoryStats }) => {
+const BudgetByCategory = ({ categoryList, categoryStats, currency }) => {
   const now = new Date();
   const { t, i18n } = useTranslation();
 
@@ -50,14 +51,51 @@ const BudgetByCategory = ({ categoryList, categoryStats }) => {
       className="
             w-full flex flex-col gap-3
             sm:px-2
-    "
+     "
     >
       {categoryStats.map((item, index) => {
+        // --- BẮT ĐẦU TÍNH TOÁN HIỂN THỊ CHO DANH MỤC ---
+
         const colors = getColorByUsage(item.percentUsed || 0);
-        const remaining = +item.budgetedAmount - +item.spentAmount;
         const percent = item.percentUsed || 0;
         const padded =
           percent < 100 ? String(percent).padStart(2, "0") + "%" : "100%";
+
+        let displayBudgetedAmount = 0;
+        let displaySpentAmount = 0;
+        let displayRemainingAmount = 0;
+
+        // 'currency' là prop (ví dụ: "USD") được truyền từ component cha
+        const displayCurrencySymbol = getCurrencySymbol(currency);
+        const BASE_CURRENCY = "VND";
+
+        if (currency === BASE_CURRENCY || !currency) {
+          // TRƯỜNG HỢP 1: Ngân sách là VND
+          displayBudgetedAmount = item.budgetedAmount; // VND
+          displaySpentAmount = item.spentAmount; // VND
+        } else {
+          // TRƯỜNG HỢP 2: Ngân sách là ngoại tệ (ví dụ: USD)
+          displayBudgetedAmount = item.originalBudgetedAmount; // USD
+
+          // Tính tỷ giá cho danh mục này
+          // (VND / USD) = tỷ giá
+          let exchangeRate = 1;
+          if (item.originalBudgetedAmount !== 0) {
+            exchangeRate = item.budgetedAmount / item.originalBudgetedAmount;
+          }
+          if (exchangeRate === 0) exchangeRate = 1; // Tránh chia cho 0
+
+          // Quy đổi spent (VND) về (USD)
+          displaySpentAmount = item.spentAmount / exchangeRate;
+        }
+
+        // Tính toán 'còn lại' dựa trên các giá trị *hiển thị*
+        displayRemainingAmount = displayBudgetedAmount - displaySpentAmount;
+        if (displayRemainingAmount < 0) {
+          displayRemainingAmount = 0;
+        }
+
+        // --- KẾT THÚC TÍNH TOÁN HIỂN THỊ ---
 
         return (
           <div
@@ -69,7 +107,14 @@ const BudgetByCategory = ({ categoryList, categoryStats }) => {
               return (
                 <h2 className="flex items-center text-[#464646] text-sm font-semibold sm:text-base sm:px-5 lg:px-2 xl:px-5 xl:w-[90%] xl:mx-auto dark:text-white/83">
                   <span className="mr-2">{icon}</span>
-                  {label}: {formatCurrencyVN(+item?.budgetedAmount)} đ
+                  {label}:{" "}
+                  {/* SỬA LỖI: Dùng displayBudgetedAmount và displayCurrencySymbol */}
+                  {formatCurrency(
+                    displayBudgetedAmount,
+                    currency,
+                    i18n.language
+                  )}
+                  {/* {displayCurrencySymbol} */}
                   {item.percentUsed > 80 && (
                     <IoWarningOutline className="mx-1 text-red-500" />
                   )}
@@ -84,7 +129,13 @@ const BudgetByCategory = ({ categoryList, categoryStats }) => {
                     style={{ backgroundColor: colors.spent }}
                   ></div>
                   <span className="text-[#464646] text-[12px] sm:text-base dark:text-white/83">
-                    {t("spent")}: {formatCurrencyVN(item.spentAmount)} đ
+                    {t("spent")}:{" "}
+                    {/* SỬA LỖI: Dùng displaySpentAmount và displayCurrencySymbol */}
+                    {formatCurrency(
+                      displaySpentAmount,
+                      currency,
+                      i18n.language
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2">
@@ -94,7 +145,12 @@ const BudgetByCategory = ({ categoryList, categoryStats }) => {
                   ></div>
                   <span className="text-[#464646] text-[12px] sm:text-base dark:text-white/83">
                     {t("remaining")}:{" "}
-                    {formatCurrencyVN(remaining < 0 ? 0 : remaining)} đ
+                    {/* SỬA LỖI: Dùng displayRemainingAmount và displayCurrencySymbol */}
+                    {formatCurrency(
+                      displayRemainingAmount,
+                      currency,
+                      i18n.language
+                    )}
                   </span>
                 </div>
               </div>
@@ -109,7 +165,7 @@ const BudgetByCategory = ({ categoryList, categoryStats }) => {
                   <div
                     className="h-4 rounded-full transition-all duration-500"
                     style={{
-                      width: `${item.percentUsed || 0}%`,
+                      width: `${item.percentUsed || 0}%`, // percentUsed là đúng vì (VND/VND)
                       backgroundColor: colors.spent,
                     }}
                   ></div>

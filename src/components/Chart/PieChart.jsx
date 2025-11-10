@@ -4,11 +4,12 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import useWindowWidth from "../../utils/useWindowWidth";
 import PieChartLoading from "../Loading/DashboardLoading/PieChartLoading";
 import { useTranslation } from "react-i18next";
+import { formatCurrency } from "../../utils/formatCurrency";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const PieChart = ({ stats, loading }) => {
-  const { t } = useTranslation();
+const PieChart = ({ stats, loading, userCurrency }) => {
+  const { t, i18n } = useTranslation();
   const width = useWindowWidth();
 
   const COLORS = [
@@ -32,14 +33,14 @@ const PieChart = ({ stats, loading }) => {
   };
 
   const isDarkMode = document.documentElement.classList.contains("dark");
-  const totalAmount = stats.reduce((acc, item) => acc + item.total, 0);
+  const totalAmount = stats.reduce((acc, item) => acc + item.displayAmount, 0);
 
   const data = {
     labels: stats.map((stat) => stat.category),
     datasets: [
       {
         label: "Stats",
-        data: stats.map((stat) => stat.total),
+        data: stats.map((stat) => stat.displayAmount),
         backgroundColor: COLORS,
         borderWidth: 1,
       },
@@ -94,7 +95,11 @@ const PieChart = ({ stats, loading }) => {
               : "0";
             const rawLabel = context.label;
             const translatedLabel = t(`categories.${rawLabel}`) || rawLabel;
-            return `${translatedLabel}: ${value.toLocaleString()} đ (${percent}%)`;
+            return `${translatedLabel}: ${formatCurrency(
+              value,
+              userCurrency,
+              i18n.language
+            )} (${percent}%)`;
           },
         },
       },

@@ -11,8 +11,10 @@ const DashboardStat = ({ className = "" }) => {
   const dispatch = useDispatch();
   const { t, i18n } = useTranslation();
 
-  const stats = useSelector((state) => state.stat.stats);
-  const loading = useSelector((state) => state.stat.loading);
+  const { stats, currency, loading, error } = useSelector(
+    (state) => state.stat
+  );
+  const userCurrency = useSelector((state) => state.auth.user.currency);
 
   useEffect(() => {
     const now = new Date();
@@ -24,10 +26,11 @@ const DashboardStat = ({ className = "" }) => {
           type: "expense",
           startDate: startOfMonth.toISOString().split("T")[0],
           endDate: endOfMonth.toISOString().split("T")[0],
+          currency: userCurrency,
         })
       );
     }
-  }, [dispatch]);
+  }, []);
 
   if (loading) return <StatLoading className={className} />;
 
@@ -52,7 +55,11 @@ const DashboardStat = ({ className = "" }) => {
 
       <div className="h-full w-full p-5 flex justify-center items-center sm:p-0">
         <div className="w-full h-full sm:w-[80%] lg:w-[80%] lg:p-3 xl:w-[80%] 3xl:w-[70%]">
-          <PieChart stats={stats} loading={loading} />
+          <PieChart
+            stats={stats}
+            loading={loading}
+            userCurrency={userCurrency}
+          />
         </div>
       </div>
     </div>

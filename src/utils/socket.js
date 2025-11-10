@@ -2,11 +2,12 @@
 import { io } from "socket.io-client";
 
 let socket = null;
+const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
 
 export const connectSocket = (token) => {
-  socket = io("http://localhost:5000", {
+  socket = io(BACK_END_URL, {
     transports: ["websocket"],
-    auth: { token },
+    withCredentials: true, // 👈 GỬI COOKIE cùng socket handshake
   });
 
   socket.on("connect", () => {

@@ -1,20 +1,20 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios from "axios";
-
-const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
+import { createSlice, createAsyncThunk, isAnyOf } from "@reduxjs/toolkit";
+import axiosInstance from "../api/axiosInstance";
 
 const initialState = {
   user: JSON.parse(localStorage.getItem("user")) || null,
-  token: localStorage.getItem("token") || null,
   loading: false,
   error: null,
 };
 
+// ===================== THUNKS ===================== //
+
+// Đăng ký
 export const registerUser = createAsyncThunk(
   "auth/registerUser",
   async (credentials, { rejectWithValue }) => {
     try {
-      const res = await axios.post(`${BACK_END_URL}/api/auth/register`, credentials);
+      const res = await axiosInstance.post("/api/auth/register", credentials);
       return res.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -22,11 +22,25 @@ export const registerUser = createAsyncThunk(
   }
 );
 
+// Đăng nhập (nhận refreshToken + user)
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
   async (credentials, { rejectWithValue }) => {
     try {
-      const res = await axios.post(`${BACK_END_URL}/api/auth/login`, credentials);
+      const res = await axiosInstance.post("/api/auth/login", credentials);
+      return res.data; // { user, refreshToken }
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
+// Lấy thông tin user (Access Token cookie tự gửi)
+export const getUserInfo = createAsyncThunk(
+  "auth/getUserInfo",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.get("/api/user/me");
       return res.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -34,14 +48,12 @@ export const loginUser = createAsyncThunk(
   }
 );
 
+// Cập nhật thông tin user
 export const updateUser = createAsyncThunk(
   "auth/updateProfile",
-  async (formData, { getState, rejectWithValue }) => {
-    const { token } = getState().auth;
+  async (formData, { rejectWithValue }) => {
     try {
-      const res = await axios.put(`${BACK_END_URL}/api/user/profile`, formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axiosInstance.put("/api/user/profile", formData);
       return res.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -49,69 +61,154 @@ export const updateUser = createAsyncThunk(
   }
 );
 
+// Làm mới Access Token (dùng Refresh Token)
+export const refreshAuthToken = createAsyncThunk(
+  "auth/refreshToken",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.post("/api/auth/refresh");
+      return res.data; // Có thể trả user hoặc status
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
+// Đăng xuất (xoá cookie + refresh token)
+export const logoutUser = createAsyncThunk(
+  "auth/logoutUser",
+  async (_, { getState, rejectWithValue }) => {
+    const { refreshToken } = getState().auth;
+    try {
+      await axiosInstance.post("/api/auth/logout", { refreshToken });
+      return true;
+    } catch (error) {
+      console.warn("Backend logout failed, forcing client logout.");
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
+// ===================== SLICE ===================== //
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-  logout: (state) => {
-    state.user = null;
-    state.token = null;
-    state.loading = false;
-    state.error = null;
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
+    clearError: (state) => {
+      state.error = null;
+    },
   },
-  clearError: (state) => {
-    state.error = null;
-  }
+extraReducers: (builder) => {
+  // --- REGISTER --- //
+  builder
+    .addCase(registerUser.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    })
+    .addCase(registerUser.fulfilled, (state, action) => {
+      state.loading = false;
+      state.user = action.payload.user;
+      state.error = null;
+    })
+    .addCase(registerUser.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+  // --- LOGIN --- //
+  builder
+    .addCase(loginUser.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    })
+    .addCase(loginUser.fulfilled, (state, action) => {
+      const { user, refreshToken } = action.payload;
+      state.loading = false;
+      state.user = user;
+      state.refreshToken = refreshToken;
+      state.error = null;
+      localStorage.setItem("user", JSON.stringify(user));
+    })
+    .addCase(loginUser.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+  // --- GET USER INFO --- //
+  builder
+    .addCase(getUserInfo.pending, (state) => {
+      state.loading = true;
+    })
+    .addCase(getUserInfo.fulfilled, (state, action) => {
+      state.loading = false;
+      state.user = action.payload;
+      localStorage.setItem("user", JSON.stringify(action.payload));
+    })
+    .addCase(getUserInfo.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+  // --- UPDATE PROFILE --- //
+  builder
+    .addCase(updateUser.pending, (state) => {
+      state.loading = true;
+    })
+    .addCase(updateUser.fulfilled, (state, action) => {
+      state.loading = false;
+      state.user = { ...state.user, ...action.payload };
+      localStorage.setItem("user", JSON.stringify(state.user));
+    })
+    .addCase(updateUser.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+  // --- REFRESH TOKEN --- //
+  // builder
+  //   .addCase(refreshAuthToken.pending, (state) => {
+  //     state.loading = true;
+  //   })
+  //   .addCase(refreshAuthToken.fulfilled, (state, action) => {
+  //     const { refreshToken } = action.payload || {};
+  //     if (refreshToken) {
+  //       state.refreshToken = refreshToken;
+  //       localStorage.setItem("refreshToken", refreshToken);
+  //     }
+  //     state.loading = false;
+  //     state.error = null;
+  //   })
+  //   .addCase(refreshAuthToken.rejected, (state, action) => {
+  //     console.error("❌ Refresh token failed:", action.payload);
+  //     state.loading = false;
+  //     state.user = null;
+  //     state.refreshToken = null;
+  //     state.error = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+  //     localStorage.removeItem("user");
+  //     localStorage.removeItem("refreshToken");
+  //   });
+
+  // --- LOGOUT --- //
+  builder
+    .addCase(logoutUser.pending, (state) => {
+      state.loading = true;
+    })
+    .addCase(logoutUser.fulfilled, (state) => {
+      state.user = null;
+      state.refreshToken = null;
+      state.loading = false;
+      state.error = null;
+      localStorage.removeItem("user");
+    })
+    .addCase(logoutUser.rejected, (state) => {
+      state.user = null;
+      state.refreshToken = null;
+      state.loading = false;
+      state.error = null;
+      localStorage.removeItem("user");
+    });
 },
-  extraReducers: (builder) => {
-    builder
-      .addCase(registerUser.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(registerUser.fulfilled, (state, action) => {
-        state.loading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.error = null;
-      })
-      .addCase(registerUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      .addCase(loginUser.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(loginUser.fulfilled, (state, action) => {
-        state.loading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        localStorage.setItem("user", JSON.stringify(action.payload.user));
-        localStorage.setItem("token", action.payload.token);
-        state.error = null;
-      })
-      .addCase(loginUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      .addCase(updateUser.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(updateUser.fulfilled, (state, action) => {
-        state.loading = false;
-        state.user = action.payload;
-        console.log(action.payload);
-        
-        localStorage.setItem("user", JSON.stringify(action.payload)); // Cập nhật localStorage
-        state.error = null;
-      })
-      .addCase(updateUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
-  },
 });
 
-export const { logout, clearError } = authSlice.actions;
+export const { clearError } = authSlice.actions;
 export default authSlice.reducer;

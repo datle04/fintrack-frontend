@@ -5,10 +5,11 @@ import axios from "axios";
 import { useNavigate } from "react-router";
 import OverviewLoading from "../Loading/DashboardLoading/OverviewLoading";
 import { useTranslation } from "react-i18next";
+import axiosInstance from "../../api/axiosInstance";
 
 const DashboardOverview = ({ className = "" }) => {
   const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
-  const token = useSelector((state) => state.auth.token);
+  const user = useSelector((state) => state.auth);
   const { t, i18n } = useTranslation();
 
   const navigate = useNavigate();
@@ -42,56 +43,28 @@ const DashboardOverview = ({ className = "" }) => {
     const months = Array.from({ length: now.getMonth() + 1 }, (_, i) => i + 1);
 
     const fetchDashboardData = async () => {
+      console.log("Called!");
+
       try {
         setLoading(true);
-        const res = await axios.get(`${BACK_END_URL}/api/dashboard/by-months`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const res = await axiosInstance.get(`/api/dashboard/by-months`);
+        console.log(res.data);
         setIncomeData((prev) => (prev = res.data.map((item) => item.income)));
         setExpenseData((prev) => (prev = res.data.map((item) => item.expense)));
-
         setLoading(false);
       } catch (error) {
         setLoading(false);
       }
 
-      // for (const month of months) {
-      //   try {
-      //     setLoading(true);
-      //     const res = await axios.get(
-      //       `${BACK_END_URL}/api/dashboard?month=${month}&year=${now.getFullYear()}`,
-      //       {
-      //         headers: {
-      //           Authorization: `Bearer ${token}`,
-      //         },
-      //       }
-      //     );
-
-      //     const { totalIncome = 0, totalExpense = 0 } = res.data || {};
-      //     incomeArr.push(totalIncome);
-      //     expenseArr.push(totalExpense);
-
-      //     setLoading(false);
-      //   } catch (error) {
-      //     setLoading(false);
-      //     incomeArr.push(0);
-      //     expenseArr.push(0);
-      //   }
-      // }
-      // setIncomeData(incomeArr);
-      // setExpenseData(expenseArr);
-
       setLabels(getMonthLabels());
     };
 
-    if (token) {
+    if (user) {
       fetchDashboardData();
     }
-  }, [token]);
+  }, [user]);
 
-  if (incomeData.length === 0 && expenseData.length === 0 && token) {
+  if (incomeData.length === 0 && expenseData.length === 0 && user) {
     return <OverviewLoading className={className} />;
   }
 

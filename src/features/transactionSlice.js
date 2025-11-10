@@ -1,5 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
+import axiosInstance from "../api/axiosInstance";
+import { merge } from "lodash";
 
 const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
 
@@ -13,18 +15,12 @@ const initialState = {
     error: null
 }
 
-export const getTransactions = createAsyncThunk('transaction/getTransactions', async (filter, { getState, rejectWithValue }) => {
-    const { token } = getState().auth;
+export const getTransactions = createAsyncThunk('transaction/getTransactions', async (filter, { rejectWithValue }) => {
     try {
         const { type, category, keyword, startDate, endDate, page = 1} = filter;
 
-        const res = await axios.get(
-            `${BACK_END_URL}/api/transaction?type=${type}&category=${category}&keyword=${keyword}&startDate=${startDate}&endDate=${endDate}&page=${page}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                }
-            }, 
+        const res = await axiosInstance.get(
+            `/api/transaction?type=${type}&category=${category}&keyword=${keyword}&startDate=${startDate}&endDate=${endDate}&page=${page}`
         );
         return res.data;
     } catch (error) {
@@ -33,18 +29,12 @@ export const getTransactions = createAsyncThunk('transaction/getTransactions', a
     }
 });
 
-export const adminGetTransactions = createAsyncThunk('admin/transaction/getTransactions', async (filter, { getState, rejectWithValue }) => {
-    const { token } = getState().auth;
+export const adminGetTransactions = createAsyncThunk('admin/transaction/getTransactions', async (filter, { rejectWithValue }) => {
     try {
         const { type = '', category = '', keyword = '', startDate = '', endDate = '', page = 1} = filter;
 
-        const res = await axios.get(
-            `${BACK_END_URL}/api/admin/transactions?type=${type}&category=${category}&keyword=${keyword}&startDate=${startDate}&endDate=${endDate}&page=${page}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                }
-            }, 
+        const res = await axiosInstance.get(
+            `/api/admin/transactions?type=${type}&category=${category}&keyword=${keyword}&startDate=${startDate}&endDate=${endDate}&page=${page}`, 
         );
         return res.data;
     } catch (error) {
@@ -54,18 +44,12 @@ export const adminGetTransactions = createAsyncThunk('admin/transaction/getTrans
 });
 
 
-export const getTransactionsByMonth = createAsyncThunk('transaction/getTransactionsByMonth', async (date, { getState, rejectWithValue }) => {
-    const { token } = getState().auth;
+export const getTransactionsByMonth = createAsyncThunk('transaction/getTransactionsByMonth', async (date, { rejectWithValue }) => {
     try {
         const {month, year} = date;
 
-        const res = await axios.get(
-            `${BACK_END_URL}/api/transaction/by-month?month=${month}&year=${year}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                }
-            }, 
+        const res = await axiosInstance.get(
+            `/api/transaction/by-month?month=${month}&year=${year}`,
         );
         return res.data;
     } catch (error) {
@@ -76,19 +60,11 @@ export const getTransactionsByMonth = createAsyncThunk('transaction/getTransacti
 
 export const createTransaction = createAsyncThunk(
   'transaction/createTransaction',
-  async (formData, { getState, rejectWithValue }) => {
+  async (formData, { rejectWithValue }) => {
     try {
-      const { token } = getState().auth;
-
-      const res = await axios.post(
-        `${BACK_END_URL}/api/transaction`,
+      const res = await axiosInstance.post(
+        `/api/transaction`,
         formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        }
       );
 
       return res.data.transaction;
@@ -100,18 +76,11 @@ export const createTransaction = createAsyncThunk(
 
 export const updateTransaction = createAsyncThunk(
   'transaction/updateTransaction',
-  async ({ id, fields }, { getState, rejectWithValue }) => { 
+  async ({ id, fields }, { rejectWithValue }) => { 
     try {
-      const { token } = getState().auth;
-
-      const res = await axios.put(
-        `${BACK_END_URL}/api/transaction/${id}`,
+      const res = await axiosInstance.put(
+        `/api/transaction/${id}`,
         fields, 
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
       );
 
       return res.data;
@@ -122,18 +91,11 @@ export const updateTransaction = createAsyncThunk(
 );
 
 export const adminUpdateTransaction = createAsyncThunk(
-    'admin/transaction/adminUpdateTransaction', async ({ id, fields }, { getState, rejectWithValue }) => {
+    'admin/transaction/adminUpdateTransaction', async ({ id, fields }, {rejectWithValue }) => {
     try {
-        const { token } = getState().auth;
-
-        const res = await axios.put(
-            `${BACK_END_URL}/api/admin/transactions/${id}`,
+        const res = await axiosInstance.put(
+            `/api/admin/transactions/${id}`,
             fields, 
-            {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-            }
         );
 
         return res.data;
@@ -143,16 +105,10 @@ export const adminUpdateTransaction = createAsyncThunk(
     }
 )
 
-export const deleteTransaction = createAsyncThunk('transaction/deleteTransaction', async (id, { getState, rejectWithValue}) => {
+export const deleteTransaction = createAsyncThunk('transaction/deleteTransaction', async (id, { rejectWithValue}) => {
     try {
-        const { token } = getState().auth;
-        await axios.delete(
-            `${BACK_END_URL}/api/transaction/${id}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                }
-            }, 
+        await axiosInstance.delete(
+            `/api/transaction/${id}`,
         );
 
         return id;       
@@ -161,16 +117,13 @@ export const deleteTransaction = createAsyncThunk('transaction/deleteTransaction
     }
 });
 
-export const adminDeleteTransaction = createAsyncThunk('admin/transaction/adminDeleteTransaction', async (id, { getState, rejectWithValue}) => {
+export const adminDeleteTransaction = createAsyncThunk('admin/transaction/adminDeleteTransaction', async ({id, reason}, { rejectWithValue}) => {
     try {
-        const { token } = getState().auth;
-        await axios.delete(
-            `${BACK_END_URL}/api/admin/transactions/${id}`,
+        await axiosInstance.delete(
+            `/api/admin/transactions/${id}`,
             {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                }
-            }, 
+                data: {reason}
+            }
         );
 
         return id;       
@@ -266,9 +219,12 @@ const transactionSlice = createSlice({
             })
             .addCase(updateTransaction.fulfilled, (state, action) => {
                 state.loading = false;
+                console.log(action.payload);
                 const updated = action.payload;
                 const index = state.transactions.findIndex(tx => tx._id === updated._id);
                 if (index !== -1){
+                    console.log(state.transactions[index]);
+                    
                     state.transactions[index] = updated;
                 }
             })
@@ -320,13 +276,14 @@ const transactionSlice = createSlice({
                 state.error = null;
             })
             .addCase(adminUpdateTransaction.fulfilled, (state, action) => {
-                console.log(action.payload);
-                
                 state.loading = false;
                 const updated = action.payload;
                 const index = state.transactions.findIndex(tx => tx._id === updated._id);
-                if (index !== -1){
-                    state.transactions[index] = updated;
+
+                if (index !== -1) {
+                    const existingUser = state.transactions[index].user; // lưu user cũ
+                    // thay thế object transaction bằng updated, nhưng luôn gán user cũ
+                    state.transactions[index] = { ...updated, user: existingUser };
                 }
             })
             .addCase(adminUpdateTransaction.rejected, (state, action) => {

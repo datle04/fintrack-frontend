@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
+import axiosInstance from "../api/axiosInstance";
 
 const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
 
@@ -9,17 +10,10 @@ const initialState = {
     error: null,
 }
 
-export const getNotifications = createAsyncThunk('notification/getNotification', async (__, { getState, rejectWithValue }) => {
+export const getNotifications = createAsyncThunk('notification/getNotification', async (__, { rejectWithValue }) => {
     try {
-        const { token } = getState().auth;
-        
-        const res = await axios.get(
-            `${BACK_END_URL}/api/notification/`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            }
+        const res = await axiosInstance.get(
+            `/api/notification/`,
         )
         
         return res.data;
@@ -29,18 +23,11 @@ export const getNotifications = createAsyncThunk('notification/getNotification',
     }
 });
 
-export const markNotificationAsRead = createAsyncThunk('notificaiton/markNotificationAsRead', async (id, { getState, rejectWithValue }) => {
+export const markNotificationAsRead = createAsyncThunk('notificaiton/markNotificationAsRead', async (id, { rejectWithValue }) => {
     try {
-        const { token } = getState().auth;
-
-        const res = await axios.patch(
-            `${BACK_END_URL}/api/notification/${id}/read`,
+        const res = await axiosInstance.patch(
+            `/api/notification/${id}/read`,
             {},
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            }
         )
 
         return res.data;
@@ -50,12 +37,10 @@ export const markNotificationAsRead = createAsyncThunk('notificaiton/markNotific
     }
 })
 
-export const deleteNotification = createAsyncThunk('notification/deleteNotification', async (id, { getState, rejectWithValue }) => {
+export const deleteNotification = createAsyncThunk('notification/deleteNotification', async (id, { rejectWithValue }) => {
     try {
-        const { token } = getState().auth;
-
-        const res = await axios.delete(
-            `${BACK_END_URL}/${id}`,
+        const res = await axiosInstance.delete(
+            `/api/notification/${id}`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`

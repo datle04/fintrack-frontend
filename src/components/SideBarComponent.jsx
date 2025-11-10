@@ -9,6 +9,7 @@ import { IoMdCloseCircle } from "react-icons/io";
 import { IoStatsChart } from "react-icons/io5";
 import gsap from "gsap";
 import { useTranslation } from "react-i18next";
+import { LuGoal } from "react-icons/lu";
 
 function SidebarComponent({ setToggleSidebar }) {
   const { t, i18n } = useTranslation();
@@ -23,6 +24,7 @@ function SidebarComponent({ setToggleSidebar }) {
       path: "/transactions",
     },
     { icon: <GiReceiveMoney />, label: t("budget"), path: "/budget" },
+    { icon: <LuGoal />, label: t("financialGoal"), path: "/goals" },
     { icon: <IoStatsChart />, label: t("stat"), path: "/stat" },
     { icon: <MdSettings />, label: t("setting"), path: "/settings" },
   ];

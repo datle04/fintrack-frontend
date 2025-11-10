@@ -18,14 +18,14 @@ const PieChartDuplicate = ({ stats, onRender }) => {
     "#34d399",
   ];
 
-  const totalAmount = stats.reduce((acc, item) => acc + item.total, 0);
+  const totalAmount = stats.reduce((acc, item) => acc + item.displayAmount, 0);
 
   const data = {
     labels: stats.map((stat) => stat.category),
     datasets: [
       {
         label: "Stats",
-        data: stats.map((stat) => stat.total),
+        data: stats.map((stat) => stat.displayAmount),
         backgroundColor: COLORS,
         borderWidth: 1,
       },

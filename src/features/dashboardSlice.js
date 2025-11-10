@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
+import axiosInstance from "../api/axiosInstance";
 
 const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
 
@@ -8,20 +9,15 @@ const initialState = {
     totalIncome: 0,
     totalExpense: 0,
     balance: 0,
+    currency: "VND",
     error: null,
 }
 
-export const getDashboard = createAsyncThunk('dashboard/getDashboard', async (date, { getState, rejectWithValue }) => {
+export const getDashboard = createAsyncThunk('dashboard/getDashboard', async (data, { rejectWithValue }) => {
     try {
-        const { start, end } = date;
-        const { token } = getState().auth;
-        const res = await axios.get(
-            `${BACK_END_URL}/api/dashboard?startDate=${start}&endDate=${end}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            }
+        const { start, end, currency } = data;
+        const res = await axiosInstance.get(
+            `/api/dashboard?startDate=${start}&endDate=${end}&currency=${currency}`,
         )
         return res.data;
     } catch (error) {
@@ -45,6 +41,7 @@ const dashboardSlice = createSlice({
                 state.totalIncome = action.payload.totalIncome;
                 state.totalExpense = action.payload.totalExpense;
                 state.balance = action.payload.balance;
+                state.currency = action.payload.currency;
             })
             .addCase(getDashboard.rejected, (state, action) => {
                 state.loading = false;

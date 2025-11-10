@@ -23,17 +23,27 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const payload = isRegister
+      ? registerUser({ email, name, password })
+      : loginUser({ email, password });
+
+    const action = dispatch(payload).unwrap();
+
+    toast.promise(action, {
+      loading: isRegister ? "Đang tạo tài khoản..." : "Đang đăng nhập...",
+      success: isRegister ? "Đăng ký thành công!" : "Đăng nhập thành công!",
+      error: (err) => err || "Có lỗi xảy ra!",
+    });
+
     try {
+      await action;
+
+      // Nếu là đăng ký → chuyển sang màn login
       if (isRegister) {
-        await dispatch(registerUser({ email, name, password })).unwrap();
-        toast.dismiss("register-success");
-        toast.success("Đăng ký thành công!", { id: "register-success" });
         setIsRegister(false);
       } else {
-        await dispatch(loginUser({ email, password })).unwrap();
-        toast.dismiss("login-success");
-        toast.success("Đăng nhập thành công!", { id: "login-success" });
-
+        // Nếu là login → navigate tuỳ role
         setIsAppLoading(true);
         setTimeout(() => {
           if (user?.role === "admin") {
@@ -45,20 +55,20 @@ export default function Login() {
         }, 3000);
       }
 
+      // Reset form
       setEmail("");
       setName("");
       setPassword("");
     } catch (error) {
-      toast.dismiss("error-toast");
-      toast.error(error, { id: "error-toast" });
       dispatch(clearError());
+      // Không cần toast.error ở đây nữa vì toast.promise lo hết rồi
     }
   };
 
   return (
     <>
       {/* MOBILE */}
-      <div className="lg:hidden min-h-screen flex flex-col bg-gradient-to-b from-[#8f88ff] to-white">
+      <div className="lg:hidden min-h-screen flex flex-col bg-linear-to-b from-[#8f88ff] to-white">
         <header className="w-full flex items-center gap-2 px-4 py-3">
           <a href="#" className="flex items-start group">
             <div className="flex items-center">

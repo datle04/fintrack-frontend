@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
+import axiosInstance from "../api/axiosInstance";
 
 const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
 
@@ -12,16 +13,11 @@ const initialState = {
     totalLogs: 0
 }
 
-export const adminGetLogs = createAsyncThunk("/admin/logs/adminGetLogs", async (filter, {getState, rejectWithValue}) => {
-    const { token } = getState().auth;
+export const adminGetLogs = createAsyncThunk("/admin/logs/adminGetLogs", async (filter, {rejectWithValue}) => {
     const { action = "", method = "", level = "", page = 1, limit = 20, startDate, endDate } = filter;
 
     try {
-        const res = await axios.get(`${BACK_END_URL}/api/admin/logs?action=${action}&method=${method}&level=${level}&page=${page}&limit=${limit}&startDate=${startDate}&endDate=${endDate}`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        })
+        const res = await axiosInstance.get(`/api/admin/logs?action=${action}&method=${method}&level=${level}&page=${page}&limit=${limit}&startDate=${startDate}&endDate=${endDate}`)
         return res.data
     } catch (error) {
         return rejectWithValue(error.response?.data?.message || error.message);

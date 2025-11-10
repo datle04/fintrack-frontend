@@ -4,6 +4,7 @@ import { addBudget } from "../../features/budgetSlice";
 import toast from "react-hot-toast";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
+import { currencyMap } from "../../utils/currencies";
 
 const BudgetModal = ({
   categoryList,
@@ -15,8 +16,10 @@ const BudgetModal = ({
   token,
   onClose,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const error = useSelector((state) => state.budget.error);
+  const user = useSelector((state) => state.auth.user);
+  const defaultCurrency = user?.currency || "VND";
   const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
   const dispatch = useDispatch();
 
@@ -26,6 +29,7 @@ const BudgetModal = ({
     month: selectedMonth,
     year: selectedYear,
     totalAmount: "",
+    currency: defaultCurrency,
     categories: [],
   });
 
@@ -37,41 +41,32 @@ const BudgetModal = ({
   useEffect(() => {
     const fetchBudget = async () => {
       try {
-        const res = await axios.get(
-          `${BACK_END_URL}/api/budget?month=${formData.month}&year=${formData.year}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
+        const res = await axios.get(/*...*/);
         const data = res.data;
 
-        if (data && data.categoryStats?.length > 0) {
-          // Nếu có dữ liệu ngân sách
-          setFormData({
-            month: data.month,
-            year: data.year,
-            totalAmount: data.totalBudget || 0,
+        if (data && data.totalBudget > 0) {
+          // --- SỬA Ở ĐÂY: Dùng functional update ---
+          setFormData((prev) => ({
+            ...prev, // Giữ lại month/year hiện tại
+            totalAmount: data.originalAmount || 0,
+            currency: data.originalCurrency || defaultCurrency,
             categories: data.categoryStats.map((c) => ({
               name: c.category,
-              amount: c.budgetedAmount,
+              amount: c.originalBudgetedAmount,
             })),
-          });
+          }));
         } else {
-          // Nếu không có ngân sách => reset categories
+          // (Khối này đã đúng, nhưng hãy đảm bảo nó nhất quán)
           setFormData((prev) => ({
-            ...prev,
+            ...prev, // Giữ lại month/year/currency
             totalAmount: "",
             categories: [],
           }));
         }
       } catch (error) {
         console.error("❌ Không lấy được budget:", error);
-        // Khi lỗi gọi API, cũng nên reset để tránh giữ dữ liệu cũ
         setFormData((prev) => ({
-          ...prev,
+          ...prev, // Giữ lại month/year/currency
           totalAmount: "",
           categories: [],
         }));
@@ -79,13 +74,16 @@ const BudgetModal = ({
     };
 
     fetchBudget();
-  }, [formData.month, formData.year]);
+    // BỎ 'defaultCurrency' khỏi dependency array
+    // Nó chỉ nên được dùng để khởi tạo
+  }, [formData.month, formData.year, token, BACK_END_URL]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "totalAmount" ? parseInt(value) : value,
+      // Sửa: Đảm bảo 'totalAmount' là số, 'currency' là chuỗi
+      [name]: name === "totalAmount" ? Number(value) : value,
     }));
   };
 
@@ -136,16 +134,19 @@ const BudgetModal = ({
           month: Number(formData.month),
           year: Number(formData.year),
           totalAmount: Number(formData.totalAmount),
+          currency: formData.currency,
           categories: transformed,
         })
-      );
-      if (!error) {
-        toast.success("Added Budget");
-        setIsFormOpen(false);
-        onClose?.();
-      }
+      ).unwrap();
+
+      toast.success("Đã lưu ngân sách!");
+      setIsFormOpen(false);
+      onClose?.();
     } catch (err) {
-      toast.error("Something went wrong");
+      // --- SỬA LỖI CHÍNH ---
+      // Hiển thị thông báo lỗi thật từ backend/slice
+      toast.error(err.message || "Đã xảy ra lỗi");
+      // --- KẾT THÚC SỬA LỖI CHÍNH ---
     }
   };
 
@@ -207,21 +208,44 @@ const BudgetModal = ({
             </select>
           </div>
 
-          {/* Total Amount */}
-          <div>
-            <label className="block font-medium text-gray-700 dark:text-white/83">
-              {t("totalBudget")}:
-            </label>
-            <input
-              type="number"
-              name="totalAmount"
-              value={formData.totalAmount}
-              onChange={handleChange}
-              placeholder="VD: 10000000"
-              className="w-full p-2 border rounded dark:bg-[#2E2E33] dark:border-slate-700 dark:text-white/83"
-              required
-            />
+          {/* --- BẮT ĐẦU THAY ĐỔI: Thêm select tiền tệ --- */}
+          <div className="flex flex-row gap-2">
+            {/* Total Amount */}
+            <div className="flex-1">
+              <label className="block font-medium text-gray-700 dark:text-white/83">
+                {t("totalBudget")}:
+              </label>
+              <input
+                type="number"
+                name="totalAmount"
+                value={formData.totalAmount}
+                onChange={handleChange}
+                placeholder="VD: 10000000"
+                className="w-full p-2 border rounded dark:bg-[#2E2E33] dark:border-slate-700 dark:text-white/83"
+                required
+              />
+            </div>
+
+            {/* Currency Select */}
+            <div className="w-1/3">
+              <label className="block font-medium text-gray-700 dark:text-white/83">
+                {t("currency")}:
+              </label>
+              <select
+                name="currency"
+                value={formData.currency}
+                onChange={handleChange}
+                className="w-full p-2 border rounded dark:bg-[#2E2E33] dark:border-slate-700 dark:text-white/83"
+              >
+                {[...currencyMap].map(([code, label]) => (
+                  <option key={code} value={code}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+          {/* --- KẾT THÚC THAY ĐỔI --- */}
 
           {/* Categories */}
           <div>

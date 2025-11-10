@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
+import axiosInstance from "../api/axiosInstance";
 
 const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
 
@@ -14,18 +15,12 @@ const initialState = {
 
 export const adminGetUsers = createAsyncThunk(
   "admin/user/adminGetUsers",
-  async (filter, { getState, rejectWithValue }) => {
-    const { token } = getState().auth;
+  async (filter, { rejectWithValue }) => {
+
     const { name, email, role, isBanned, limit = 20, page = 1} = filter;
 
     try {
-      const res = await axios.get(`${BACK_END_URL}/api/admin/users/?name=${name}&email=${email}&role=${role}&isBanned=${isBanned}&limit=${limit}&page=${page}`,
-        {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        }
-      );
+      const res = await axiosInstance.get(`/api/admin/users/?name=${name}&email=${email}&role=${role}&isBanned=${isBanned}&limit=${limit}&page=${page}`);
       return res.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -33,53 +28,42 @@ export const adminGetUsers = createAsyncThunk(
   }
 );
 
-export const adminDeleteUser = createAsyncThunk("admin/user/adminDeleteUser", async (id, {getState, rejectWithValue}) => {
-    const {token} = getState().auth;
+export const adminDeleteUser = createAsyncThunk("admin/user/adminDeleteUser", async ({id, reason}, { rejectWithValue}) => {
     try {
-        const res = await axios.delete(`${BACK_END_URL}/api/admin/users/${id}`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        })
+        const res = await axiosInstance.delete(`/api/admin/users/${id}`, {reason});
         return res.data;
     } catch (error) {
         return rejectWithValue(error.response?.data?.message || error.message);
     }
 })
 
-export const adminUpdateUser = createAsyncThunk("admin/user/adminUpdateUser", async ({id, formData}, { getState, rejectWithValue }) => {
-    const { token } = getState().auth;
-        try {
-            const res = await axios.put(`${BACK_END_URL}/api/admin/users/${id}`, 
-                formData, 
-                {
-                    headers: 
-                        { 
-                            Authorization: `Bearer ${token}` 
-                        },
-                }
-        );
-            return res.data;
-        } catch (error) {
-            return rejectWithValue(error.response?.data?.message || error.message);
-        }
+export const adminUpdateUser = createAsyncThunk("admin/user/adminUpdateUser", async ({id, formData}, { rejectWithValue }) => {
+  try {
+      const res = await axiosInstance.put(`/api/admin/users/${id}`, formData);
+      return res.data;
+  } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+  }
 })
 
-export const adminBanUser = createAsyncThunk("admin/user/adminBanUser", async (id, {getState, rejectWithValue}) => {
-    const {token} = getState().auth;
-    try {
-        const res = await axios.patch(`${BACK_END_URL}/api/admin/users/${id}`,
-            {},
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`
-            }}
-        )
-        return res.data;
-    } catch (error) {
-        return rejectWithValue(error.response?.data?.message || error.message);
-    }
+export const adminBanUser = createAsyncThunk("admin/user/adminBanUser", async ({id, reason}, { rejectWithValue}) => {
+  try {
+      const res = await axiosInstance.patch(`/api/admin/users/${id}/ban`, {reason});
+      return res.data;
+  } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+  }
 })
+
+export const adminUnbanUser = createAsyncThunk("admin/user/adminUnbanUser", async (id, { rejectWithValue}) => {
+  try {
+      const res = await axiosInstance.patch(`/api/admin/users/${id}/unban`, {});
+      return res.data;
+  } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+  }
+})
+
 
 const userSlice = createSlice({
   name: "user",
@@ -124,7 +108,9 @@ const userSlice = createSlice({
       })
       .addCase(adminDeleteUser.fulfilled, (state, action) => {
         state.loading = false;
-        const id = action.payload.user._id;
+        const id = action.payload.id;
+        console.log(action.payload);
+        
         state.users = state.users.filter(item => item._id !== id);
       })
       .addCase(adminDeleteUser.rejected, (state, action) => {
@@ -132,7 +118,7 @@ const userSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(adminBanUser.pending, (state, action) => {
-        state.error = action.payload;
+        state.loading = true;
       })
       .addCase(adminBanUser.fulfilled, (state, action) => {
         state.loading = false;
@@ -143,6 +129,21 @@ const userSlice = createSlice({
         }
       })
       .addCase(adminBanUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(adminUnbanUser.pending, (state, action) => {
+        state.loading = true;
+      })
+      .addCase(adminUnbanUser.fulfilled, (state, action) => {
+        state.loading = false;
+        const user = action.payload.user;
+        const index = state.users.findIndex(item => item._id === user._id);
+        if (index !== -1) {
+            state.users[index] = user; 
+        }
+      })
+      .addCase(adminUnbanUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })

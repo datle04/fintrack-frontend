@@ -11,22 +11,38 @@ import { useTranslation } from "react-i18next";
 import { getNotifications } from "../features/notificationSlice";
 import { debounce } from "lodash";
 import getCategorySuggestion from "../thunks/getCategorySuggestion";
+import { currencyMap } from "../utils/currencies";
+import { categoryList } from "../utils/categoryList";
+import { getGoals } from "../features/goalSlice";
 
 const now = new Date();
-const initialState = {
-  type: "income",
-  amount: "",
-  category: "",
-  note: "",
-  date: now.toISOString().slice(0, 10),
-  receiptImages: [],
-  isRecurring: false,
-  recurringDay: now.getDate(),
-};
 
-const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
+const TransactionModal = ({
+  visible,
+  onClose,
+  transaction,
+  goalType,
+  goalCategory,
+  goalId,
+}) => {
+  // Initial State
+  const initialState = {
+    type: goalType ? goalType : "income",
+    amount: "",
+    category: goalCategory ? goalCategory : "",
+    note: "",
+    date: now.toISOString().slice(0, 10),
+    receiptImages: [],
+    isRecurring: false,
+    recurringDay: now.getDate(),
+    currency: "VND", // --- THÊM MỚI ---: Thêm tiền tệ vào trạng thái ban đầu
+    goal: goalId ? goalId : "",
+    reason: "",
+  };
+
   const user = useSelector((state) => state.auth.user);
   const token = useSelector((state) => state.auth.token);
+  const goals = useSelector((state) => state.goals.goals);
   const { t, i18n } = useTranslation();
   const dispatch = useDispatch();
   const [formData, setFormData] = useState(initialState);
@@ -38,10 +54,11 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
       setFormData({
         ...transaction,
         date: transaction.date ? transaction.date.slice(0, 10) : "",
-        receiptImages: [], // reset ảnh mới
+        receiptImages: [],
+        currency: transaction.currency || "VND",
+        reason: "", // 🆕 reset lý do
       });
-
-      setExistingImages(transaction.receiptImage || []); // ảnh đã có (URL)
+      setExistingImages(transaction.receiptImage || []);
     } else {
       setFormData(initialState);
       setExistingImages([]);
@@ -49,6 +66,11 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
   }, [transaction]);
 
   useEffect(() => {
+    dispatch(getGoals());
+  }, []);
+
+  useEffect(() => {
+    console.log(goalId);
     console.log(transaction);
   }, []);
 
@@ -58,7 +80,6 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
       debounce(async (typeVal, noteVal) => {
         const suggestion = await getCategorySuggestion(typeVal, noteVal, token);
         setCategorySuggest(suggestion);
-        console.log("Suggestion:", suggestion);
       }, 500),
     []
   );
@@ -95,6 +116,9 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
       });
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
+      if (name === "category" && value !== "saving") {
+        setFormData((prev) => ({ ...prev, goal: "" }));
+      }
     }
   };
 
@@ -112,37 +136,32 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    try {
-      const formPayload = new FormData();
+    if (user.role === "admin" && !formData.reason.trim()) {
+      toast.error("Vui lòng nhập lý do trước khi xác nhận!");
+      return;
+    }
 
-      formPayload.append("type", formData.type);
-      formPayload.append("amount", String(formData.amount));
-      formPayload.append("category", formData.category);
-      formPayload.append("note", formData.note);
-      formPayload.append("date", formData?.date);
-      formPayload.append(
-        "isRecurring",
-        formData.isRecurring ? "true" : "false"
-      );
+    const formPayload = new FormData();
+    formPayload.append("type", formData.type);
+    formPayload.append("amount", String(formData.amount));
+    formPayload.append("currency", formData.currency);
+    formPayload.append("category", formData.category);
+    formPayload.append("note", formData.note);
+    formPayload.append("date", formData.date);
+    formPayload.append("isRecurring", formData.isRecurring ? "true" : "false");
+    formPayload.append("reason", formData.reason || "");
+    if (formData.goal) formPayload.append("goalId", formData.goal);
+    if (formData.isRecurring)
+      formPayload.append("recurringDay", formData.recurringDay || "1");
 
-      if (formData.isRecurring) {
-        formPayload.append("recurringDay", formData.recurringDay || "1");
-      }
+    (formData.receiptImages || []).forEach((file) => {
+      if (file instanceof File) formPayload.append("receiptImages", file);
+    });
 
-      // Thêm các file mới (File)
-      (formData.receiptImages || []).forEach((file) => {
-        if (file instanceof File) {
-          formPayload.append("receiptImages", file);
-        }
-      });
+    existingImages.forEach((url) => formPayload.append("existingImages", url));
 
-      // Gửi thêm mảng ảnh cũ (URL) nếu cần giữ lại ở backend
-      if (existingImages.length > 0) {
-        existingImages?.forEach((url) => {
-          formPayload.append("existingImages", url); // backend cần hỗ trợ
-        });
-      }
-
+    // 🪄 Wrap promise logic trong toast.promise
+    const actionPromise = (async () => {
       if (transaction) {
         if (user.role === "admin") {
           await dispatch(
@@ -153,25 +172,31 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
             updateTransaction({ id: transaction._id, fields: formPayload })
           ).unwrap();
         }
-        toast.success("Cập nhật thành công!");
         dispatch(getNotifications());
       } else {
-        await dispatch(createTransaction(formPayload)).unwrap(); // tương tự
-        toast.success("Tạo giao dịch thành công!");
+        await dispatch(createTransaction(formPayload)).unwrap();
       }
 
-      onClose();
-    } catch (err) {
-      toast.error(err?.message || "Đã xảy ra lỗi!");
-      console.log(err);
-    }
-  };
+      if (formData.goal) dispatch(getGoals());
+    })();
 
+    toast.promise(actionPromise, {
+      loading: transaction
+        ? "Đang cập nhật giao dịch..."
+        : "Đang tạo giao dịch...",
+      success: transaction
+        ? "Cập nhật giao dịch thành công!"
+        : "Tạo giao dịch thành công!",
+      error: (err) => err?.message || "Đã xảy ra lỗi!",
+    });
+
+    actionPromise.finally(() => onClose());
+  };
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-[2px] bg-black/20">
       <div className="bg-white p-6 rounded shadow-lg w-[90%] max-w-lg relative z-50 animate-fadeIn dark:bg-[#2E2E33] dark:text-white/83 dark:border dark:border-slate-700">
         <h2 className="text-xl font-semibold mb-4">
-          {transaction ? t("addTransaction") : t("editTransaction")}
+          {transaction ? t("editTransaction") : t("addTransaction")}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -180,7 +205,9 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
               name="type"
               value={formData.type}
               onChange={handleChange}
-              className="w-full border px-3 py-2 rounded dark:focus:outline-slate-700"
+              className={`w-full border px-3 py-2 rounded dark:focus:outline-slate-700 ${
+                goalType ? "pointer-events-none opacity-70" : ""
+              }`}
             >
               <option value="income" className="dark:bg-[#2E2E33]">
                 {t("income")}
@@ -191,18 +218,39 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm dark:focus:outline-slate-700">
-              {t("amount")}
-            </label>
-            <input
-              type="number"
-              name="amount"
-              value={formData.amount}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded"
-              required
-            />
+          {/* --- CHỈNH SỬA ---: Bọc Amount và Currency trong flex */}
+          <div className="flex flex-row gap-4">
+            <div className="flex-1">
+              <label className="block text-sm dark:focus:outline-slate-700">
+                {t("amount")}
+              </label>
+              <input
+                type="number"
+                name="amount"
+                value={formData.amount}
+                onChange={handleChange}
+                className="w-full border px-3 py-2 rounded"
+                required
+              />
+            </div>
+
+            <div className="w-1/3">
+              <label className="block text-sm font-medium">
+                {t("currency")}
+              </label>
+              <select
+                name="currency"
+                value={formData.currency}
+                onChange={handleChange}
+                className="w-full border px-3 py-2 rounded outline-none dark:focus:outline-slate-700 dark:bg-[#2E2E33]"
+              >
+                {[...currencyMap].map(([code, label]) => (
+                  <option key={code} value={code} className="dark:bg-[#2E2E33]">
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div>
@@ -224,7 +272,9 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
               name="category"
               value={formData.category}
               onChange={handleChange}
-              className="w-full border px-3 py-2 rounded dark:bg-[#2E2E33] dark:text-white/83"
+              className={`w-full border px-3 py-2 rounded dark:focus:outline-slate-700 ${
+                goalCategory ? "pointer-events-none opacity-70" : ""
+              }`}
               required
             >
               <option value="">-- {t("selectCategory")} --</option>
@@ -246,6 +296,39 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
               </span>
             )}
           </div>
+
+          {formData.category === "saving" && (
+            <div className="flex flex-col gap-2">
+              <label className="block text-sm font-medium">
+                {t("financialGoal")}
+              </label>
+              <select
+                name="goal"
+                value={formData.goal}
+                onChange={handleChange}
+                className={`w-full border px-3 py-2 rounded dark:focus:outline-slate-700 ${
+                  goalId && !formData.goal
+                    ? ""
+                    : goalId
+                    ? "pointer-events-none opacity-70"
+                    : ""
+                }`}
+                required
+              >
+                <option value="">-- {t("selectGoal")} --</option>
+                {Array.isArray(goals) &&
+                  goals.map((item) => (
+                    <option
+                      key={item._id}
+                      value={item._id}
+                      className="dark:bg-[#2E2E33] dark:text-white/83"
+                    >
+                      {item.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )}
 
           {!formData.isRecurring && (
             <div>
@@ -359,6 +442,23 @@ const TransactionModal = ({ visible, onClose, transaction, categoryList }) => {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {user?.role === "admin" && (
+              <div>
+                <label className="block text-sm font-medium">
+                  Lý do chỉnh sửa
+                </label>
+                <textarea
+                  name="reason"
+                  value={formData.reason}
+                  onChange={handleChange}
+                  placeholder="Nhập lý do (bắt buộc cho admin)"
+                  className="w-full border-2 border-red-400 px-3 py-2 rounded outline-none bg-red-50 placeholder-red-400"
+                  rows="2"
+                  required
+                ></textarea>
               </div>
             )}
           </div>

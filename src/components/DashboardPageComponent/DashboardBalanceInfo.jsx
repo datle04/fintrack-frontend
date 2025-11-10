@@ -4,13 +4,15 @@ import { FaLongArrowAltUp } from "react-icons/fa";
 import { FaLongArrowAltDown } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { getDashboard } from "../../features/dashboardSlice";
-import formatCurrencyVN from "../../utils/formatCurrency";
+import { formatCurrency } from "../../utils/formatCurrency";
 import BalanceInfoLoading from "../Loading/DashboardLoading/BalanceInfoLoading";
 import { useTranslation } from "react-i18next";
 
 const DashboardBalanceInfo = ({ className = "" }) => {
-  const dashboard = useSelector((state) => state.dashboard);
-  const loading = useSelector((state) => state.dashboard.loading);
+  const { totalIncome, totalExpense, balance, currency, loading, error } =
+    useSelector((state) => state.dashboard);
+
+  const userCurrency = useSelector((state) => state.auth.user.currency);
   const { t, i18n } = useTranslation();
   const dispatch = useDispatch();
 
@@ -27,13 +29,10 @@ const DashboardBalanceInfo = ({ className = "" }) => {
       getDashboard({
         start: firstDay.toISOString().split("T")[0],
         end: lastDay.toISOString().split("T")[0],
+        currency: userCurrency,
       })
     );
   }, []);
-
-  useEffect(() => {
-    console.log(dashboard);
-  }, [dashboard]);
 
   if (loading) return <BalanceInfoLoading className={className} />;
 
@@ -54,7 +53,7 @@ const DashboardBalanceInfo = ({ className = "" }) => {
         <TfiWallet className="text-[40px] md:text-4xl 3xl:text-5xl" />
         <div className="flex flex-col font-semibold text-base 3xl:text-xl">
           <span>{t("balance")}</span>
-          <span>{formatCurrencyVN(dashboard?.balance)} đ</span>
+          <span>{formatCurrency(balance, currency, i18n.language)}</span>
         </div>
       </div>
 
@@ -68,7 +67,7 @@ const DashboardBalanceInfo = ({ className = "" }) => {
         <FaLongArrowAltUp className="text-3xl text-green-500 md:text-4xl 3xl:text-5xl dark:text-green-700" />
         <div className="flex flex-col font-semibold text-sm md:text-base 3xl:text-lg">
           <span>{t("totalIncome")}</span>
-          <span>{formatCurrencyVN(dashboard?.totalIncome)} đ</span>
+          <span>{formatCurrency(totalIncome, currency, i18n.language)}</span>
         </div>
       </div>
 
@@ -82,7 +81,7 @@ const DashboardBalanceInfo = ({ className = "" }) => {
         <FaLongArrowAltDown className="text-3xl text-red-500 3xl:text-5xl dark:text-red-700" />
         <div className="flex flex-col font-semibold text-sm md:text-base 3xl:text-lg">
           <span>{t("totalExpense")}</span>
-          <span>{formatCurrencyVN(dashboard?.totalExpense)} đ</span>
+          <span>{formatCurrency(totalExpense, currency, i18n.language)}</span>
         </div>
       </div>
     </section>

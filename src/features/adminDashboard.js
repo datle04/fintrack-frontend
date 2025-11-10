@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
+import axiosInstance from "../api/axiosInstance";
 
 const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
 
@@ -14,16 +15,10 @@ const initialState = {
     monthlyTransactions: [],
 }
 
-export const adminGetDashboard = createAsyncThunk('admin/dashboard/adminGetDashboard', async (_, { getState, rejectWithValue }) => {
+export const adminGetDashboard = createAsyncThunk('admin/dashboard/adminGetDashboard', async (_, { rejectWithValue }) => {
     try {
-        const { token } = getState().auth;
-        const res = await axios.get(
-            `${BACK_END_URL}/api/admin/dashboard`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            }
+        const res = await axiosInstance.get(
+            `/api/admin/dashboard`,
         )
         return res.data;
     } catch (error) {
@@ -32,16 +27,9 @@ export const adminGetDashboard = createAsyncThunk('admin/dashboard/adminGetDashb
     }
 });
 
-export const adminGetMonthlyIncomeExpenseStat = createAsyncThunk('admin/dashboard/adminGetMonthlyIncomeExpenseStat', async (year, { getState, rejectWithValue}) => {
+export const adminGetMonthlyIncomeExpenseStat = createAsyncThunk('admin/dashboard/adminGetMonthlyIncomeExpenseStat', async (year, { rejectWithValue}) => {
     try {
-        const { token } = getState().auth;
-        const res = await axios.get(`${BACK_END_URL}/api/admin/dashboard/monthly-stats?year=${year}`,
-             {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            }
-        )
+        const res = await axiosInstance.get(`/api/admin/dashboard/monthly-stats?year=${year}`)
         return res.data;
     } catch (error) {
         console.log(error);
@@ -49,16 +37,9 @@ export const adminGetMonthlyIncomeExpenseStat = createAsyncThunk('admin/dashboar
     }
 })
 
-export const adminGetMonthlyTransactions = createAsyncThunk('admin/dashboard/adminGetMonthlyTransactions', async (year, { getState, rejectWithValue}) => {
+export const adminGetMonthlyTransactions = createAsyncThunk('admin/dashboard/adminGetMonthlyTransactions', async (year, { rejectWithValue}) => {
     try {
-        const { token } = getState().auth;
-        const res = await axios.get(`${BACK_END_URL}/api/admin/dashboard/monthly-transactions?year=${year}`,
-             {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            }
-        )
+        const res = await axiosInstance.get(`/api/admin/dashboard/monthly-transactions?year=${year}`)
         return res.data;
     } catch (error) {
         console.log(error);

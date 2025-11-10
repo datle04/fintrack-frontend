@@ -14,6 +14,8 @@ import EditUserModal from "../../components/AdminUserComponent/EditUserModal";
 import { FaBan } from "react-icons/fa";
 import { FaEdit } from "react-icons/fa";
 import toast from "react-hot-toast";
+import ConfirmModal from "../../components/ConfirmModal";
+import { FaUnlockKeyhole } from "react-icons/fa6";
 
 const badgeClass = (type, value) => {
   if (type === "role") {
@@ -43,12 +45,18 @@ const AdminUser = () => {
   const [page, setPage] = useState(1);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmModalType, setConfirmModalType] = useState("ban");
   const [selectedUser, setSelectedUser] = useState(null);
 
   const handleEdit = (user) => {
     setSelectedUser(user);
     setIsEditOpen(true);
   };
+
+  useEffect(() => {
+    console.log(users);
+  }, []);
 
   const debouncedSearch = useMemo(() => {
     return debounce((searchValue, roleValue, statusValue, pageNumber = 1) => {
@@ -115,6 +123,12 @@ const AdminUser = () => {
     }
   };
 
+  const handleOpenConfirmModal = ({ type, user }) => {
+    setSelectedUser(user);
+    setConfirmModalType(type);
+    setIsConfirmModalOpen(true);
+  };
+
   return (
     <div className="p-4 sm:p-6 bg-blue-50 min-h-screen">
       {/* Ẩn hoàn toàn trên điện thoại */}
@@ -161,10 +175,16 @@ const AdminUser = () => {
           onClose={() => setIsEditOpen(false)}
           user={selectedUser}
           onSave={(updatedData) => {
-            // Gửi dữ liệu cập nhật lên Redux hoặc API
-            dispatch(
+            const action = dispatch(
               adminUpdateUser({ id: selectedUser._id, formData: updatedData })
-            );
+            ).unwrap(); // ✅ Trả Promise thật sự
+
+            toast.promise(action, {
+              loading: "Đang cập nhật thông tin người dùng...",
+              success: "Cập nhật thành công!",
+              error: (err) => err || "Cập nhật thất bại!",
+            });
+
             setIsEditOpen(false);
           }}
         />
@@ -225,27 +245,56 @@ const AdminUser = () => {
                       <FaEdit />
                     </button>
                     <button
-                      onClick={() => handleDelete(user._id)}
+                      onClick={() =>
+                        handleOpenConfirmModal({ type: "delete", user })
+                      }
                       className="
                         p-1 text-red-500 hover:bg-red-100 cursor-pointer transition-all border border-red-300 rounded lg:text-base 3xl:text-base
                     "
                     >
                       <FaRegTrashAlt />
                     </button>
-                    <button
-                      onClick={() => handleBan(user._id)}
-                      className="
-                        p-1 text-orange-500 hover:bg-orange-100 cursor-pointer transition-all border border-orange-300 rounded lg:text-base 3xl:text-
-                      "
-                    >
-                      <FaBan />
-                    </button>
+                    {user.isBanned ? (
+                      <button
+                        onClick={() =>
+                          handleOpenConfirmModal({ type: "unban", user })
+                        }
+                        className="
+                          p-1 text-green-500 hover:bg-green-100 cursor-pointer transition-all border border-green-300 rounded lg:text-base 3xl:text-
+                        "
+                      >
+                        <FaUnlockKeyhole />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() =>
+                          handleOpenConfirmModal({ type: "ban", user })
+                        }
+                        className="
+                          p-1 text-orange-500 hover:bg-orange-100 cursor-pointer transition-all border border-orange-300 rounded lg:text-base 3xl:text-
+                        "
+                      >
+                        <FaBan />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {isConfirmModalOpen && (
+          <ConfirmModal
+            modalType={"user"}
+            isOpen={isConfirmModalOpen}
+            onClose={() => setIsConfirmModalOpen(false)}
+            onConfirm={handleBan}
+            type={confirmModalType}
+            user={selectedUser}
+          />
+        )}
+
         <Pagination
           page={page}
           totalPages={totalPages}

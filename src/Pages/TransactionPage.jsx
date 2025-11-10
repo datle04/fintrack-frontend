@@ -7,7 +7,7 @@ import {
 } from "../features/transactionSlice";
 import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 import getUsedCategories from "../thunks/getUsedCategories";
-import formatCurrency from "../utils/formatCurrency";
+import { formatCurrency } from "../utils/formatCurrency";
 import TransactionModal from "../components/TransactionModal";
 import DetailTransaction from "../components/DetailTransaction";
 import { ChevronDown } from "lucide-react";
@@ -16,28 +16,16 @@ import { debounce } from "lodash";
 import { useTranslation } from "react-i18next";
 import { getDashboard } from "../features/dashboardSlice";
 import formatDateToString from "../utils/formatDateToString";
+import { getCurrencySymbol } from "../utils/currencies";
+import { categoryList } from "../utils/categoryList";
 
 const TransactionPage = () => {
   const dispatch = useDispatch();
   const { t, i18n } = useTranslation();
   const { transactions, loading, total, page, totalPages, shouldRefetch } =
     useSelector((s) => s.transaction);
+  const userCurrency = useSelector((state) => state.auth.user.currency);
   const { totalIncome, totalExpense } = useSelector((state) => state.dashboard);
-  const categoryList = [
-    { key: "sales", icon: "🛍️", color: "#f87171" }, // đỏ hồng
-    { key: "transportation", icon: "🚗", color: "#60a5fa" }, // xanh dương nhạt
-    { key: "education", icon: "📚", color: "#fbbf24" }, // vàng
-    { key: "entertainment", icon: "🎮", color: "#a78bfa" }, // tím nhạt
-    { key: "shopping", icon: "🛒", color: "#fb923c" }, // cam sáng
-    { key: "housing", icon: "🏠", color: "#34d399" }, // xanh lá nhạt
-    { key: "health", icon: "🩺", color: "#ef4444" }, // đỏ
-    { key: "rent", icon: "🏘️", color: "#4ade80" }, // xanh lá sáng
-    { key: "bonus", icon: "🎁", color: "#facc15" }, // vàng sáng
-    { key: "salary", icon: "💰", color: "#22c55e" }, // xanh lá cây
-    { key: "food", icon: "🍽️", color: "#c084fc" }, // tím
-    { key: "investment", icon: "📈", color: "#0ea5e9" }, // xanh cyan
-    { key: "other", icon: "🏳️", color: "#808080" },
-  ];
 
   const categoryOptions = [
     { value: "", label: t("all") }, // All
@@ -92,7 +80,9 @@ const TransactionPage = () => {
   const { type, category, startDate, endDate, keyword } = filters;
 
   useEffect(() => {
-    dispatch(getDashboard({ start: startDate, end: endDate }));
+    dispatch(
+      getDashboard({ start: startDate, end: endDate, currency: userCurrency })
+    );
   }, [dispatch, startDate, endDate]);
 
   useEffect(() => {
@@ -128,6 +118,18 @@ const TransactionPage = () => {
   const handleAdd = () => {
     setSelectedTransaction(null);
     setShowModal(true);
+  };
+
+  const handleDelete = (id) => {
+    e.stopPropagation();
+
+    const action = dispatch(deleteTransaction(id)).unwrap();
+
+    toast.promise(action, {
+      loading: "Đang xóa giao dịch...",
+      success: "Đã xóa giao dịch thành công!",
+      error: (err) => err?.message || "Có lỗi xảy ra khi xóa giao dịch!",
+    });
   };
 
   const years = Array.from({ length: 8 }, (_, i) => String(2018 + i));
@@ -257,7 +259,7 @@ const TransactionPage = () => {
                 {t("totalIncome")}:
               </span>
               <span className="text-green-600 font-semibold text-right dark:text-green-700">
-                +{formatCurrency(totalIncome)} đ
+                + {formatCurrency(totalIncome, userCurrency, i18n.language)}
               </span>
             </div>
             <hr className="text-slate-300 dark:text-slate-700" />
@@ -266,7 +268,7 @@ const TransactionPage = () => {
                 {t("totalExpense")}:
               </span>
               <span className="text-red-600 font-semibold text-right dark:text-red-700">
-                -{formatCurrency(totalExpense)} đ
+                - {formatCurrency(totalExpense, userCurrency, i18n.language)}
               </span>
             </div>
           </div>
@@ -384,8 +386,13 @@ const TransactionPage = () => {
                         : "text-red-600 dark:text-red-700"
                     }`}
                   >
-                    {item.type === "income" ? "+" : "-"}
-                    {formatCurrency(Number(item.amount))} đ
+                    {item.type === "income" ? "+ " : "- "}
+                    {formatCurrency(
+                      Number(item.amount),
+                      item.currency,
+                      i18n.language
+                    )}
+                    {/* {getCurrencySymbol(item.currency)} */}
                   </td>
                   <td className="py-3 2xl:py-4 3xl:py-5">
                     {formatDateToString(item.date)}
@@ -404,10 +411,7 @@ const TransactionPage = () => {
                       />
                       <FaTrash
                         className="cursor-pointer hover:text-red-500 2xl:w-4 2xl:h-4 3xl:w-5 3xl:h-5"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          dispatch(deleteTransaction(item._id));
-                        }}
+                        onClick={(e) => handleDelete(item._id)}
                       />
                     </span>
                   </td>
@@ -442,7 +446,6 @@ const TransactionPage = () => {
           visible={true}
           onClose={() => setShowModal(false)}
           transaction={selectedTransaction}
-          categoryList={categoryList}
         />
       )}
 

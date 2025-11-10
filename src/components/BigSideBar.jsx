@@ -10,6 +10,7 @@ import { IoMdAnalytics } from "react-icons/io";
 import { RxActivityLog } from "react-icons/rx";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
+import { LuGoal } from "react-icons/lu";
 
 const BigSideBar = () => {
   const location = useLocation();
@@ -47,6 +48,7 @@ const BigSideBar = () => {
           path: "/transactions",
         },
         { icon: <FaWallet />, label: t("budget"), path: "/budget" },
+        { icon: <LuGoal />, label: t("financialGoal"), path: "/goals" },
         { icon: <IoStatsChart />, label: t("stat"), path: "/stat" },
         { icon: <MdSettings />, label: t("setting"), path: "/settings" },
       ]);

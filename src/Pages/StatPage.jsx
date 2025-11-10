@@ -5,6 +5,7 @@ import { getBudget } from "../features/budgetSlice";
 import DonutChart from "../components/Chart/DonutChart";
 import ReportExport from "./ReportExport";
 import { useTranslation } from "react-i18next";
+import { formatCurrency } from "../utils/formatCurrency";
 
 const StatPage = () => {
   const dispatch = useDispatch();
@@ -15,7 +16,7 @@ const StatPage = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [transactions, setTransactions] = useState([]);
 
-  const { totalBudget, categoryStats } = useSelector((state) => state.budget);
+  const budget = useSelector((state) => state.budget);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,8 +39,13 @@ const StatPage = () => {
   };
 
   const { days, firstDay, totalDays } = getDaysInMonth(month, year);
-  const budgetPerDay = totalDays ? Math.floor(totalBudget / totalDays) : 0;
+  const budgetPerDay = totalDays
+    ? Math.floor(budget.totalBudget / totalDays)
+    : 0;
 
+  // useEffect(() => {
+  //   console.log(budget.totalBudget / totalDays);
+  // }, []);
   const transactionsByDayMap = useMemo(() => {
     const map = {};
     for (let i = 1; i <= totalDays; i++) map[i] = [];
@@ -60,8 +66,8 @@ const StatPage = () => {
     for (let i = 1; i <= totalDays; i++) {
       const expense =
         transactionsByDayMap[i]
-          ?.filter((t) => t.type === "expense")
-          .reduce((s, t) => s + t.amount, 0) || 0;
+          ?.filter((t) => t.type === "expense") // SỬA LỖI: Thêm (t.exchangeRate || 1)
+          .reduce((s, t) => s + t.amount * (t.exchangeRate || 1), 0) || 0;
       if (expense > max) max = expense;
     }
     return max;
@@ -72,6 +78,8 @@ const StatPage = () => {
     : [];
 
   const getHeatmapColor = (percent) => {
+    // console.log(percent);
+
     if (percent >= 70) return "bg-[#5D43DB] text-white";
     if (percent >= 40) return "bg-[#A596E7] text-white";
     if (percent >= 20) return "bg-[#B8A9F0] text-purple-900";
@@ -154,11 +162,11 @@ const StatPage = () => {
             const dailyTx = transactionsByDayMap[day] || [];
             const income = dailyTx
               .filter((t) => t.type === "income")
-              .reduce((s, t) => s + t.amount, 0);
+              .reduce((s, t) => s + t.amount * t.exchangeRate, 0);
             const expense = dailyTx
               .filter((t) => t.type === "expense")
-              .reduce((s, t) => s + t.amount, 0);
-            const percent = totalBudget
+              .reduce((s, t) => s + t.amount * t.exchangeRate, 0);
+            const percent = budget.totalBudget
               ? (expense / budgetPerDay) * 100
               : maxExpenseInMonth > 0
               ? (expense / maxExpenseInMonth) * 100
@@ -177,7 +185,7 @@ const StatPage = () => {
               >
                 <div className="font-semibold text-sm">{day}</div>
                 <div className="truncate text-[10px] leading-tight max-w-full">
-                  {expense.toLocaleString()}đ
+                  {formatCurrency(expense, "VND", i18n.language)}
                 </div>
               </div>
             );
@@ -223,8 +231,12 @@ const StatPage = () => {
                             : "text-red-500 dark:text-red-600"
                         }
                       >
-                        {tx.type === "income" ? "+" : "-"}
-                        {parseInt(tx.amount).toLocaleString()}đ
+                        {tx.type === "income" ? "+ " : "- "}
+                        {formatCurrency(
+                          parseInt(tx.amount),
+                          tx.currency,
+                          i18n.language
+                        )}
                       </span>
                     </li>
                   ))}
@@ -246,10 +258,11 @@ const StatPage = () => {
           <h3 className="text-lg font-semibold mb-3 dark:text-white/83">
             {t("statByCat")}
           </h3>
-          {totalBudget > 0 ? (
+          {budget.totalBudget > 0 ? (
             <DonutChart
-              categoryStats={categoryStats}
-              totalBudget={totalBudget}
+              categoryStats={budget.categoryStats}
+              totalBudget={budget.totalBudget}
+              budget={budget}
             />
           ) : (
             <div className="text-center text-gray-500 flex flex-col items-center gap-2 dark:text-white/83">
