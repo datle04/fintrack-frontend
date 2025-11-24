@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteBudget, getBudget } from "../features/budgetSlice";
 import { formatCurrency, getDisplaySpentValue } from "../utils/formatCurrency";
@@ -9,307 +9,255 @@ import BudgetPageLoading from "../components/Loading/BudgetLoading/BudgetPageLoa
 import { useTranslation } from "react-i18next";
 import { getCurrencySymbol } from "../utils/currencies";
 import toast from "react-hot-toast";
+import { useBudgetCalculations } from "../hooks/useBudgetCalculations";
+import { categoryList } from "../utils/categoryList";
+import { Plus, Trash2, Calendar, Edit } from "lucide-react";
+import { TfiWallet } from "react-icons/tfi";
 
 const BudgetPage = () => {
   const now = new Date();
-  const token = useSelector((state) => state.auth.token);
   const dispatch = useDispatch();
   const { t, i18n } = useTranslation();
   const budget = useSelector((state) => state.budget);
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const hasBudget =
+    budget.month === Number(selectedMonth) &&
+    budget.year === Number(selectedYear) &&
+    (budget.totalBudget > 0 || budget.originalAmount > 0);
 
-  const categoryList = [
-    { key: "sales", icon: "🛍️", color: "#f87171" }, // đỏ hồng
-    { key: "transportation", icon: "🚗", color: "#60a5fa" }, // xanh dương nhạt
-    { key: "education", icon: "📚", color: "#fbbf24" }, // vàng
-    { key: "entertainment", icon: "🎮", color: "#a78bfa" }, // tím nhạt
-    { key: "shopping", icon: "🛒", color: "#fb923c" }, // cam sáng
-    { key: "housing", icon: "🏠", color: "#34d399" }, // xanh lá nhạt
-    { key: "health", icon: "🩺", color: "#ef4444" }, // đỏ
-    { key: "rent", icon: "🏘️", color: "#4ade80" }, // xanh lá sáng
-    { key: "bonus", icon: "🎁", color: "#facc15" }, // vàng sáng
-    { key: "salary", icon: "💰", color: "#22c55e" }, // xanh lá cây
-    { key: "food", icon: "🍽️", color: "#c084fc" }, // tím
-    { key: "investment", icon: "📈", color: "#0ea5e9" }, // xanh cyan
-  ];
-
-  useEffect(() => {
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-
-    dispatch(getBudget({ month: currentMonth, year: currentYear }));
-  }, []);
-
-  useEffect(() => {
-    console.log("Budget:", budget);
-  }, [budget]);
-
-  const monthValues = Array.from({ length: 12 }, (_, i) => ({
-    title: i + 1,
-    value: i + 1,
-  }));
-
-  const years = Array.from({ length: 6 }, (_, i) => 2020 + i);
-
-  const fetchBudget = async () => {
-    await dispatch(getBudget({ month: selectedMonth, year: selectedYear }));
-  };
+  const fetchBudget = useCallback(() => {
+    dispatch(getBudget({ month: selectedMonth, year: selectedYear }));
+  }, [dispatch, selectedMonth, selectedYear]);
 
   useEffect(() => {
     fetchBudget();
-  }, [selectedMonth, selectedYear]);
+  }, [fetchBudget]);
 
   const handleDelete = async () => {
+    if (
+      !window.confirm("Bạn có chắc chắn muốn xóa toàn bộ ngân sách tháng này?")
+    )
+      return;
+
     toast.promise(
       dispatch(
         deleteBudget({ month: selectedMonth, year: selectedYear })
       ).unwrap(),
       {
-        loading: "Removing...",
-        success: <b>Xóa thành công</b>,
-        error: (err) => (
-          <b>{err?.message || String(err) || "Gặp lỗi khi xóa"}</b>
-        ),
+        loading: "Đang xóa...",
+        success: <b>Xóa thành công!</b>,
+        error: "Gặp lỗi khi xóa",
       }
     );
   };
+  // 🔥 THAY THẾ TOÀN BỘ KHỐI TÍNH TOÁN CŨ BẰNG 1 DÒNG NÀY:
+  const {
+    displayBudget,
+    displaySpent,
+    displayRemaining,
+    displayCurrency,
+    percentUsed,
+    categoryStats, // Dùng cái này truyền xuống BudgetByCategory
+  } = useBudgetCalculations(budget);
+
+  const monthValues = Array.from({ length: 12 }, (_, i) => ({
+    title: i + 1,
+    value: i + 1,
+  }));
+  const years = Array.from({ length: 6 }, (_, i) => 2020 + i);
 
   if (budget.loading) return <BudgetPageLoading />;
 
-  // --- TÍNH TOÁN HIỂN THỊ ---
-  let displayBudget = 0;
-  let displaySpent = 0;
-  let displayRemaining = 0;
-  let displayCurrency = "VND"; // Mặc định
-
-  if (budget.month) {
-    // --- SỬA: Lấy đúng trường originalCurrency ---
-    const { originalAmount, currency, totalBudget, totalSpent } = budget;
-
-    const processed = getDisplaySpentValue(budget);
-    displayCurrency = processed.displayCurrency; // Sẽ là "EUR"
-    displaySpent = processed.displaySpent; // Sẽ là số tiền EUR
-
-    if (displayCurrency === "VND") {
-      displayBudget = totalBudget;
-    } else {
-      displayBudget = originalAmount; // Sẽ là số tiền EUR
-    }
-
-    displayRemaining = displayBudget - displaySpent;
-  }
-  // --- KẾT THÚC TÍNH TOÁN ---
-
   return (
-    <section
-      className="
-        relative w-full px-2 py-4 flex flex-col gap-4 items-center
-        sm:p-4
-        lg:p-6
-        xl:w-[90%] xl:mx-auto
-    "
-    >
-      <h2 className="self-start text-3xl text-[#464646] font-extrabold lg:hidden dark:text-white/87">
-        {t("budget")}
-      </h2>
+    <section className="w-full min-h-screen bg-[#F5F6FA] dark:bg-[#35363A] p-4 md:p-6 xl:p-8">
+      {/* --- 1. TOOLBAR (Header) --- */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">
+            {t("budget")}
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Quản lý chi tiêu tháng {selectedMonth}/{selectedYear}
+          </p>
+        </div>
 
-      <div
-        className="
-          w-full flex flex-col gap-3
-          lg:grid lg:grid-cols-[65%_35%]
-      "
-      >
-        {/* Date Selector */}
-        <section className="w-full flex justify-between gap-3 lg:order-2 lg:flex-col lg:gap-1 ">
-          <div className="flex-1 flex flex-col gap-2 text-base lg:gap-3">
-            <span className="text-[#464646] font-semibold text-lg dark:text-white/87">
-              {t("month")}
-            </span>
+        <div className="flex items-center gap-3 bg-white dark:bg-[#2E2E33] p-1.5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+          {/* Chọn Tháng */}
+          <div className="flex items-center px-2 border-r border-gray-200 dark:border-gray-600">
+            <Calendar className="text-gray-400 mr-2" size={16} />
             <select
               value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              name="months"
-              className="
-              p-2 border border-slate-300 bg-white rounded text-slate-600 outline-none cursor-pointer dark:text-white/87 dark:border-slate-700 dark:bg-[#2E2E33]
-          "
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="bg-transparent outline-none text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer"
             >
-              {monthValues.map((item, index) => (
-                <option
-                  key={index}
-                  value={item.value}
-                  className="
-                
-              "
-                >
-                  {item.title}
+              {monthValues.map((m) => (
+                <option key={m.value} value={m.value}>
+                  Tháng {m.title}
                 </option>
               ))}
             </select>
           </div>
-          <div className="flex-1 flex flex-col gap-2">
-            <span className="text-[#464646] font-semibold text-lg dark:text-white/87">
-              {t("year")}
-            </span>
+
+          {/* Chọn Năm */}
+          <div className="px-2">
             <select
               value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              name="years"
-              className="
-              p-2 border border-slate-300 bg-white rounded text-slate-600 outline-none cursor-pointer dark:text-white/87 dark:border-slate-700 dark:bg-[#2E2E33]
-            "
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="bg-transparent outline-none text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer"
             >
-              {years.map((item, index) => (
-                <option
-                  key={index}
-                  value={item}
-                  className="
-                
-                "
-                >
-                  {item}
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
                 </option>
               ))}
             </select>
           </div>
-          <div className="w-full flex-2 flex gap-2">
-            <div className="flex-1 flex flex-col">
-              <div className="flex-1"></div>
-              <button
-                onClick={() => setIsFormOpen(true)}
-                className="
-                w-full flex-1 font-bold text-lg bg-[#767CFF] text-[#FFF7FF] rounded cursor-pointer hover:bg-[#8476ff] dark:bg-indigo-600 dark:hover:bg-indigo-700 transition-all
-                lg:self-start lg:px-8 lg:py-2
-          "
-              >
-                {t("add")}
-              </button>
-            </div>
-            <div className="flex-1 flex flex-col">
-              <div className="flex-1"></div>
-              <button
-                onClick={() => handleDelete()}
-                className="
-                w-full flex-1 font-bold text-lg bg-red-600 text-[#FFF7FF] rounded cursor-pointer hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 transition-all
-                lg:self-start lg:px-8 lg:py-2
-          "
-              >
-                {t("remove")}
-              </button>
-            </div>
-          </div>
-        </section>
 
-        {isFormOpen && (
-          <BudgetModal
-            categoryList={categoryList}
-            selectedMonth={selectedMonth}
-            selectedYear={selectedYear}
-            setIsFormOpen={setIsFormOpen}
-            monthValues={monthValues}
-            years={years}
-            token={token}
-            onClose={() => {
-              fetchBudget();
-            }}
-          />
-        )}
-
-        {/* Total budget */}
-        {budget.month ? (
-          <section
-            className="
-          w-full p-3 bg-white rounded flex gap-2 dark:bg-[#2E2E33] dark:border dark:border-slate-700
-          sm:p-4 sm:gap-0
-          lg:order-1
-      "
+          {/* Nút Add / Edit */}
+          <button
+            onClick={() => setIsFormOpen(true)}
+            className={`
+    p-2 rounded-lg transition-colors shadow-sm flex items-center gap-2 text-white
+    ${
+      hasBudget
+        ? "bg-orange-500 hover:bg-orange-600" // Màu cam cho Edit
+        : "bg-indigo-600 hover:bg-indigo-700" // Màu tím cho Add
+    }
+  `}
+            title={hasBudget ? t("edit_budget") : t("add_budget")} // Tooltip
           >
-            <div className="flex-1 flex flex-col gap-3 sm:justify-center sm:gap-4 sm:text-lg sm:p-3">
-              {/* --- BẮT ĐẦU SỬA LỖI HIỂN THỊ --- */}
-              <div className="flex flex-col gap-1 sm:flex-row">
-                <p className="text-[#464646] font-semibold dark:text-white/83">
-                  {t("totalBudget")}:
+            {/* Đổi Icon dựa trên trạng thái */}
+            {hasBudget ? <Edit size={18} /> : <Plus size={18} />}
+
+            {/* (Tùy chọn) Nếu bạn muốn hiện chữ bên cạnh icon */}
+            <span className="hidden md:inline font-medium text-sm">
+              {hasBudget ? t("edit") : t("add")}
+            </span>
+          </button>
+
+          {/* Nút Delete (Chỉ hiện khi đã có Budget) */}
+          {hasBudget && (
+            <button
+              onClick={handleDelete}
+              className="bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 p-2 rounded-lg transition-colors"
+              title={t("delete_budget")}
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* --- 2. SUMMARY CARD (Thẻ Tổng quan Hiện đại) --- */}
+      {budget.month ? (
+        <div
+          className="
+            relative overflow-hidden 
+            bg-gradient-to-br from-violet-600 to-indigo-600 
+            rounded-3xl p-6 md:p-8 
+            text-white shadow-xl shadow-indigo-200 dark:shadow-none
+            mb-8 
+            flex flex-col md:flex-row items-center justify-between gap-8
+          "
+        >
+          {/* 1. HỌA TIẾT TRANG TRÍ NỀN (Background Decor) */}
+          <div className="absolute top-0 right-0 -mr-10 -mt-10 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 -ml-10 -mb-10 w-40 h-40 bg-purple-400 opacity-20 rounded-full blur-2xl pointer-events-none"></div>
+
+          {/* 2. THÔNG TIN CHÍNH (Left Side) */}
+          <div className="flex-1 z-10 w-full">
+            <div className="flex items-center gap-2 mb-2 opacity-90">
+              <span className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
+                <TfiWallet size={18} />
+              </span>
+              <p className="text-sm font-medium tracking-wide uppercase">
+                {t("availableBudget")}
+              </p>
+            </div>
+
+            {/* Số tiền to và đậm hơn */}
+            <h2 className="text-3xl md:text-4xl font-extrabold mb-6 tracking-tight drop-shadow-sm">
+              {formatCurrency(displayRemaining, displayCurrency, i18n.language)}
+            </h2>
+
+            {/* 3. CÁC HỘP THÔNG TIN PHỤ (Glassmorphism Boxes) */}
+            <div className="flex gap-4">
+              {/* Box 1: Đã đặt */}
+              <div className="flex-1 bg-black/20 backdrop-blur-md rounded-xl p-3 border border-white/10">
+                <p className="text-indigo-100 text-xs mb-1 opacity-80">
+                  {t("totalBudget")}
                 </p>
-                <span className="text-[#767CFF] dark:text-indigo-600">
-                  {/* Sửa: Dùng displayBudget và displayCurrency */}
+                <p className="font-bold text-lg md:text-xl">
                   {formatCurrency(
                     displayBudget,
                     displayCurrency,
                     i18n.language
                   )}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1 sm:flex-row">
-                <p className="text-[#464646] font-semibold dark:text-white/83">
-                  {t("totalSpent")}:
                 </p>
-                <span className="text-red-500 dark:text-red-600">
-                  {/* Sửa: Dùng displaySpent và displayCurrency */}
+              </div>
+
+              {/* Box 2: Đã chi */}
+              <div className="flex-1 bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10">
+                <p className="text-indigo-100 text-xs mb-1 opacity-80">
+                  {t("spent")}
+                </p>
+                <p className="font-bold text-lg md:text-xl text-red-200">
                   {formatCurrency(displaySpent, displayCurrency, i18n.language)}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1 sm:flex-row">
-                <p className="text-[#464646] font-semibold dark:text-white/83">
-                  {t("totalRemain")}:
                 </p>
-                <span className="text-green-500 dark:text-green-600">
-                  {/* Sửa: Dùng displayRemaining và displayCurrency */}
-                  {formatCurrency(
-                    displayRemaining,
-                    displayCurrency,
-                    i18n.language
-                  )}
-                </span>
-              </div>
-              {/* --- KẾT THÚC SỬA LỖI HIỂN THỊ --- */}
-            </div>
-
-            <div className="flex-1 self-center flex flex-col items-center gap-5">
-              <MyBudgetCircle percentage={budget.totalPercentUsed} />
-              <div className="flex items-center justify-center gap-3">
-                <div className="flex items-center gap-1">
-                  <div className="p-2 rounded-full bg-[#6C2BD9]"></div>
-                  <span className="text-[#464646] dark:text-white/83">
-                    {t("spent")}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="p-2 rounded-full bg-[#e6e6fa]"></div>
-                  <span className="text-[#464646] dark:text-white/83">
-                    {t("remaining")}
-                  </span>
-                </div>
               </div>
             </div>
-          </section>
-        ) : (
-          <section className="w-full h-32 p-3 flex justify-center items-center bg-white rounded text-[#464646] text-lg font-semibold dark:bg-[#2E2E33] dark:text-white/87">
-            <h2>{t("noData")}</h2>
-          </section>
-        )}
-      </div>
+          </div>
 
-      {/* Budget by category */}
-      <section
-        className="
-            w-full p-3 bg-white rounded flex flex-col gap-2 dark:bg-[#2E2E33] dark:border dark:border-slate-700
-            sm:p-4
-            lg:p-6
-            xl:w-full
-      "
-      >
-        <h2 className="text-[#464646] font-bold sm:text-lg dark:text-white/87">
-          {t("categories.title")}
+          {/* 4. BIỂU ĐỒ (Right Side) */}
+          <div className="z-10 relative">
+            {/* Thêm vòng tròn mờ phía sau biểu đồ để làm nổi bật */}
+            <div className="absolute inset-0 bg-white/5 rounded-full blur-md transform scale-90"></div>
+            <div className="bg-white/10 p-2 rounded-full backdrop-blur-sm border border-white/10 shadow-inner">
+              <MyBudgetCircle percentage={percentUsed} />
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Empty State
+        <div className="bg-white dark:bg-[#2E2E33] p-8 rounded-2xl border border-dashed border-gray-300 text-center mb-8">
+          <p className="text-gray-500">Chưa có ngân sách cho tháng này.</p>
+          <button
+            onClick={() => setIsFormOpen(true)}
+            className="mt-3 text-indigo-600 font-medium hover:underline"
+          >
+            Tạo ngay
+          </button>
+        </div>
+      )}
+
+      {/* --- 3. DANH SÁCH CHI TIẾT (Grid Layout) --- */}
+      <div>
+        <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4">
+          Chi tiết theo Danh mục
         </h2>
-        <hr className="text-[#464646] h-1 w-full my-1 dark:text-slate-600" />
-
         <BudgetByCategory
           categoryList={categoryList}
-          categoryStats={budget.categoryStats}
-          currency={budget.currency}
+          categoryStats={categoryStats} // Dữ liệu sạch từ Hook
+          currency={displayCurrency}
         />
-      </section>
+      </div>
+
+      {/* Modal */}
+      {isFormOpen && (
+        <BudgetModal
+          categoryList={categoryList}
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
+          monthValues={monthValues}
+          years={years}
+          setIsFormOpen={setIsFormOpen}
+          currentBudget={budget} // Truyền budget hiện tại xuống để fill form
+          onClose={() => fetchBudget()} // Reload sau khi đóng
+        />
+      )}
     </section>
   );
 };

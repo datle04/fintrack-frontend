@@ -6,6 +6,7 @@ import { IoNotifications } from "react-icons/io5";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router";
 import {
+  addNewNotification,
   getNotifications,
   markNotificationAsRead,
 } from "../features/notificationSlice";
@@ -14,6 +15,12 @@ import gsap from "gsap";
 import adminLogo from "../assets/img/admin_logo.webp";
 import logoDark from "../assets/img/logo_dark.webp";
 import { useTheme } from "../context/ThemeContext";
+import { io } from "socket.io-client";
+import { connectSocket } from "../utils/socket";
+import toast from "react-hot-toast";
+import notificationSound from "../assets/audio/notification.mp3";
+
+const SOCKET_URL = import.meta.env.VITE_BACKEND_URL;
 
 const Header = () => {
   const dispatch = useDispatch();
@@ -32,6 +39,127 @@ const Header = () => {
   const [hasRead, setHasRead] = useState(false);
 
   const notiRef = useRef();
+
+  // --- 1. LOGIC "MỞ KHÓA" ÂM THANH ---
+  useEffect(() => {
+    const unlockAudio = () => {
+      // Tạo một âm thanh rỗng/ngắn để "mồi" trình duyệt
+      const audio = new Audio(notificationSound);
+      audio.volume = 0; // Tắt tiếng để user không nghe thấy
+
+      // Thử phát và dừng ngay lập tức
+      audio
+        .play()
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          console.log("🔊 Audio Context Unlocked!");
+        })
+        .catch((e) => {
+          // Vẫn bị chặn thì kệ nó, chờ lần click sau
+        });
+
+      // Chỉ cần làm 1 lần duy nhất, sau đó gỡ sự kiện ra
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("keydown", unlockAudio);
+      document.removeEventListener("touchstart", unlockAudio);
+    };
+
+    // Lắng nghe tương tác đầu tiên của user
+    document.addEventListener("click", unlockAudio);
+    document.addEventListener("keydown", unlockAudio);
+    document.addEventListener("touchstart", unlockAudio);
+
+    return () => {
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("keydown", unlockAudio);
+      document.removeEventListener("touchstart", unlockAudio);
+    };
+  }, []);
+
+  // --- USE EFFECT CHO SOCKET ---
+  useEffect(() => {
+    // Chỉ kết nối nếu có user ID
+    if (!user?.id) return;
+
+    // 1. Gọi hàm connect từ utils (truyền userId)
+    const socket = connectSocket(user.id);
+    console.log("CLIENT SOCKET ID:", socket.id);
+
+    // 2. Lắng nghe sự kiện 'new_notification'
+    // Lưu ý: Dùng .off trước để tránh đăng ký trùng lặp khi re-render
+    socket.off("new_notification").on("new_notification", (newNoti) => {
+      console.log("🔔 [FRONTEND] RECEIVED EVENT:", newNoti);
+
+      // A. Cập nhật Redux
+      dispatch(addNewNotification(newNoti));
+
+      // --- A. XỬ LÝ ÂM THANH ---
+      try {
+        // Cách 1: Dùng file local (Khuyên dùng)
+        const audio = new Audio(notificationSound);
+
+        // Cách 2: Dùng link online (Để test nhanh nếu chưa có file)
+        // const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+
+        audio.volume = 0.5; // Chỉnh âm lượng (0.0 đến 1.0)
+        audio
+          .play()
+          .catch((err) =>
+            console.error("Trình duyệt chặn tự động phát âm thanh:", err)
+          );
+      } catch (error) {
+        console.error("Lỗi âm thanh:", error);
+      }
+
+      // --- B. XỬ LÝ ANIMATION (Timeline) ---
+      if (!toggleNotification) {
+        // Tạo một timeline mới để các hành động diễn ra nối tiếp/đồng thời
+        const tl = gsap.timeline();
+
+        tl.to(".bell-icon", {
+          scale: 1.2, // 1. Phóng to lên 1.2 lần
+          duration: 0.1,
+          ease: "power1.out",
+        })
+          .to(".bell-icon", {
+            rotation: 15, // 2. Bắt đầu rung (nghiêng sang phải trước)
+            duration: 0.05,
+            ease: "linear",
+          })
+          .to(".bell-icon", {
+            rotation: -15, // 3. Rung qua lại
+            duration: 0.1,
+            repeat: 5, // Lặp lại 5 lần (tạo hiệu ứng rung)
+            yoyo: true, // Quay ngược lại
+            ease: "linear",
+          })
+          .to(".bell-icon", {
+            scale: 1, // 4. Kết thúc: Thu về kích thước cũ
+            rotation: 0, //    VÀ Trả về góc 0 độ (thẳng đứng)
+            duration: 0.2,
+            ease: "elastic.out(1, 0.3)", // Hiệu ứng đàn hồi nhẹ khi dừng
+          });
+      }
+    });
+
+    // 3. Logic duy trì session (Heartbeat 30s)
+    const interval = setInterval(() => {
+      if (socket && socket.connected) {
+        socket.emit("session.update", { userId: user.id });
+      }
+    }, 30_000);
+
+    // 4. Cleanup khi unmount
+    return () => {
+      clearInterval(interval);
+      // Tắt lắng nghe sự kiện cụ thể
+      socket.off("new_notification");
+
+      // Nếu user đăng xuất (user._id thay đổi thành null), ngắt kết nối
+      // disconnectSocket(); // (Tùy chọn: Uncomment nếu muốn ngắt hẳn khi Header unmount)
+    };
+  }, [user?.id, dispatch, toggleNotification]);
 
   useEffect(() => {
     if (theme === "light") {
@@ -159,10 +287,10 @@ const Header = () => {
     "
     >
       <img
-        src={user.role === "admin" ? adminLogo : logo}
+        src={user?.role === "admin" ? adminLogo : logo}
         className={`
           ${
-            user.role === "admin"
+            user?.role === "admin"
               ? "max-w-30 sm:max-w-32 md:max-w-35"
               : "max-w-20 sm:max-w-22 md:max-w-23 dark:max-w-32 sm:dark:max-w-35 md:dark:max-w-38"
           }
@@ -186,7 +314,7 @@ const Header = () => {
           `}
           >
             <IoNotifications
-              className={`text-xl text-[#514D73] lg:text-2xl 3xl:text-3xl dark:text-white/90`}
+              className={`text-xl text-[#514D73] lg:text-2xl 3xl:text-3xl dark:text-white/90 bell-icon`}
             />
             {notifications.some((item) => item.isRead === false) && (
               <div className="absolute top-[15%] right-[10%] p-1 rounded-full bg-red-500"></div>

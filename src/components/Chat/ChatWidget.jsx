@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 import ChatBubble from "./ChatBubble";
+import axiosInstance from "../../api/axiosInstance";
 
 const CHATBOT_API_URL =
   import.meta.env.VITE_CHATBOT_API_URL || "http://localhost:4001";
@@ -18,10 +19,18 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
     {
       role: "model",
       reply:
-        "Chào bạn, tôi là FinAI, trợ lý tài chính của bạn. Tôi có thể giúp gì cho bạn hôm nay?",
+        "Chào bạn! Mình là FinAI 🤖. Mình có thể giúp bạn tra cứu chi tiêu, xem xu hướng hoặc thêm giao dịch mới.",
     },
   ]);
   const [loading, setLoading] = useState(false);
+  const inputRef = useRef(null);
+
+  // Auto-focus vào input khi mở chat
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      setTimeout(() => inputRef.current.focus(), 100);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -29,30 +38,37 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
     }
   }, [messages, isOpen]);
 
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || loading || !token) return;
+  // Hàm xử lý gửi tin nhắn (Tách riêng để tái sử dụng)
+  const handleSendMessage = async (text) => {
+    if (!text || !text.trim() || loading) return;
 
-    const currentInput = input.trim();
+    const currentInput = text.trim();
+
+    // 1. Thêm tin nhắn User ngay lập tức
     const userMessage = { role: "user", reply: currentInput };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
 
     try {
-      const res = await axios.post(
-        `${CHATBOT_API_URL}/chat`,
-        { message: currentInput },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      // 2. Gọi API
+      const res = await axiosInstance.post(`${CHATBOT_API_URL}/chat`, {
+        message: currentInput,
+      });
 
+      console.log(res.data);
+
+      // 3. Nhận kết quả từ Backend (bao gồm reply, intent, data)
       const botResponse = res.data.result;
 
+      // 4. Thêm tin nhắn Bot
       setMessages((prev) => [
         ...prev,
         {
           role: "model",
           reply: botResponse.reply,
+          intent: res.data.intent, // Lưu intent để render widget
+          data: botResponse.data, // Lưu data để render widget
         },
       ]);
     } catch (error) {
@@ -62,7 +78,7 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
         {
           role: "model",
           reply:
-            "Xin lỗi, tôi gặp lỗi khi xử lý yêu cầu. Vui lòng thử lại sau.",
+            "Xin lỗi, kết nối đến FinAI đang gặp sự cố. Bạn thử lại sau nhé! 😔",
         },
       ]);
     } finally {
@@ -70,12 +86,19 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
     }
   };
 
+  // Wrapper cho form submit
+  const onFormSubmit = (e) => {
+    e.preventDefault();
+    handleSendMessage(input);
+  };
+
+  // Các gợi ý nhanh
   const quickReplies = useMemo(
     () => [
-      "Tổng thu nhập",
-      "Xu hướng chi tiêu",
-      "Chi tiêu trung bình ngày",
-      "Tổng chi tiêu",
+      "Tổng chi tháng này",
+      "Tổng chi tiêu cho ăn uống",
+      "Xu hướng chi tiêu năm nay",
+      "Thêm 50k ăn sáng",
     ],
     [t]
   );
@@ -115,7 +138,12 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
         className="flex-1 overflow-y-auto p-4 space-y-3 sm:space-y-4"
       >
         {messages.map((msg, index) => (
-          <ChatBubble key={index} message={msg} isBot={msg.role === "model"} />
+          <ChatBubble
+            key={index}
+            message={msg}
+            isBot={msg.role === "model"}
+            isTyping={false}
+          />
         ))}
         {loading && (
           <ChatBubble
@@ -131,7 +159,7 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
         {quickReplies.map((reply, index) => (
           <button
             key={index}
-            onClick={() => setInput(reply)}
+            onClick={() => handleSendMessage(reply)}
             className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-700 cursor-pointer hover:bg-gray-300 transition-colors dark:bg-slate-600 dark:hover:bg-slate-500 dark:text-white"
             disabled={loading}
           >
@@ -141,7 +169,7 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
       </div>
 
       {/* Input */}
-      <form onSubmit={sendMessage} className="flex p-3  dark:border-slate-700">
+      <form onSubmit={onFormSubmit} className="flex p-3  dark:border-slate-700">
         <input
           type="text"
           value={input}

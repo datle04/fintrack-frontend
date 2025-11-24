@@ -18,6 +18,9 @@ import { getDashboard } from "../features/dashboardSlice";
 import formatDateToString from "../utils/formatDateToString";
 import { getCurrencySymbol } from "../utils/currencies";
 import { categoryList } from "../utils/categoryList";
+import { groupTransactionsByDate } from "../utils/groupTransactions";
+import { Search, Filter, X, Plus, Calendar, ArrowRight } from "lucide-react";
+import FilterSelect from "../components/TransactionPageComponent/FilterSelect";
 
 const TransactionPage = () => {
   const dispatch = useDispatch();
@@ -27,54 +30,82 @@ const TransactionPage = () => {
   const userCurrency = useSelector((state) => state.auth.user.currency);
   const { totalIncome, totalExpense } = useSelector((state) => state.dashboard);
 
-  const categoryOptions = [
-    { value: "", label: t("all") }, // All
-    ...categoryList.map((cat) => ({
-      value: cat.key,
-      label: `${cat.icon} ${t(`categories.${cat.key}`)}`,
-    })),
-  ];
+  // 1. Khởi tạo giá trị mặc định (để dùng cho Reset)
+  const today = new Date();
+  const defaultStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  const defaultEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
   const [showModal, setShowModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [detailTransaction, setDetailTransaction] = useState(null);
-  const today = new Date();
-  // 🗓️ Lấy ngày đầu tháng
-  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-  // 🗓️ Lấy ngày cuối tháng
-  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  const [rawKeyword, setRawKeyword] = useState("");
-  const [rawCategory, setRawCategory] = useState("");
-  const typeOptions = ["All", "income", "expense"];
 
-  const [filters, setFilters] = useState({
-    type: "",
-    category: "",
-    startDate: firstDay,
-    endDate: lastDay,
-    keyword: "",
-  });
-  const debouncedSearch = useMemo(
+  // 1. Chuẩn bị options cho Loại giao dịch
+  const typeOptions = [
+    { value: "income", label: t("income") || "Thu nhập" },
+    { value: "expense", label: t("expense") || "Chi tiêu" },
+  ];
+
+  // 2. Chuẩn bị options cho Danh mục (Giữ nguyên logic của bạn)
+  const categorySelectOptions = useMemo(
     () =>
-      debounce((keywordVal, categoryVal) => {
-        setFilters((prev) => ({
-          ...prev,
-          keyword: keywordVal,
-          category: categoryVal === "All" ? "" : categoryVal,
-        }));
-      }, 500),
-    []
+      categoryList.map((cat) => ({
+        value: cat.key,
+        label: `${cat.icon} ${t(`categories.${cat.key}`)}`,
+      })),
+    [t]
   );
 
-  const handleKeywordChange = (e) => {
-    const val = e.target.value;
-    setRawKeyword(val);
-    debouncedSearch(val, rawCategory);
+  // Trong TransactionPage component
+  const groupedTransactions = useMemo(
+    () => groupTransactionsByDate(transactions),
+    [transactions]
+  );
+
+  const [filters, setFilters] = useState({
+    keyword: "",
+    type: "",
+    category: "",
+    startDate: defaultStartDate.toISOString().split("T")[0], // Dùng string YYYY-MM-DD cho input date
+    endDate: defaultEndDate.toISOString().split("T")[0],
+  });
+  // 3. Debounce Search (Dùng useCallback để không bị tạo lại mỗi lần render)
+  // Lưu ý: debounce của lodash cần được bọc trong useCallback hoặc useMemo
+  const debouncedFetch = useMemo(
+    () =>
+      debounce((currentFilters) => {
+        dispatch(getTransactions(currentFilters));
+      }, 500),
+    [dispatch]
+  );
+
+  // 4. Effect: Gọi API khi filters thay đổi
+  // Bỏ rawKeyword/rawCategory riêng, dùng chung state filters
+  useEffect(() => {
+    // Gọi debounce khi filter thay đổi
+    debouncedFetch(filters);
+
+    // Cleanup debounce khi unmount
+    return () => debouncedFetch.cancel();
+  }, [filters, debouncedFetch]);
+
+  // 5. Handler chung cho tất cả input
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleCategoryChange = (e) => {
-    const val = e.target.value;
-    setRawCategory(val);
-    debouncedSearch(rawKeyword, val);
+  // 6. Handler Reset Filter
+  const handleResetFilter = () => {
+    setFilters({
+      keyword: "",
+      type: "",
+      category: "",
+      startDate: defaultStartDate.toISOString().split("T")[0],
+      endDate: defaultEndDate.toISOString().split("T")[0],
+    });
   };
 
   const { type, category, startDate, endDate, keyword } = filters;
@@ -96,17 +127,27 @@ const TransactionPage = () => {
     }
   }, [dispatch, shouldRefetch]);
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value === "All" ? "" : value,
-    }));
-  };
+  useEffect(() => {
+    // Mỗi khi filter đổi, luôn gọi trang 1
+    const params = { ...filters, page: 1 };
+    dispatch(getTransactions(params));
 
-  const handleLoadMore = async () => {
-    if (page < totalPages) {
-      await dispatch(getTransactions({ ...filters, page: page + 1 }));
+    // (Tùy chọn) Scroll lên đầu trang khi filter
+    // window.scrollTo(0, 0);
+  }, [
+    dispatch,
+    filters.type,
+    filters.category,
+    filters.startDate,
+    filters.endDate,
+    filters.keyword,
+  ]);
+
+  // 2. Hàm Load More
+  const handleLoadMore = () => {
+    if (page < totalPages && !loading) {
+      // Giữ nguyên filters, chỉ tăng page
+      dispatch(getTransactions({ ...filters, page: page + 1 }));
     }
   };
 
@@ -120,7 +161,7 @@ const TransactionPage = () => {
     setShowModal(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = (e, id) => {
     e.stopPropagation();
 
     const action = dispatch(deleteTransaction(id)).unwrap();
@@ -132,124 +173,112 @@ const TransactionPage = () => {
     });
   };
 
-  const years = Array.from({ length: 8 }, (_, i) => String(2018 + i));
-
-  const Select = ({ label, name, value, options, onChange, render }) => (
-    <div className="relative">
-      <label className="block text-[12px] 2xl:text-sm 3xl:text-base font-medium text-gray-600 mb-1 2xl:mb-2">
-        {label}
-      </label>
-      <div className="relative">
-        <select
-          name={name}
-          value={value}
-          onChange={onChange}
-          className="
-            appearance-none w-full bg-white text-gray-400 px-3 py-2 2xl:px-4 2xl:py-2 3xl:px-5 3xl:py-3 pr-8 rounded-md border border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-300 cursor-pointer text-sm 2xl:text-sm
-            dark:bg-[#2E2E33] dark:text-white/90 dark:border-slate-700
-          "
-        >
-          {options.map((opt) => (
-            <option
-              key={opt}
-              value={opt === t("all") ? "" : opt}
-              className="w-full bg-white text-black dark:bg-[#2E2E33] dark:text-white/90"
-            >
-              {render ? render(opt) : opt}
-            </option>
-          ))}
-        </select>
-        {/* Mũi tên xanh */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center transform -translate-x-5">
-          <ChevronDown
-            className="text-indigo-500 2xl:w-5 2xl:h-5 3xl:w-6 3xl:h-6"
-            size={18}
-          />
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen w-full bg-[#F5F6FA] p-4 2xl:px-6 2xl:py-2 3xl:px-8 3xl:py-2 dark:bg-[#35363A] ">
-      <div className="flex flex-col lg:flex-row justify-between gap-4 2xl:gap-6 3xl:gap-8 bg-[#F5F6FA] p-4 2xl:p-6 3xl:p-8 rounded-md flex-wrap dark:bg-[#35363A]">
-        {/* Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 2xl:gap-6 3xl:gap-8 flex-[3]">
-          {/* Loại giao dịch */}
-          <Select
-            label={t("type")}
-            name="type"
-            value={filters.type}
-            options={typeOptions}
-            onChange={handleFilterChange}
-            render={(opt) => {
-              switch (opt) {
-                case "All":
-                  return t("all");
-                case "income":
-                  return t("income");
-                case "expense":
-                  return t("expense");
-                default:
-                  return opt;
-              }
-            }}
-          />
+    <div className="min-h-screen w-full bg-[#F5F6FA] 2xl:px-6 2xl:py-2 3xl:px-8 3xl:py-2 dark:bg-[#35363A] ">
+      <div className="flex flex-col gap-2 lg:flex-row justify-between 2xl:gap-6 3xl:gap-8 bg-[#F5F6FA] 2xl:p-6 3xl:p-8 rounded-md flex-wrap dark:bg-[#35363A]">
+        {/* --- NEW FILTER BAR --- */}
+        <div className="my-1 flex flex-col justify-center bg-white dark:bg-[#2E2E33] p-4 rounded shadow-sm border border-slate-200 dark:border-slate-700 ">
+          {/* Hàng 1: Tìm kiếm & Nút Thêm */}
+          <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-4">
+            {/* Ô tìm kiếm (Chiếm phần lớn) */}
+            <div className="relative w-full group">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+              </div>
+              <input
+                type="text"
+                name="keyword"
+                value={filters.keyword}
+                onChange={handleChange}
+                placeholder={t("searchPlaceholder") || "Tìm kiếm giao dịch..."}
+                className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg leading-5 bg-gray-50 dark:bg-[#3a3a41] text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none  focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 ease-in-out sm:text-sm"
+              />
+            </div>
 
-          {/* Danh mục */}
-          <Select
-            label={t("categoriesLabel")}
-            name="category"
-            value={filters.category}
-            options={categoryOptions.map((opt) => opt.label)}
-            onChange={(e) => {
-              const selectedLabel = e.target.value;
-              const selected = categoryOptions.find(
-                (o) => o.label === selectedLabel
-              );
-              handleCategoryChange({
-                target: { value: selected?.value || "" },
-              });
-            }}
-          />
-
-          {/* Ngày bắt đầu */}
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">
-              {t("startDate")}
-            </label>
-            <input
-              type="date"
-              name="startDate"
-              value={filters.startDate}
-              onChange={handleFilterChange}
-              max={filters.endDate} // Không cho chọn ngày vượt quá endDate
-              className="bg-white text-gray-400 px-3 py-2 2xl:px-4 2xl:py-2 3xl:px-5 3xl:py-3 pr-8 rounded-md border border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-300 cursor-pointer text-sm 2xl:text-sm
-            dark:bg-[#2E2E33] dark:text-white/90 dark:border-slate-700"
-            />
+            {/* Nút Thêm (Nổi bật) */}
+            <button
+              onClick={handleAdd}
+              className="w-full md:w-auto flex items-center justify-center gap-2 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition-all shadow-md hover:shadow-lg active:scale-95"
+            >
+              <Plus size={20} />
+              <span>{t("add")}</span>
+            </button>
           </div>
 
-          {/* Ngày kết thúc */}
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">
-              {t("endDate")}
-            </label>
-            <input
-              type="date"
-              name="endDate"
-              value={filters.endDate}
-              onChange={handleFilterChange}
-              min={filters.startDate} // Không cho chọn ngày nhỏ hơn startDate
-              className="bg-white text-gray-400 px-3 py-2 2xl:px-4 2xl:py-2 3xl:px-5 3xl:py-3 pr-8 rounded-md border border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-300 cursor-pointer text-sm 2xl:text-sm
-            dark:bg-[#2E2E33] dark:text-white/90 dark:border-slate-700"
-            />
+          {/* Hàng 2: Các bộ lọc (Date, Type, Category) */}
+          <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center">
+            {/* Nhóm lọc Ngày tháng (Giao diện gắn liền) */}
+            <div className="flex items-center bg-gray-50 dark:bg-[#3a3a41] rounded-lg border border-gray-200 dark:border-gray-600 p-1">
+              <div className="relative">
+                <div className="pl-3 flex items-center">
+                  <Calendar className="h-4 w-4 text-gray-500" />
+                  <input
+                    type="date"
+                    name="startDate"
+                    value={filters.startDate}
+                    max={filters.endDate}
+                    onChange={handleChange}
+                    className="pl-2 pr-2 py-1.5 bg-transparent border-none focus:ring-0 text-sm text-gray-700 dark:text-gray-200 cursor-pointer w-32"
+                  />
+                </div>
+              </div>
+              <ArrowRight size={16} className="text-gray-400 mx-1" />
+              <div className="relative">
+                {/* (Tùy chọn: Icon calendar thứ 2 hoặc bỏ đi cho gọn) */}
+                <input
+                  type="date"
+                  name="endDate"
+                  value={filters.endDate}
+                  min={filters.startDate}
+                  onChange={handleChange}
+                  className="pl-2 pr-2 py-1.5 bg-transparent border-none focus:ring-0 text-sm text-gray-700 dark:text-gray-200 cursor-pointer w-32"
+                />
+              </div>
+            </div>
+
+            {/* Nhóm Dropdown (Type & Category) */}
+            <div className="flex flex-1 gap-4 w-full md:w-auto overflow-x-auto">
+              {/* Sử dụng FilterSelect cho Loại */}
+              <FilterSelect
+                name="type"
+                value={filters.type}
+                onChange={handleChange}
+                options={typeOptions}
+                placeholder={t("allType") || "Tất cả loại"}
+                icon={Filter} // (Tùy chọn nếu bạn muốn truyền icon để render custom)
+              />
+
+              {/* Sử dụng FilterSelect cho Danh mục */}
+              <FilterSelect
+                name="category"
+                value={filters.category}
+                onChange={handleChange}
+                options={categorySelectOptions}
+                placeholder={t("allCategory") || "Tất cả danh mục"}
+              />
+
+              {/* Nút Reset Filter */}
+              {(filters.keyword ||
+                filters.type ||
+                filters.category ||
+                filters.startDate !==
+                  defaultStartDate.toISOString().split("T")[0]) && (
+                <button
+                  onClick={handleResetFilter}
+                  className="flex items-center gap-1 text-sm text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors whitespace-nowrap"
+                >
+                  <X size={16} />
+                  {t("clearFilter") || "Xóa lọc"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* SUMMARY - bên phải */}
         <div
           className="
-            bg-white mt-2 rounded-md p-4 2xl:p-6 3xl:p-8 flex justify-between items-center flex-[2] min-w-[300px] 2xl:min-w-[400px] 3xl:min-w-[500px] 
+            bg-white shadow-sm border border-slate-200 mt-2 rounded-md p-4 2xl:p-6 3xl:p-8 flex justify-between items-center flex-2 min-w-[300px] 2xl:min-w-[400px] 3xl:min-w-[500px] 
             dark:bg-[#2E2E33] dark:border dark:border-slate-700 
         "
         >
@@ -285,160 +314,160 @@ const TransactionPage = () => {
           </div>
         </div>
       </div>
-
-      <div className="bg-white rounded-md shadow p-4 2xl:p-4 3xl:p-6 overflow-x-auto dark:bg-[#2E2E33] mt-2 md:mt-4 dark:border dark:border-slate-700">
-        <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3 2xl:gap-4 3xl:gap-6 mt-2">
-          {/* Ô tìm kiếm */}
-          <input
-            type="text"
-            placeholder={t("searchPlaceholder")}
-            value={rawKeyword}
-            onChange={handleKeywordChange}
-            className="
-              w-full sm:w-1/2 px-4 py-2 2xl:px-5 2xl:py-3 3xl:px-6 3xl:py-4 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-300 text-sm 2xl:text-base 3xl:text-lg
-              dark:border-slate-700 dark:text-white/83 dark:focus:ring-indigo-500 dark:focus:ring-1
-            "
-          />
-
-          {/* Select category */}
-          <select
-            name="category"
-            value={rawCategory}
-            onChange={handleCategoryChange}
-            className="
-              w-full sm:w-2/6 px-3 py-2 2xl:px-4 2xl:py-3 3xl:px-5 3xl:py-4 border border-gray-300 text-gray-600 text-sm 2xl:text-base 3xl:text-lg focus:outline-none focus:ring-1 focus:ring-indigo-300 cursor-pointer
-              dark:border-slate-700 dark:text-white/83 dark:focus:ring-1 dark:focus:ring-indigo-500
-            "
-          >
-            {categoryOptions.map((opt) => (
-              <option
-                key={opt.value}
-                value={opt.value}
-                className="dark:bg-[#2E2E33] dark:text-white/83"
+      {/* Transactions List */}
+      <div className="bg-white rounded-md shadow p-4 2xl:p-4 3xl:p-6 overflow-x-auto dark:bg-[#2E2E33] mt-2 dark:border dark:border-slate-700">
+        <div className="mt-4 space-y-6">
+          {loading && transactions.length === 0 ? (
+            <Shimmer />
+          ) : groupedTransactions.length === 0 ? (
+            <div className="text-center p-8 text-gray-500">{t("noData")}</div>
+          ) : (
+            groupedTransactions.map((group) => (
+              <div
+                key={group.date}
+                className="bg-white dark:bg-[#2E2E33] rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden"
               >
-                {opt.label}
-              </option>
-            ))}
-          </select>
+                {/* Header Ngày */}
+                <div className="bg-gray-50 dark:bg-[#3a3a41] px-4 py-2 border-b border-gray-100 dark:border-slate-600 flex justify-between items-center">
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">
+                    {formatDateToString(group.date)}
+                    {/* Hàm format ngày của bạn */}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {group.items.length} giao dịch
+                  </span>
+                </div>
 
-          {/* Nút Add */}
-          <button
-            onClick={handleAdd}
-            className="
-              bg-indigo-500 hover:bg-indigo-600 text-white justify-center font-semibold text-[12px] sm:w-1/6 2xl:text-sm py-2 px-4 2xl:py-3 2xl:px-6 3xl:py-4 3xl:px-8 rounded w-full flex items-center gap-2 2xl:gap-3 cursor-pointer
-              dark:bg-indigo-700 dark:hover:bg-indigo-800 dark:text-white/83 3xl:text-lg
-            "
-          >
-            + {t("add")}
-          </button>
+                {/* Danh sách giao dịch trong ngày */}
+                <div>
+                  {group.items.map((item) => (
+                    <div
+                      key={item._id}
+                      onClick={() => setDetailTransaction(item)}
+                      className="flex items-center justify-between p-4 border-b text-[12px] lg:text-sm xl:text-base border-gray-50 dark:border-slate-700 last:border-0 hover:bg-gray-50 dark:hover:bg-[#45454d] cursor-pointer transition-colors group"
+                    >
+                      {/* Cột Trái: Icon + Tên + Note */}
+                      <div className="flex items-center gap-4">
+                        {/* Tìm icon từ categoryList */}
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-xl bg-gray-100 dark:bg-slate-600`}
+                        >
+                          {categoryList.find((c) => c.key === item.category)
+                            ?.icon || "🏷️"}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-800 dark:text-gray-200">
+                            {t(`categories.${item.category}`)}
+                          </span>
+                          {item.note && (
+                            <span className="text-xs text-gray-500 truncate max-w-[150px] sm:max-w-[300px]">
+                              {item.note}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Cột Phải: Số tiền + Actions */}
+                      <div className="flex items-center gap-4">
+                        <span
+                          className={`font-bold ${
+                            item.type === "income"
+                              ? "text-green-600"
+                              : "text-red-500"
+                          }`}
+                        >
+                          {item.type === "income" ? "+" : "-"}
+                          {formatCurrency(
+                            Number(item.amount),
+                            item.currency,
+                            i18n.language
+                          )}
+                        </span>
+
+                        {/* Action Buttons (Chỉ hiện khi hover vào dòng - Desktop) */}
+                        <div className="hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(item);
+                            }}
+                            className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-full cursor-pointer transition-all"
+                          >
+                            <FaEdit />
+                          </button>
+                          <button
+                            onClick={(e) => handleDelete(e, item._id)}
+                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-gray-600 rounded-full cursor-pointer transition-all"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
         </div>
-
-        <table className="w-full text-left text-[12px] sm:text-sm lg:text-base 3xl:text-lg mt-4 2xl:mt-6 3xl:mt-8">
-          <thead>
-            <tr className="text-gray-600 border-b-2 dark:text-white/90">
-              <th className="py-2 2xl:py-3 3xl:py-4">{t("categoriesLabel")}</th>
-              <th className="py-2 2xl:py-3 3xl:py-4">{t("amount")}</th>
-              <th className="py-2 2xl:py-3 3xl:py-4">{t("date")}</th>
-              <th className="hidden sm:table-cell py-2 2xl:py-3 3xl:py-4">
-                {t("note")}
-              </th>
-              <th className="py-2 2xl:py-3 3xl:py-4"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              [...Array(6)].map((_, index) => (
-                <tr
-                  key={index}
-                  className="relative h-12 2xl:h-16 3xl:h-20 overflow-hidden"
-                >
-                  <td
-                    colSpan="6"
-                    className="relative rounded-md bg-slate-200 dark:bg-[#2E2E33] shimmer"
-                  >
-                    <Shimmer />
-                  </td>
-                </tr>
-              ))
-            ) : transactions.length === 0 ? (
-              <tr>
-                <td
-                  colSpan="6"
-                  className="text-center py-4 2xl:py-6 3xl:py-8 text-sm 2xl:text-base 3xl:text-lg dark:text-white/83"
-                >
-                  {t("noData")}
-                </td>
-              </tr>
-            ) : (
-              transactions.map((item, i) => (
-                <tr
-                  key={i}
-                  className="px-5 border-b border-slate-600 cursor-pointer text-[12px] md:text-sm xl:text-base 3xl:text-[17px] hover:bg-gray-100 hover:opacity-80 transition duration-200 dark:text-white/83 dark:hover:bg-[#3a3a41]"
-                  onClick={() => setDetailTransaction(item)}
-                >
-                  <td className="py-3 px-2 2xl:py-4 3xl:py-5">
-                    {t(`categories.${item.category}`)}
-                  </td>
-                  <td
-                    className={`py-3 2xl:py-4 3xl:py-5 ${
-                      item.type === "income"
-                        ? "text-green-600 dark:text-green-700"
-                        : "text-red-600 dark:text-red-700"
-                    }`}
-                  >
-                    {item.type === "income" ? "+ " : "- "}
-                    {formatCurrency(
-                      Number(item.amount),
-                      item.currency,
-                      i18n.language
-                    )}
-                    {/* {getCurrencySymbol(item.currency)} */}
-                  </td>
-                  <td className="py-3 2xl:py-4 3xl:py-5">
-                    {formatDateToString(item.date)}
-                  </td>
-                  <td className="hidden sm:table-cell py-3 2xl:py-4 3xl:py-5">
-                    {item.note || "-"}
-                  </td>
-                  <td className="py-3 2xl:py-4 3xl:py-5 text-right pr-5">
-                    <span className="inline-flex gap-2 2xl:gap-3 3xl:gap-4 text-gray-600">
-                      <FaEdit
-                        className="cursor-pointer hover:text-blue-500 2xl:w-4 2xl:h-4 3xl:w-5 3xl:h-5"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(item);
-                        }}
-                      />
-                      <FaTrash
-                        className="cursor-pointer hover:text-red-500 2xl:w-4 2xl:h-4 3xl:w-5 3xl:h-5"
-                        onClick={(e) => handleDelete(item._id)}
-                      />
-                    </span>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
       </div>
-      <div className="w-full">
-        {totalPages > 1 && page < totalPages && (
-          <div className="w-full flex justify-center">
-            <button
-              onClick={handleLoadMore}
-              disabled={loading}
-              className="p-2  rounded-full transition-all disabled:opacity-50 cursor-pointer"
-            >
-              {loading ? (
-                <span className="text-indigo-500 text-base 2xl:text-base 3xl:text-lg">
-                  Loading...
-                </span>
-              ) : (
-                <ChevronDown className="text-indigo-600 lg:w-8 lg:h-8 xl:w-10 xl:h-10 xl:m-2 3xl:w-11 3xl:h-11 hover:text-indigo-700" />
-              )}
-            </button>
-          </div>
+      {/* --- LOAD MORE SECTION --- */}
+      <div className="w-full mt-6 mb-10 flex flex-col items-center justify-center gap-2">
+        {/* Text thông tin (Optional) */}
+        {transactions.length > 0 && (
+          <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">
+            Đang hiển thị {transactions.length} trên tổng số {total} giao dịch
+          </p>
         )}
+
+        {/* Logic hiển thị nút */}
+        {loading && page > 1 ? (
+          // Case 1: Đang tải thêm (Loading Spinner)
+          <div className="flex items-center gap-2 text-indigo-500 font-medium cursor-progress">
+            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+                fill="none"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            <span>Đang tải thêm...</span>
+          </div>
+        ) : page < totalPages ? (
+          // Case 2: Còn trang để tải -> Hiện nút
+          <button
+            onClick={handleLoadMore}
+            className="
+            group flex items-center gap-2 px-6 py-2.5 rounded-full cursor-pointer
+            bg-white dark:bg-[#3a3a41] border border-gray-200 dark:border-slate-600 
+            text-sm font-medium text-gray-600 dark:text-gray-300 
+            shadow-sm hover:shadow-md hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 
+            transition-all duration-300 active:scale-95
+      "
+          >
+            <span>Xem thêm giao dịch cũ hơn</span>
+            <ChevronDown
+              size={16}
+              className="group-hover:translate-y-0.5 transition-transform"
+            />
+          </button>
+        ) : transactions.length > 0 ? (
+          // Case 3: Đã hết dữ liệu -> Hiện thông báo kết thúc
+          <div className="flex items-center gap-2 text-gray-400 text-sm py-2">
+            <span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-slate-600"></span>
+            <span>Bạn đã xem hết danh sách</span>
+            <span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-slate-600"></span>
+          </div>
+        ) : null}
       </div>
 
       {showModal && (

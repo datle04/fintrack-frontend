@@ -99,178 +99,205 @@ const StatPage = () => {
   }, [month, year, now]);
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 md:gap-6 p-4 md:p-6 w-full max-w-screen-2xl mx-auto md:h-[640px]">
-      {/* Calendar */}
-      <div className="w-full flex flex-col md:w-[60%] bg-white rounded-xl shadow-md p-4 md:p-6 md:h-full dark:bg-[#2E2E33] dark:border dark:border-slate-700">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-4">
+    <div className="w-full min-h-screen bg-[#F5F6FA] dark:bg-[#35363A] p-4 md:p-6 xl:p-8">
+      {/* --- 1. HEADER & FILTER (Trải dài trên cùng) --- */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+          Thống kê chi tiêu
+        </h1>
+
+        {/* Bộ chọn Tháng/Năm (Gom gọn lại) */}
+        <div className="flex items-center bg-white dark:bg-[#2E2E33] p-1 rounded-lg shadow-sm border border-gray-200 dark:border-slate-600">
+          <div className="px-2 border-r border-gray-200 dark:border-gray-600">
             <select
               value={month}
               onChange={(e) => setMonth(Number(e.target.value))}
-              className="border rounded px-2 py-1 dark:border-slate-700 dark:text-white/83 cursor-pointer"
+              className="bg-transparent outline-none text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer py-1"
             >
-              {Array.from({ length: 12 }).map((_, idx) => (
-                <option
-                  key={idx}
-                  value={idx + 1}
-                  className="dark:bg-[#2E2E33] dark:text-white/83"
-                >
-                  {t("month")} {idx + 1}
+              {Array.from({ length: 12 }).map((_, i) => (
+                <option key={i} value={i + 1} className="dark:bg-[#2E2E33]">
+                  Tháng {i + 1}
                 </option>
               ))}
             </select>
+          </div>
+          <div className="px-2">
             <select
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
-              className="border rounded px-2 py-1 dark:border-slate-700 dark:text-white/83 cursor-pointer"
+              className="bg-transparent outline-none text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer py-1"
             >
-              {Array.from({ length: 10 }).map((_, idx) => {
-                const y = 2020 + idx;
-                return (
-                  <option
-                    key={idx}
-                    value={y}
-                    className="dark:bg-[#2E2E33] dark:text-white/83"
-                  >
-                    {y}
-                  </option>
-                );
-              })}
+              {Array.from({ length: 10 }).map((_, i) => (
+                <option key={i} value={2020 + i} className="dark:bg-[#2E2E33]">
+                  {2020 + i}
+                </option>
+              ))}
             </select>
           </div>
         </div>
-
-        <div className="grid grid-cols-7 gap-2 text-center font-medium text-gray-700 mb-2 dark:text-white/83">
-          {[
-            "monday",
-            "tuesday",
-            "wednesday",
-            "thursday",
-            "friday",
-            "saturday",
-            "sunday",
-          ].map((d, i) => (
-            <div key={i}>{t(d)}</div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-2 text-center text-sm">
-          {Array.from({ length: firstDay }).map((_, i) => (
-            <div key={`empty-${i}`}></div>
-          ))}
-          {days.map((day) => {
-            const dailyTx = transactionsByDayMap[day] || [];
-            const income = dailyTx
-              .filter((t) => t.type === "income")
-              .reduce((s, t) => s + t.amount * t.exchangeRate, 0);
-            const expense = dailyTx
-              .filter((t) => t.type === "expense")
-              .reduce((s, t) => s + t.amount * t.exchangeRate, 0);
-            const percent = budget.totalBudget
-              ? (expense / budgetPerDay) * 100
-              : maxExpenseInMonth > 0
-              ? (expense / maxExpenseInMonth) * 100
-              : 0;
-
-            const bgColor = getHeatmapColor(percent);
-
-            const isSelected = selectedDate === day;
-            return (
-              <div
-                key={day}
-                onClick={() => setSelectedDate(day)}
-                className={`cursor-pointer border rounded-md p-2 text-[11px] transition-all hover:scale-[1.02] ${bgColor} ${
-                  isSelected ? "ring-2 ring-blue-400" : ""
-                }`}
-              >
-                <div className="font-semibold text-sm">{day}</div>
-                <div className="truncate text-[10px] leading-tight max-w-full">
-                  {formatCurrency(expense, "VND", i18n.language)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="w-full h-full overflow-hidden flex flex-col justify-end 3xl:text-lg">
-          {shouldShowReport && <ReportExport month={month} year={year} />}
-        </div>
       </div>
 
-      {/* Cột phải: Giao dịch + Donut */}
-      <div className="w-full md:w-[40%] md:h-full flex flex-col gap-4 ">
-        <div className="bg-white rounded-xl shadow-md p-4 flex-1 flex flex-col overflow-hidden dark:bg-[#2E2E33] dark:border dark:border-slate-700">
-          <h3 className="text-lg font-semibold mb-3 dark:text-white/87">
-            {t("transactions")}{" "}
-            {selectedDate
-              ? `${selectedDate}/${month}/${year}`
-              : `(${t("selectDate")})`}
+      {/* --- 2. MAIN GRID LAYOUT (3 Cột) --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto lg:h-[600px]">
+        {/* === CỘT TRÁI: BIỂU ĐỒ (Chiếm 3 phần) === */}
+        <div className="lg:col-span-3 bg-white dark:bg-[#2E2E33] rounded-2xl shadow-sm p-4 flex flex-col border border-gray-100 dark:border-slate-700">
+          <h3 className="text-base font-semibold mb-4 text-center text-gray-700 dark:text-white">
+            {t("statByCat")}
           </h3>
-          <div className="overflow-y-auto pr-2 flex-1">
-            {selectedDate ? (
-              transactionsByDay.length > 0 ? (
-                <ul className="text-sm space-y-2">
-                  {transactionsByDay.map((tx) => (
-                    <li
-                      key={tx._id}
-                      className="flex justify-between border-b pb-1 text-gray-700 dark:text-white/83 dark:border-slate-600"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium">
-                          {t(`categories.${tx.category}`)}
-                        </span>
-                        {tx.note && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {tx.note}
-                          </span>
-                        )}
-                      </div>
-                      <span
-                        className={
-                          tx.type === "income"
-                            ? "text-green-500 dark:text-green-600"
-                            : "text-red-500 dark:text-red-600"
-                        }
-                      >
-                        {tx.type === "income" ? "+ " : "- "}
-                        {formatCurrency(
-                          parseInt(tx.amount),
-                          tx.currency,
-                          i18n.language
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-500 dark:text-white/83">
-                  {t("noData")}.
-                </p>
-              )
+
+          <div className="flex-1 flex items-center justify-center relative">
+            {budget.totalBudget > 0 ? (
+              <div className="scale-90">
+                {" "}
+                {/* Thu nhỏ chart một chút */}
+                <DonutChart
+                  categoryStats={budget.categoryStats}
+                  totalBudget={budget.totalBudget}
+                  budget={budget}
+                />
+              </div>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-white/83">
-                {t("pleaseSelectDate")}.
-              </p>
+              <div className="text-center text-gray-400 text-sm">
+                <p>Chưa có dữ liệu ngân sách</p>
+              </div>
             )}
+          </div>
+
+          {/* Nút xuất báo cáo (Đặt ở dưới cùng cột trái) */}
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+            {shouldShowReport && <ReportExport month={month} year={year} />}
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-4 flex-1 flex flex-col items-center justify-center dark:bg-[#2E2E33] dark:border dark:border-slate-700">
-          <h3 className="text-lg font-semibold mb-3 dark:text-white/83">
-            {t("statByCat")}
+        {/* === CỘT GIỮA: LỊCH HEATMAP (Chiếm 6 phần - Rộng nhất) === */}
+        <div className="lg:col-span-6 bg-white dark:bg-[#2E2E33] rounded-2xl shadow-sm p-6 flex flex-col border border-gray-100 dark:border-slate-700">
+          {/* Calendar Header */}
+          <div className="grid grid-cols-7 mb-2">
+            {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((d, i) => (
+              <div
+                key={i}
+                className="text-center text-xs font-medium text-gray-400 uppercase"
+              >
+                {d}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar Grid */}
+          <div className="flex-1 grid grid-cols-7 gap-2 auto-rows-fr">
+            {" "}
+            {/* auto-rows-fr giúp ô vuông đều nhau */}
+            {Array.from({ length: firstDay }).map((_, i) => (
+              <div key={`empty-${i}`} />
+            ))}
+            {days.map((day) => {
+              // ... (Logic tính toán cũ của bạn giữ nguyên)
+              const dailyTx = transactionsByDayMap[day] || [];
+              const income = dailyTx
+                .filter((t) => t.type === "income")
+                .reduce((s, t) => s + t.amount * (t.exchangeRate || 1), 0);
+              const expense = dailyTx
+                .filter((t) => t.type === "expense")
+                .reduce((s, t) => s + t.amount * (t.exchangeRate || 1), 0);
+              const hasData = expense > 0 || income > 0;
+              const isSelected = selectedDate === day;
+
+              // Tính opacity cho Heatmap
+              const opacity =
+                maxExpenseInMonth > 0
+                  ? Math.min(expense / maxExpenseInMonth + 0.2, 1)
+                  : 0;
+
+              return (
+                <div
+                  key={day}
+                  onClick={() => setSelectedDate(day)}
+                  className={`
+                    relative rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all duration-200 aspect-square
+                    ${
+                      isSelected
+                        ? "ring-2 ring-indigo-500 ring-offset-2 z-10"
+                        : "hover:bg-gray-50 dark:hover:bg-white/5"
+                    }
+                  `}
+                  style={
+                    expense > 0
+                      ? {
+                          backgroundColor: `rgba(99, 102, 241, ${opacity})`, // Indigo
+                          color: opacity > 0.6 ? "white" : "inherit",
+                        }
+                      : {}
+                  }
+                >
+                  <span
+                    className={`text-sm font-medium ${
+                      !hasData ? "text-gray-400" : ""
+                    }`}
+                  >
+                    {day}
+                  </span>
+
+                  {/* Dot Indicator */}
+                  <div className="flex gap-1 mt-1 h-1.5">
+                    {income > 0 && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-sm"></div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* === CỘT PHẢI: CHI TIẾT GIAO DỊCH (Chiếm 3 phần) === */}
+        <div className="lg:col-span-3 bg-white dark:bg-[#2E2E33] rounded-2xl shadow-sm p-4 flex flex-col h-full border border-gray-100 dark:border-slate-700 overflow-hidden">
+          <h3 className="text-base font-semibold mb-3 text-gray-700 dark:text-white border-b pb-2 dark:border-slate-700">
+            {selectedDate
+              ? `Giao dịch ngày ${selectedDate}/${month}`
+              : "Chọn ngày để xem"}
           </h3>
-          {budget.totalBudget > 0 ? (
-            <DonutChart
-              categoryStats={budget.categoryStats}
-              totalBudget={budget.totalBudget}
-              budget={budget}
-            />
-          ) : (
-            <div className="text-center text-gray-500 flex flex-col items-center gap-2 dark:text-white/83">
-              <div className="text-4xl">💸</div>
-              <p className="text-sm">{t("noBudget")}</p>
-              <p className="text-xs text-gray-400">{t("pleaseSetBudget")}</p>
-            </div>
-          )}
+
+          <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+            {selectedDate && transactionsByDay.length > 0 ? (
+              <ul className="space-y-3">
+                {transactionsByDay.map((tx) => (
+                  <li
+                    key={tx._id}
+                    className="flex justify-between items-center p-2 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg transition-colors"
+                  >
+                    <div>
+                      <p className="font-medium text-sm text-gray-800 dark:text-gray-200">
+                        {t(`categories.${tx.category}`)}
+                      </p>
+                      {tx.note && (
+                        <p className="text-xs text-gray-400 truncate max-w-[120px]">
+                          {tx.note}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className={`text-sm font-bold ${
+                        tx.type === "income" ? "text-green-500" : "text-red-500"
+                      }`}
+                    >
+                      {tx.type === "income" ? "+" : "-"}
+                      {formatCurrency(
+                        parseInt(tx.amount),
+                        tx.currency,
+                        i18n.language
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              // Empty State
+              <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-2 opacity-60">
+                <div className="text-4xl">📅</div>
+                <p className="text-xs text-center">Không có giao dịch</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -28,32 +28,11 @@ import ChatIcon from "./components/Chat/ChatIcon";
 import ChatWidget from "./components/Chat/ChatWidget";
 import AdminGoalPage from "./pages/admin/AdminGoalPage";
 import AdminBudgetPage from "./pages/admin/AdminBudgetPage";
+import PrivateRoute from "./routes/PrivateRoute";
 
 function App() {
   const { isAppLoading } = useLoading();
   const user = useSelector((state) => state.auth.user);
-
-  useEffect(() => {
-    const socket = connectSocket();
-
-    // Gửi session update mỗi 30s
-    const interval = setInterval(() => {
-      socket.emit("session.update");
-    }, 30_000);
-
-    const handleBeforeUnload = () => {
-      socket.emit("session.end");
-      socket.disconnect();
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      clearInterval(interval);
-      socket.disconnect();
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, []);
 
   // ⚠️ State mới cho Chat Widget
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -69,36 +48,38 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
+          {/* Route yêu cầu đăng nhập */}
+          <Route element={<PrivateRoute />}>
+            <Route
+              element={
+                <MainLayout header={<Header />} sidebar={<BigSideBar />} />
+              }
+            >
+              {/* User routes */}
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/budget" element={<BudgetPage />} />
+              <Route path="/transactions" element={<TransactionPage />} />
+              <Route path="/goals" element={<GoalPage />} />
+              <Route path="/stat" element={<StatPage />} />
+              <Route path="/settings" element={<SettingPage />} />
 
-          <Route
-            element={
-              <MainLayout header={<Header />} sidebar={<BigSideBar />} />
-            }
-          >
-            {/* Route người dùng thường */}
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/budget" element={<BudgetPage />} />
-            <Route path="/transactions" element={<TransactionPage />} />
-            <Route path="/goals" element={<GoalPage />} />
-            <Route path="/stat" element={<StatPage />} />
-            <Route path="/settings" element={<SettingPage />} />
-
-            {/* Route admin - dùng chung layout nhưng kiểm tra role bằng AdminRoute */}
-            <Route path="/admin" element={<AdminRoute />}>
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="users" element={<AdminUser />} />
-              <Route path="transactions" element={<AdminTransaction />} />
-              <Route path="budgets" element={<AdminBudgetPage />} />
-              <Route path="goals" element={<AdminGoalPage />} />
-              <Route path="analytics" element={<AdminAnalytics />} />
-              <Route path="logs" element={<AdminLog />} />
+              {/* Admin routes */}
+              <Route path="/admin" element={<AdminRoute />}>
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="users" element={<AdminUser />} />
+                <Route path="transactions" element={<AdminTransaction />} />
+                <Route path="budgets" element={<AdminBudgetPage />} />
+                <Route path="goals" element={<AdminGoalPage />} />
+                <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="logs" element={<AdminLog />} />
+              </Route>
             </Route>
           </Route>
         </Routes>
 
         {/* ======================================= */}
         {/* ⚠️ Tích hợp Chat Widget/Icon ở đây (Chỉ khi User tồn tại) */}
-        {user && (
+        {user && user.role === "user" && (
           <>
             <ChatWidget
               isOpen={isChatOpen}

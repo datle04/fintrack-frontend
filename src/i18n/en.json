@@ -7,6 +7,8 @@
   "setting": "Setting",
   "logout": "Log out",
   "language": "Language",
+  "currency": "Currency",
+  "security": "Security",
   "suggestion": "Suggestion",
     "categoriesLabel": "Categories",
     "all": "All",
@@ -40,6 +42,18 @@
       "saving": "Saving",
       "other": "Other"
   },
+  "budgetPage": {
+    "warning": {
+      "title": "⚠️ Warning: Currency Changed",
+      "messageChange": "You changed from <1>{{prev}}</1> to <1>{{curr}}</1>.",
+      "messageNote": "Entered amounts will <1>NOT convert automatically</1>. Please check your numbers!",
+      "btnManual": "I'll edit manually",
+      "btnReset": "Reset amounts"
+    }
+  },
+  "availableBudget": "TOTAL BUDGET (AVAILABLE)",
+  "allType": "All Type",
+  "allCategory": "All Category",
   "type": "Type",
   "month": "Month",
   "year": "Year",

@@ -8,6 +8,8 @@
   "logout": "Đăng xuất",
   "language": "Ngôn ngữ",
   "suggestion": "Gợi ý",
+  "currency": "Đơn vị tiền",
+  "security": "Bảo mật",
   "categoriesLabel": "Danh mục",
     "all": "Tất cả",
     "notifications": "Thông báo",
@@ -40,6 +42,18 @@
     "saving": "Tiết kiệm",
     "other": "Khác"
 },
+  "budgetPage": {
+    "warning": {
+      "title": "⚠️ Chú ý: Đổi đơn vị tiền tệ",
+      "messageChange": "Bạn vừa đổi từ <1>{{prev}}</1> sang <1>{{curr}}</1>.",
+      "messageNote": "Các con số đã nhập sẽ <1>không tự động quy đổi</1>. Vui lòng kiểm tra lại số tiền!",
+      "btnManual": "Tôi sẽ sửa tay",
+      "btnReset": "Reset số tiền"
+    }
+  },
+  "availableBudget": "TỔNG NGÂN SÁCH (KHẢ DỤNG)",
+  "allType": "Tất cả loại",
+  "allCategory": "Tất cả danh mục",
   "type": "Loại",
   "month": "Tháng",
   "year": "Năm",

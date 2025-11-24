@@ -18,6 +18,7 @@ export const adminGetLogs = createAsyncThunk("/admin/logs/adminGetLogs", async (
 
     try {
         const res = await axiosInstance.get(`/api/admin/logs?action=${action}&method=${method}&level=${level}&page=${page}&limit=${limit}&startDate=${startDate}&endDate=${endDate}`)
+        console.log(res.data);
         return res.data
     } catch (error) {
         return rejectWithValue(error.response?.data?.message || error.message);

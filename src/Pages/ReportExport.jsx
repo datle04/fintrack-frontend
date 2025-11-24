@@ -13,6 +13,7 @@ import { getBudget } from "../features/budgetSlice";
 import { getExpenseStat } from "../features/statSlice";
 import ThemeToggle from "../components/ThemeToggle";
 import toast from "react-hot-toast";
+import axiosInstance from "../api/axiosInstance";
 
 const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
 
@@ -118,20 +119,11 @@ const ReportExport = ({ month, year }) => {
     // 2. ĐỊNH NGHĨA PROMISE SẼ CHẠY
     // Đây là hàm sẽ thực thi khi toast.promise được gọi
     const exportPromise = async () => {
-      const res = await axios.post(
-        `${BACK_END_URL}/api/report/export`,
-        {
-          html: htmlString,
-          reportId: data.reportId,
-          month: `${month}-${year}`,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const res = await axiosInstance.post(`/api/report/export`, {
+        html: htmlString,
+        reportId: data.reportId,
+        month: `${month}-${year}`,
+      });
 
       // Trả về dữ liệu khi thành công (fileUrl)
       // Dữ liệu này sẽ được chuyển vào hàm 'render' của 'success'
@@ -163,7 +155,7 @@ const ReportExport = ({ month, year }) => {
 
   return (
     <div className="space-y-4 mt-5 w-full flex flex-col ">
-      <div className="absolute hidden w-[600px] h-[400px] -z-10 opacity-0 pointer-events-none">
+      <div className="absolute hidden w-full h-[600px] -z-10 opacity-0 pointer-events-none">
            {" "}
         {stats &&
           stats.length > 0 && ( // <-- THÊM ĐIỀU KIỆN NÀY

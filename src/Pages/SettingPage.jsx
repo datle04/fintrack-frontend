@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   FaUser,
@@ -7,6 +7,9 @@ import {
   FaEyeSlash,
   FaGlobe,
   FaImage,
+  FaUserCircle,
+  FaShieldAlt,
+  FaPalette,
 } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { getUserInfo, logoutUser, updateUser } from "../features/authSlice";
@@ -23,21 +26,24 @@ const SettingPage = () => {
   const { theme, toggleTheme } = useTheme();
   const { t, i18n } = useTranslation();
 
+  // 1. STATE CHO TAB (Mới)
+  const [activeTab, setActiveTab] = useState("profile"); // 'profile' | 'security' | 'interface'
+
   const [language, setLanguage] = useState(
     localStorage.getItem("lang") || "vi"
   );
 
   const [profile, setProfile] = useState({
-    name: user.name,
-    phone: user.phone,
-    currency: user.currency || "VND",
-    dob: user.dob,
-    address: user.address,
+    name: user?.name,
+    phone: user?.phone,
+    currency: user?.currency || "VND",
+    dob: user?.dob,
+    address: user?.address,
   });
   const initialProfile = useRef(profile);
 
   const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(user.avatarUrl);
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatarUrl);
   const fileInputRef = useRef(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
@@ -60,8 +66,10 @@ const SettingPage = () => {
   };
 
   useEffect(() => {
-    dispatch(getUserInfo());
-  }, []);
+    if (!user) {
+      dispatch(getUserInfo());
+    }
+  }, [user]);
 
   const handleSaveProfile = () => {
     if (!isDirty) return;
@@ -99,230 +107,305 @@ const SettingPage = () => {
   };
 
   const handleLogout = async () => {
-    const logoutPromise = dispatch(logoutUser()).unwrap();
+    try {
+      await toast.promise(dispatch(logoutUser()).unwrap(), {
+        loading: "Đang đăng xuất...",
+        success: "Đã đăng xuất! 👋",
+        error: (err) => err?.message || "Đăng xuất thất bại!",
+      });
 
-    toast.promise(logoutPromise, {
-      loading: "Đang đăng xuất...",
-      success: "Đã đăng xuất! 👋",
-      error: (err) => err?.message || "Đăng xuất thất bại!",
-    });
-
-    logoutPromise.finally(() => {
       navigate("/login");
-    });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  // 2. CẤU HÌNH DANH SÁCH TAB (Mới)
+  const tabs = useMemo(
+    () => [
+      {
+        id: "profile",
+        label: t("userInfo") || "Thông tin cá nhân",
+        icon: <FaUserCircle />,
+      },
+      {
+        id: "security",
+        label: t("security") || "Tài khoản & Bảo mật",
+        icon: <FaShieldAlt />,
+      },
+      {
+        id: "interface",
+        label: t("interface") || "Giao diện & Ngôn ngữ",
+        icon: <FaPalette />,
+      },
+    ],
+    [t]
+  );
+
+  // 3. HÀM RENDER NỘI DUNG THEO TAB (Mới)
+  const renderContent = () => {
+    switch (activeTab) {
+      case "profile":
+        return (
+          <div className="bg-white dark:bg-[#2E2E33] rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-slate-700 animate-fadeIn">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6 pb-4 border-b border-gray-100 dark:border-slate-700">
+              {t("userInfo")}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <EditableField
+                label={t("name")}
+                value={profile.name}
+                onChange={(e) =>
+                  setProfile({ ...profile, name: e.target.value })
+                }
+              />
+              <EditableField
+                label={t("phone")}
+                value={profile.phone}
+                onChange={(e) =>
+                  setProfile({ ...profile, phone: e.target.value })
+                }
+              />
+              <EditableField
+                label={t("dob")}
+                value={profile.dob}
+                type="date"
+                onChange={(e) =>
+                  setProfile({ ...profile, dob: e.target.value })
+                }
+              />
+              <EditableField
+                label={t("address")}
+                value={profile.address}
+                onChange={(e) =>
+                  setProfile({ ...profile, address: e.target.value })
+                }
+              />
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  {t("currency")}
+                </label>
+                <select
+                  value={profile.currency}
+                  onChange={(e) =>
+                    setProfile((prev) => ({
+                      ...prev,
+                      currency: e.target.value,
+                    }))
+                  }
+                  className="w-full px-4 py-2.5 bg-white dark:bg-[#3a3a41] border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                >
+                  {[...currencyMap].map(([code, label]) => (
+                    <option key={code} value={code}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Nút Save đặt ở đây cho Tab Profile */}
+            <div className="mt-8 flex justify-end">
+              <button
+                onClick={handleSaveProfile}
+                disabled={!isDirty}
+                className={`px-8 py-2.5 text-white rounded-xl font-medium transition-all ${
+                  isDirty
+                    ? "bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200"
+                    : "bg-gray-300 cursor-not-allowed"
+                }`}
+              >
+                {t("save")}
+              </button>
+            </div>
+          </div>
+        );
+
+      case "security":
+        return (
+          <div className="bg-white dark:bg-[#2E2E33] rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-slate-700 animate-fadeIn">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6 pb-4 border-b border-gray-100 dark:border-slate-700">
+              Tài khoản & Bảo mật
+            </h3>
+            <div className="space-y-6 max-w-lg">
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  {t("email")}
+                </label>
+                <input
+                  type="email"
+                  value={user.email}
+                  readOnly
+                  className="w-full px-4 py-2.5 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 cursor-not-allowed"
+                />
+              </div>
+
+              <div className="relative">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  {t("password")}
+                </label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value="123456" // Dummy value
+                  readOnly
+                  className="w-full px-4 py-2.5 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 cursor-not-allowed pr-10"
+                />
+                <button
+                  className="absolute right-3 top-[34px] text-gray-500 hover:text-indigo-600"
+                  onClick={() => setShowPassword((s) => !s)}
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+
+              <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
+                <button
+                  onClick={handleLogout}
+                  className="px-6 py-2.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl font-medium transition-colors w-full sm:w-auto"
+                >
+                  {t("logout")}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "interface":
+        return (
+          <div className="bg-white dark:bg-[#2E2E33] rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-slate-700 animate-fadeIn">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6 pb-4 border-b border-gray-100 dark:border-slate-700">
+              {t("interface")}
+            </h3>
+
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-700 dark:text-gray-200">
+                    {t("theme")}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Chọn giao diện sáng hoặc tối
+                  </p>
+                </div>
+                <div className="flex bg-gray-100 dark:bg-slate-800 p-1 rounded-lg">
+                  {["light", "dark"].map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => toggleTheme(mode)}
+                      className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                        theme === mode
+                          ? "bg-white dark:bg-[#3a3a41] shadow text-indigo-600"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {mode === "light" ? "☀️ Sáng" : "🌙 Tối"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-700 dark:text-gray-200">
+                    {t("language")}
+                  </p>
+                  <p className="text-sm text-gray-500">Ngôn ngữ hiển thị</p>
+                </div>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="bg-gray-50 dark:bg-slate-800 border-none rounded-lg py-2 pl-3 pr-8 text-sm cursor-pointer outline-none focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  <option value="vi">🇻🇳 Tiếng Việt</option>
+                  <option value="en">🇺🇸 English</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
-    <div className="h-fit flex items-start justify-center bg-[#f3f4f6] sm:h-full xl:items-center dark:bg-[#35363A]">
-      <main className="flex-1 px-4 sm:px-6 py-6">
-        <div className="w-full max-w-4xl bg-white rounded-xl shadow-lg p-6 mx-auto dark:border dark:border-slate-700 dark:bg-[#2E2E33] dark:text-white/83">
-          <h2 className="text-2xl font-semibold mb-8">{t("setting")}</h2>
+    <div className="min-h-screen bg-[#F5F6FA] dark:bg-[#35363A] p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+          {t("setting")}
+        </h1>
 
-          <div className="flex flex-col md:flex-row gap-10 items-center md:items-start text-center md:text-left">
-            {/* === Thông tin người dùng === */}
-            <section className="flex-1 w-full sm:px-3">
-              <h3 className="w-full text-center text-lg font-semibold mb-4 sm:text-left">
-                {t("userInfo")}
-              </h3>
-
-              {/* Avatar */}
-              <div className="flex flex-col items-center mb-6">
-                <div
-                  className="relative h-20 w-20 rounded-full overflow-hidden cursor-pointer"
-                  onClick={() => fileInputRef.current?.click()}
-                  onMouseEnter={() => setIsHovering(true)}
-                  onMouseLeave={() => setIsHovering(false)}
-                  title="Đổi ảnh"
-                >
-                  {avatarPreview ||
-                  (user?.avatarUrl && user.avatarUrl.trim() !== "") ? (
-                    <img
-                      src={avatarPreview || user.avatarUrl}
-                      alt="avatar"
-                      className="h-full w-full object-cover rounded-full"
-                    />
-                  ) : (
-                    <div className="h-full w-full bg-[#7e5bef] flex items-center justify-center">
-                      <FaUser className="text-white text-3xl" />
-                    </div>
-                  )}
-                  <div
-                    className={`absolute inset-0 bg-gray-800/70 flex items-center justify-center rounded-full z-10 transition-opacity duration-300 ${
-                      isHovering ? "opacity-100" : "opacity-0"
-                    }`}
-                  >
-                    <FaImage className="text-white text-2xl" />
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAvatarChange}
-                  />
-                </div>
-              </div>
-
-              {/* Các trường chỉnh sửa */}
-              <div className="space-y-4">
-                <EditableField
-                  label={t("name")}
-                  value={profile.name}
-                  onChange={(e) =>
-                    setProfile((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                />
-                <EditableField
-                  label={t("phone")}
-                  value={profile.phone}
-                  onChange={(e) =>
-                    setProfile((prev) => ({ ...prev, phone: e.target.value }))
-                  }
-                />
-                <EditableField
-                  label={t("dob")}
-                  value={profile.dob}
-                  onChange={(e) =>
-                    setProfile((prev) => ({ ...prev, dob: e.target.value }))
-                  }
-                />
-                <EditableField
-                  label={t("address")}
-                  value={profile.address}
-                  onChange={(e) =>
-                    setProfile((prev) => ({ ...prev, address: e.target.value }))
-                  }
-                />
-                {/* --- BẮT ĐẦU THÊM MỚI --- */}
-                <div>
-                  <label className="text-sm text-gray-500 dark:text-gray-400">
-                    {t("currency")}
-                  </label>
-                  <select
-                    value={profile.currency}
-                    onChange={(e) =>
-                      setProfile((prev) => ({
-                        ...prev,
-                        currency: e.target.value,
-                      }))
-                    }
-                    className="w-full px-2 py-1 border-b border-gray-400 bg-transparent outline-none cursor-pointer dark:bg-[#2E2E33]"
-                  >
-                    {[...currencyMap].map(([code, label]) => (
-                      <option
-                        key={code}
-                        value={code}
-                        className="dark:bg-[#2E2E33]"
-                      >
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {/* --- KẾT THÚC THÊM MỚI --- */}
-                <div>
-                  <label className="text-sm text-gray-500 dark:text-gray-400">
-                    {t("email")}
-                  </label>
-                  <input
-                    type="email"
-                    value={user.email}
-                    readOnly
-                    className="w-full px-2 py-1 border-b border-gray-400 bg-transparent outline-none cursor-not-allowed"
-                  />
-                </div>
-
-                <div className="relative select-none">
-                  <label className="text-sm text-gray-500 dark:text-gray-400">
-                    {t("password")}
-                  </label>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value="123456"
-                    readOnly
-                    className="w-full px-2 py-1 border-b border-gray-400 bg-transparent pr-8 outline-none cursor-not-allowed"
-                  />
-                  <button
-                    className="absolute right-0 top-1/2 -translate-y-1/2 px-2 py-1 text-gray-600 hover:text-indigo-600"
-                    onClick={() => setShowPassword((s) => !s)}
-                    title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                  >
-                    {showPassword ? <FaEyeSlash /> : <FaEye />}
-                  </button>
-                </div>
-
-                <button
-                  onClick={handleSaveProfile}
-                  disabled={!isDirty}
-                  className={`block text-center w-full py-2 rounded-md transition-colors ${
-                    isDirty
-                      ? "bg-indigo-500 text-white hover:bg-indigo-600 cursor-pointer"
-                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  } dark:bg-indigo-600 dark:hover:bg-indigo-700`}
-                >
-                  {t("save")}
-                </button>
-              </div>
-            </section>
-
-            {/* Cài đặt giao diện */}
-            <div className="hidden md:block w-px bg-gray-300 self-stretch" />
-            <section className="w-full my-3 flex-1 md:mt-0">
-              <h3 className="text-lg font-semibold mb-4 text-left">
-                {t("interface")}
-              </h3>
-
-              <label className="block mb-2 font-medium text-left w-full">
-                {t("theme")}
-              </label>
-              <div className="flex space-x-6 mb-6">
-                {["light", "dark"].map((opt) => (
-                  <label
-                    key={opt}
-                    className="flex items-center space-x-2 cursor-pointer"
-                  >
-                    <input
-                      type="radio"
-                      name="theme"
-                      value={opt}
-                      checked={theme === opt}
-                      onChange={toggleTheme}
-                      className="accent-purple-500"
-                    />
-                    <span>{opt === "light" ? t("light") : t("dark")}</span>
-                  </label>
-                ))}
-              </div>
-
-              <div className="mb-6">
-                <label className="flex items-center space-x-2 mb-2 font-medium cursor-pointer">
-                  <span>{t("language")}</span>
-                  <FaGlobe />
-                </label>
-                <select
-                  className="w-full border px-3 py-2 rounded-md"
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                >
-                  <option className="dark:bg-[#2E2E33]" value="vi">
-                    Tiếng Việt
-                  </option>
-                  <option className="dark:bg-[#2E2E33]" value="en">
-                    English
-                  </option>
-                </select>
-              </div>
-
-              <button
-                onClick={handleLogout}
-                className="block text-center w-full bg-indigo-500 text-white py-2 rounded-md hover:bg-indigo-600 transition-colors cursor-pointer dark:bg-indigo-600 dark:hover:bg-indigo-700"
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* --- CỘT TRÁI (Sidebar Menu) --- */}
+          <div className="lg:col-span-4 space-y-6">
+            {/* Profile Summary Card */}
+            <div className="bg-white dark:bg-[#2E2E33] rounded-2xl p-6 shadow-sm text-center border border-gray-100 dark:border-slate-700">
+              <div
+                className="relative w-24 h-24 mx-auto mb-4 group cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+                onMouseEnter={() => setIsHovering(true)}
+                onMouseLeave={() => setIsHovering(false)}
               >
-                {t("logout")}
-              </button>
-            </section>
+                {avatarPreview ||
+                (user?.avatarUrl && user.avatarUrl.trim() !== "") ? (
+                  <img
+                    src={avatarPreview || user.avatarUrl}
+                    className="w-full h-full rounded-full object-cover border-4 border-indigo-50 dark:border-slate-600"
+                    alt="avatar"
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 text-3xl">
+                    <FaUser />
+                  </div>
+                )}
+                <div
+                  className={`absolute bottom-0 right-0 bg-indigo-600 text-white p-2 rounded-full shadow-md transition-opacity duration-200 ${
+                    isHovering ? "opacity-100" : "opacity-0 lg:opacity-100"
+                  }`}
+                >
+                  <FaCamera size={12} />
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </div>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                {profile?.name}
+              </h2>
+              <p className="text-gray-500 text-sm">{user?.email}</p>
+            </div>
+
+            {/* Menu Navigation */}
+            <nav className="bg-white dark:bg-[#2E2E33] rounded-2xl shadow-sm overflow-hidden border border-gray-100 dark:border-slate-700">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full text-left px-6 py-4 font-medium flex justify-between items-center border-b border-gray-100 dark:border-slate-700 last:border-0 transition-colors duration-200
+                    ${
+                      activeTab === tab.id
+                        ? "text-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/20 dark:text-indigo-400 border-l-4 border-l-indigo-600"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 border-l-4 border-l-transparent"
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">{tab.icon}</span>
+                    {tab.label}
+                  </div>
+                  <span className="text-gray-400 text-xl">›</span>
+                </button>
+              ))}
+            </nav>
           </div>
+
+          {/* --- CỘT PHẢI (Nội dung thay đổi theo Tab) --- */}
+          <div className="lg:col-span-8">{renderContent()}</div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

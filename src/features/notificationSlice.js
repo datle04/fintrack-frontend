@@ -58,7 +58,22 @@ export const deleteNotification = createAsyncThunk('notification/deleteNotificat
 const notificationSlice = createSlice({
     name: 'notification',
     initialState,
-    reducers: {},
+    reducers: {
+        addNewNotification: (state, action) => {
+            const newNotification = action.payload;
+            
+            // 1. Kiểm tra trùng lặp (Best Practice)
+            // Đôi khi mạng lag hoặc logic sai khiến socket gửi 2 lần, nên check trước
+            const exists = state.notifications.some(
+                (n) => n._id === newNotification._id
+            );
+
+            if (!exists) {
+                // 2. Thêm vào ĐẦU mảng để nó hiện lên trên cùng
+                state.notifications.unshift(newNotification);
+            }
+        },
+    },
     extraReducers: builder => {
         builder
             .addCase(getNotifications.pending, state => {
@@ -102,5 +117,6 @@ const notificationSlice = createSlice({
     }
 });
 
+export const { addNewNotification } = notificationSlice.actions;
 export default notificationSlice.reducer;
 

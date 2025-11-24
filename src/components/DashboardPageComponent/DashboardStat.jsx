@@ -38,7 +38,7 @@ const DashboardStat = ({ className = "" }) => {
     <div
       className={`
         w-full ${className} flex flex-col bg-white rounded-lg border border-slate-200 shadow p-4 dark:bg-[#2E2E33] dark:border-slate-700 dark:text-white/90
-        lg:mb-1 lg:my-0
+        lg:mb-1 lg:my-0 
         3xl:p-6
         `}
     >
@@ -53,7 +53,7 @@ const DashboardStat = ({ className = "" }) => {
         {t("stat")}
       </h2>
 
-      <div className="h-full w-full p-5 flex justify-center items-center sm:p-0">
+      <div className="h-full w-full lg:max-h-[300px] p-5 flex justify-center items-center sm:p-0">
         <div className="w-full h-full sm:w-[80%] lg:w-[80%] lg:p-3 xl:w-[80%] 3xl:w-[70%]">
           <PieChart
             stats={stats}

@@ -79,7 +79,7 @@ const DashboardOverview = ({ className = "" }) => {
     <div
       className={`
         w-full h-full ${className} flex flex-col mb-3 bg-white rounded-lg border border-slate-200 shadow p-4 dark:bg-[#2E2E33] dark:text-white/90 dark:border-slate-700
-        lg:my-0 lg:mb-1
+        lg:my-0 lg:mb-2
         3xl:p-6
       `}
     >
@@ -92,8 +92,8 @@ const DashboardOverview = ({ className = "" }) => {
         {t("overview")}
       </h2>
 
-      <div className="w-full h-full p-4 flex justify-center items-center sm:p-0">
-        <div className="h-full w-full sm:w-[70%] lg:h-[90%] lg:p-0">
+      <div className="w-full h-full max-h-[200px] p-4 flex justify-center items-center sm:p-0">
+        <div className="h-full w-full sm:w-[70%] lg:h-full lg:p-0">
           <LineChart
             labels={labels}
             dataIncome={incomeData}

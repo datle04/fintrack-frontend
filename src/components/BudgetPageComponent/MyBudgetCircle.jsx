@@ -13,7 +13,7 @@ const MyBudgetCircle = ({ percentage }) => {
         styles={buildStyles({
           pathColor: "#6c2bd9",
           trailColor: "#e6e6fa",
-          textColor: theme === "light" ? "#333" : "#DCDCDD",
+          textColor: "#DCDCDD",
           strokeLinecap: "round",
         })}
       />

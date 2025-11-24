@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { addBudget } from "../../features/budgetSlice";
 import toast from "react-hot-toast";
 import axios from "axios";
-import { useTranslation } from "react-i18next";
+import { useTranslation, Trans } from "react-i18next";
 import { currencyMap } from "../../utils/currencies";
 
 const BudgetModal = ({
@@ -13,17 +13,19 @@ const BudgetModal = ({
   monthValues,
   years,
   setIsFormOpen,
-  token,
+  currentBudget,
   onClose,
 }) => {
   const { t, i18n } = useTranslation();
-  const error = useSelector((state) => state.budget.error);
   const user = useSelector((state) => state.auth.user);
   const defaultCurrency = user?.currency || "VND";
-  const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
   const dispatch = useDispatch();
 
   const categoryNames = categoryList.map((cat) => cat.key);
+
+  useEffect(() => {
+    console.log(currentBudget);
+  }, []);
 
   const [formData, setFormData] = useState({
     month: selectedMonth,
@@ -33,50 +35,117 @@ const BudgetModal = ({
     categories: [],
   });
 
+  // Ref để lưu trữ giá trị currency trước đó (để so sánh)
+  const prevCurrencyRef = useRef(formData.currency);
+  // Ref để kiểm tra xem có phải lần mount đầu tiên không
+  const isFirstRender = useRef(true);
+
   const closeForm = (e) => {
     e.stopPropagation();
     setIsFormOpen(false);
   };
 
+  // Thay thế useEffect cũ bằng cái này:
   useEffect(() => {
-    const fetchBudget = async () => {
-      try {
-        const res = await axios.get(/*...*/);
-        const data = res.data;
+    // Kiểm tra xem có phải đang mở đúng tháng/năm của budget hiện tại không
+    const isMatchingDate =
+      currentBudget.month === Number(selectedMonth) &&
+      currentBudget.year === Number(selectedYear);
 
-        if (data && data.totalBudget > 0) {
-          // --- SỬA Ở ĐÂY: Dùng functional update ---
-          setFormData((prev) => ({
-            ...prev, // Giữ lại month/year hiện tại
-            totalAmount: data.originalAmount || 0,
-            currency: data.originalCurrency || defaultCurrency,
-            categories: data.categoryStats.map((c) => ({
-              name: c.category,
-              amount: c.originalBudgetedAmount,
-            })),
-          }));
-        } else {
-          // (Khối này đã đúng, nhưng hãy đảm bảo nó nhất quán)
-          setFormData((prev) => ({
-            ...prev, // Giữ lại month/year/currency
-            totalAmount: "",
-            categories: [],
-          }));
-        }
-      } catch (error) {
-        console.error("❌ Không lấy được budget:", error);
-        setFormData((prev) => ({
-          ...prev, // Giữ lại month/year/currency
-          totalAmount: "",
-          categories: [],
-        }));
+    if (isMatchingDate && currentBudget.totalBudget > 0) {
+      setFormData({
+        month: selectedMonth,
+        year: selectedYear,
+        totalAmount: currentBudget.originalAmount, // Số gốc (Ngoại tệ hoặc VND)
+        currency: currentBudget.currency,
+        categories: currentBudget.categoryStats.map((c) => ({
+          name: c.category,
+          amount: c.originalBudgetedAmount,
+        })),
+      });
+    } else {
+      // Reset form
+      setFormData((prev) => ({
+        ...prev,
+        totalAmount: "",
+        categories: [],
+      }));
+    }
+  }, [selectedMonth, selectedYear, currentBudget]);
+
+  useEffect(() => {
+    // Bỏ qua lần render đầu tiên (khi form mới mở)
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      prevCurrencyRef.current = formData.currency;
+      return;
+    }
+
+    // Nếu currency thay đổi
+    if (formData.currency !== prevCurrencyRef.current) {
+      if (formData.totalAmount > 0 || formData.categories.length > 0) {
+        toast(
+          (tToast) => (
+            <div className="flex flex-col gap-1">
+              {/* TITLE */}
+              <span className="font-bold text-yellow-600 flex items-center gap-2">
+                {t("budgetPage.warning.title")}
+              </span>
+
+              <span className="text-sm text-gray-600">
+                {/* MESSAGE 1: Đổi từ A sang B */}
+                <Trans
+                  i18nKey="budgetPage.warning.messageChange"
+                  values={{
+                    prev: prevCurrencyRef.current,
+                    curr: formData.currency,
+                  }}
+                  components={{ 1: <b /> }} // <1> trong JSON sẽ được thay bằng <b>
+                />
+                <br />
+                {/* MESSAGE 2: Không tự động quy đổi */}
+                <Trans
+                  i18nKey="budgetPage.warning.messageNote"
+                  components={{ 1: <b /> }}
+                />
+              </span>
+
+              <div className="flex gap-2 mt-2">
+                {/* BUTTON 1 */}
+                <button
+                  onClick={() => toast.dismiss(tToast.id)}
+                  className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded font-medium hover:bg-indigo-200"
+                >
+                  {t("budgetPage.warning.btnManual")}
+                </button>
+
+                {/* BUTTON 2 */}
+                <button
+                  onClick={() => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      totalAmount: "",
+                      categories: [],
+                    }));
+                    toast.dismiss(tToast.id);
+                  }}
+                  className="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200"
+                >
+                  {t("budgetPage.warning.btnReset")}
+                </button>
+              </div>
+            </div>
+          ),
+          {
+            duration: 6000,
+            position: "top-center",
+            style: { border: "1px solid #FCD34D", padding: "16px" },
+          }
+        );
       }
-    };
-
-    fetchBudget();
-    // BỎ 'defaultCurrency' khỏi dependency array
-    // Nó chỉ nên được dùng để khởi tạo
-  }, [formData.month, formData.year, token, BACK_END_URL]);
+      prevCurrencyRef.current = formData.currency;
+    }
+  }, [formData.currency]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -155,6 +224,14 @@ const BudgetModal = ({
     (opt) => !selectedCategories.includes(opt)
   );
 
+  const sumAllocated = formData.categories.reduce(
+    (acc, curr) => acc + (Number(curr.amount) || 0),
+    0
+  );
+  const totalInput = Number(formData.totalAmount) || 0;
+  const unallocated = totalInput - sumAllocated;
+  const isOverAllocated = unallocated < 0;
+
   return (
     <section
       onClick={closeForm}
@@ -208,44 +285,94 @@ const BudgetModal = ({
             </select>
           </div>
 
-          {/* --- BẮT ĐẦU THAY ĐỔI: Thêm select tiền tệ --- */}
-          <div className="flex flex-row gap-2">
-            {/* Total Amount */}
-            <div className="flex-1">
-              <label className="block font-medium text-gray-700 dark:text-white/83">
-                {t("totalBudget")}:
-              </label>
-              <input
-                type="number"
-                name="totalAmount"
-                value={formData.totalAmount}
-                onChange={handleChange}
-                placeholder="VD: 10000000"
-                className="w-full p-2 border rounded dark:bg-[#2E2E33] dark:border-slate-700 dark:text-white/83"
-                required
-              />
+          {/* Total Amount & Allocation Status */}
+          <div className="mb-4">
+            {/* --- KHỐI NHẬP TIỀN & ĐƠN VỊ --- */}
+            <div className="flex gap-3 mb-1">
+              {/* 1. Input Tổng tiền (Chiếm phần lớn) */}
+              <div className="flex-1">
+                <label className="block font-medium text-gray-700 dark:text-white/83 mb-1">
+                  {t("totalBudget")}
+                </label>
+                <input
+                  type="number"
+                  name="totalAmount"
+                  value={formData.totalAmount}
+                  onChange={handleChange}
+                  placeholder="VD: 10.000.000"
+                  className="
+                    w-full p-3 rounded-lg border border-gray-300 dark:border-slate-600 
+                    bg-white dark:bg-[#2E2E33] text-gray-900 dark:text-white 
+                    focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none 
+                    font-semibold text-lg transition-all
+                  "
+                  required
+                />
+              </div>
+
+              {/* 2. Select Tiền tệ (Bên phải, cố định chiều rộng) */}
+              <div className="w-28">
+                <label className="block font-medium text-gray-700 dark:text-white/83 mb-1">
+                  {t("currency")}
+                </label>
+                <div className="relative">
+                  <select
+                    name="currency"
+                    value={formData.currency}
+                    onChange={handleChange}
+                    className="
+                      w-full p-3 pr-8 rounded-lg border border-gray-300 dark:border-slate-600 
+                      bg-gray-50 dark:bg-[#3a3a41] text-gray-700 dark:text-white 
+                      focus:ring-2 focus:ring-indigo-500 outline-none 
+                      font-medium appearance-none cursor-pointer transition-all
+                    "
+                  >
+                    {[...currencyMap].map(([code, label]) => (
+                      <option key={code} value={code}>
+                        {code} {/* Hiển thị mã ngắn gọn: VND, USD... */}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Icon mũi tên custom (để thay thế mũi tên mặc định xấu xí) */}
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                    <svg
+                      className="fill-current h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Currency Select */}
-            <div className="w-1/3">
-              <label className="block font-medium text-gray-700 dark:text-white/83">
-                {t("currency")}:
-              </label>
-              <select
-                name="currency"
-                value={formData.currency}
-                onChange={handleChange}
-                className="w-full p-2 border rounded dark:bg-[#2E2E33] dark:border-slate-700 dark:text-white/83"
-              >
-                {[...currencyMap].map(([code, label]) => (
-                  <option key={code} value={code}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+            {/* THANH TRẠNG THÁI PHÂN BỔ (MỚI) */}
+            <div
+              className={`mb-4 text-sm font-medium flex justify-between items-center ${
+                isOverAllocated ? "text-red-500" : "text-green-600"
+              }`}
+            >
+              <span>Đã phân bổ: {sumAllocated.toLocaleString()}</span>
+              <span>
+                {isOverAllocated
+                  ? `Vượt quá: ${Math.abs(unallocated).toLocaleString()}`
+                  : `Còn lại: ${unallocated.toLocaleString()}`}
+              </span>
+            </div>
+            {/* Progress Bar nhỏ */}
+            <div className="w-full h-1.5 bg-gray-200 rounded-full mt-1 overflow-hidden">
+              <div
+                className={`h-full ${
+                  isOverAllocated ? "bg-red-500" : "bg-green-500"
+                } transition-all duration-300`}
+                style={{
+                  width: `${Math.min((sumAllocated / totalInput) * 100, 100)}%`,
+                }}
+              />
             </div>
           </div>
-          {/* --- KẾT THÚC THAY ĐỔI --- */}
 
           {/* Categories */}
           <div>
@@ -263,39 +390,47 @@ const BudgetModal = ({
               );
 
               return (
-                <div key={index} className="flex gap-2 mt-2">
-                  <select
-                    value={cat.name}
-                    onChange={(e) =>
-                      updateCategory(index, "name", e.target.value)
-                    }
-                    className="w-full p-2 border rounded dark:bg-[#2E2E33] dark:border-slate-700 dark:text-white/83"
-                  >
-                    {available.map((item) => {
-                      const { icon } = getCategoryMeta(item);
-                      return (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 my-2 p-2 bg-gray-50 dark:bg-[#3a3a41] rounded-lg border border-gray-200 dark:border-gray-600"
+                >
+                  {/* Select có Icon */}
+                  <div className="flex-1 relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-lg">
+                      {getCategoryMeta(cat.name).icon}
+                    </div>
+                    <select
+                      value={cat.name}
+                      onChange={(e) =>
+                        updateCategory(index, "name", e.target.value)
+                      }
+                      className="w-full pl-10 pr-8 py-2 bg-transparent border-none outline-none appearance-none cursor-pointer text-sm font-medium text-gray-700 dark:text-white"
+                    >
+                      {available.map((item) => (
                         <option key={item} value={item}>
-                          {icon} {t(`categories.${item}`)}
+                          {t(`categories.${item}`)}
                         </option>
-                      );
-                    })}
-                  </select>
+                      ))}
+                    </select>
+                  </div>
 
+                  {/* Input Amount */}
                   <input
                     type="number"
                     value={cat.amount}
                     onChange={(e) =>
                       updateCategory(index, "amount", e.target.value)
                     }
-                    placeholder={t("amount")}
-                    className="w-[120px] p-2 border rounded dark:bg-[#2E2E33] dark:border-slate-700 dark:text-white/83"
+                    placeholder="Số tiền"
+                    className="w-25 py-2 px-3 bg-white dark:bg-[#2E2E33] border border-gray-300 dark:border-gray-600 rounded text-right font-medium text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
                     required
                   />
 
+                  {/* Delete Button */}
                   <button
                     type="button"
                     onClick={() => removeCategory(index)}
-                    className="text-red-500 font-bold hover:scale-110 cursor-pointer transition-all"
+                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
                   >
                     ✕
                   </button>
