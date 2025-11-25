@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import ChatBubble from "./ChatBubble";
 import axiosInstance from "../../api/axiosInstance";
 
-const BACK_END_URL = import.meta.env.VITE_BACK_END_URLL;
+const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
 
 const ChatWidget = ({ isOpen, onClose, onClick }) => {
   const { t } = useTranslation();
