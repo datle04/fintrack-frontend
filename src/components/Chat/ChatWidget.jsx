@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import ChatBubble from "./ChatBubble";
 import axiosInstance from "../../api/axiosInstance";
 
-const CHATBOT_API_URL = import.meta.env.VITE_CHATBOT_API_URL;
+const BACK_END_URL = import.meta.env.VITE_BACK_END_URLL;
 
 const ChatWidget = ({ isOpen, onClose, onClick }) => {
   const { t } = useTranslation();
@@ -51,7 +51,7 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
 
     try {
       // 2. Gọi API
-      const res = await axiosInstance.post(`${CHATBOT_API_URL}/chat`, {
+      const res = await axiosInstance.post(`${BACK_END_URL}/api/chat-proxy`, {
         message: currentInput,
       });
 
