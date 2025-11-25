@@ -6,8 +6,7 @@ import { useTranslation } from "react-i18next";
 import ChatBubble from "./ChatBubble";
 import axiosInstance from "../../api/axiosInstance";
 
-const CHATBOT_API_URL =
-  import.meta.env.VITE_CHATBOT_API_URL || "http://localhost:4001";
+const CHATBOT_API_URL = import.meta.env.VITE_CHATBOT_API_URL;
 
 const ChatWidget = ({ isOpen, onClose, onClick }) => {
   const { t } = useTranslation();

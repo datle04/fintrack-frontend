@@ -8,7 +8,7 @@ import { useNavigate } from "react-router";
 import LogoF from "../assets/img/logo.webp";
 import { useLoading } from "../context/LoadingContext";
 
-export default function Login() {
+export default function LoginPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
