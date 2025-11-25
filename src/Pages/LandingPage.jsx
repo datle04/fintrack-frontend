@@ -3,15 +3,15 @@ import { Link } from "react-router-dom";
 import LogoF from "../assets/img/logo.webp";
 import Laptop from "../assets/img/Laptop.png";
 
-export default function LandingPages() {
+export default function LandingPage() {
   return (
     <div
       className="flex flex-col min-h-screen overflow-x-hidden"
       id="landingpage"
     >
-<main className="flex-1 h-full bg-gradient-to-b from-white via-white to-[#373ecb] xl:bg-none max-w-[1536px] mx-auto w-full">
+      <main className="flex-1 h-full bg-gradient-to-b from-white via-white to-[#373ecb] xl:bg-none max-w-[1536px] mx-auto w-full">
         {/* Header */}
-<header className="w-full px-4 md:px-12 lg:px-20 xl:px-24 py-6 flex items-center justify-between max-w-[1536px] mx-auto">
+        <header className="w-full px-4 md:px-12 lg:px-20 xl:px-24 py-6 flex items-center justify-between max-w-[1536px] mx-auto">
           <a href="#" className="flex items-start group 3xl:-ml-45">
             <div className="flex items-center">
               <img
@@ -38,12 +38,11 @@ export default function LandingPages() {
           </div>
         </header>
 
-
         {/* Nội dung chính */}
-<section className="flex flex-col md:flex-row items-center md:items-start gap-10 px-6 md:px-12 lg:px-20 xl:px-24 py-8 flex-grow max-w-[1536px] mx-auto w-full">
+        <section className="flex flex-col md:flex-row items-center md:items-start gap-10 px-6 md:px-12 lg:px-20 xl:px-24 py-8 flex-grow max-w-[1536px] mx-auto w-full">
           {/* Text */}
           <div className="w-full md:w-1/2 px-2 md:px-4 lg:px-10">
-<h1 className="font-notosans font-bold leading-tight text-4xl sm:text-5xl md:text-6xl lg:text-5xl xl:text-7xl 3xl:text-8xl text-gray-900 3xl:mr-20">
+            <h1 className="font-notosans font-bold leading-tight text-4xl sm:text-5xl md:text-6xl lg:text-5xl xl:text-7xl 3xl:text-8xl text-gray-900 3xl:mr-20">
               <span className="block">SmartExpense</span>
               <span className="block items-center whitespace-nowrap">
                 Tracking<span className="ml-1">,</span>
@@ -56,7 +55,7 @@ export default function LandingPages() {
               </span>
             </h1>
 
-<p className="font-mono text-md md:text-xl text-gray-700 max-w-xl mt-6 lg:text-xl 3xl:text-2xl 3xl:mr-20 ">
+            <p className="font-mono text-md md:text-xl text-gray-700 max-w-xl mt-6 lg:text-xl 3xl:text-2xl 3xl:mr-20 ">
               Empower your team with seamless, cloud-based tools <br />
               designed to enhance productivity, collaboration, and <br />
               efficiency.
@@ -80,9 +79,9 @@ export default function LandingPages() {
 
             {/* Hình ảnh */}
             <img
-  src={Laptop}
-  alt="Laptop và Điện thoại"
-  className="
+              src={Laptop}
+              alt="Laptop và Điện thoại"
+              className="
     w-full
     max-w-xs sm:max-w-sm md:max-w-md
     lg:max-w-lg xl:max-w-xl 3xl:max-w-2xl
@@ -92,8 +91,7 @@ export default function LandingPages() {
     mx-auto
     3xl:ml-10
   "
-/>
-
+            />
           </div>
         </section>
       </main>
