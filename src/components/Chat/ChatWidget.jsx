@@ -51,7 +51,7 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
 
     try {
       // 2. Gọi API
-      const res = await axiosInstance.post(`${BACK_END_URL}/api/chat-proxy`, {
+      const res = await axiosInstance.post(`/api/chat-proxy`, {
         message: currentInput,
       });
 
