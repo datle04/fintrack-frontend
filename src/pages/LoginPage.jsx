@@ -34,16 +34,15 @@ export default function LoginPage() {
 
     toast.promise(action, {
       loading: isRegister ? "Đang tạo tài khoản..." : "Đang đăng nhập...",
-      success: isRegister ? "Đăng ký thành công!" : "Đăng nhập thành công!",
+      success: {
+        render: isRegister ? "Đăng ký thành công!" : "Đăng nhập thành công!",
+        duration: 5000, // 5 giây nè, muốn bao nhiêu chơi bấy nhiêu
+      },
       error: (err) => {
-        // Log ra để kiểm tra
         console.log("Lỗi trả về:", err);
-
-        // Nếu err là object có key message (do backend trả về { message: "..." })
         if (typeof err === "object" && err !== null && err.message) {
           return err.message;
         }
-        // Nếu err là string
         return err || "Có lỗi xảy ra!";
       },
     });
@@ -63,7 +62,7 @@ export default function LoginPage() {
             navigate("/dashboard");
           }
           setIsAppLoading(false);
-        }, 0); // Giảm thời gian chờ xuống chút cho mượt
+        }, 1500); // Giảm thời gian chờ xuống chút cho mượt
       }
 
       // Reset form
