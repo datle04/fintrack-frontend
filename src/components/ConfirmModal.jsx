@@ -31,6 +31,7 @@ const ConfirmModal = ({
       setReason("");
       setError("");
     }
+    console.log(onConfirm);
   }, [isOpen]);
 
   const modalText = {
@@ -173,7 +174,7 @@ const ConfirmModal = ({
                   1. KHÔNG có onConfirm (tức là Admin đang thao tác)
                   2. VÀ loại modal là "ban" HOẶC "delete" 
               */}
-              {!onConfirm && (type === "ban" || type === "delete") && (
+              {(type === "ban" || type === "delete") && (
                 <div className="w-full text-left">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Lý do:

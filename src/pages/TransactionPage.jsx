@@ -1,57 +1,59 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { Helmet } from "react-helmet-async"; // SEO
+import { debounce } from "lodash";
+import { useTranslation } from "react-i18next";
+import toast from "react-hot-toast";
+
+// Icons
+import {
+  Search,
+  Plus,
+  Calendar,
+  ArrowRight,
+  Filter,
+  ChevronDown,
+  X,
+} from "lucide-react";
+import { FaEdit, FaTrash } from "react-icons/fa";
+
+// Components & Utils
 import {
   getTransactions,
   deleteTransaction,
   setShouldRefetch,
 } from "../features/transactionSlice";
-import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
-import getUsedCategories from "../thunks/getUsedCategories";
-import { formatCurrency } from "../utils/formatCurrency";
+import { getDashboard } from "../features/dashboardSlice";
 import TransactionModal from "../components/TransactionModal";
 import DetailTransaction from "../components/DetailTransaction";
-import { ChevronDown } from "lucide-react";
-import Shimmer from "../components/Loading/Shimmer";
-import { debounce } from "lodash";
-import { useTranslation } from "react-i18next";
-import { getDashboard } from "../features/dashboardSlice";
-import formatDateToString from "../utils/formatDateToString";
-import { getCurrencySymbol } from "../utils/currencies";
-import { categoryList } from "../utils/categoryList";
-import { groupTransactionsByDate } from "../utils/groupTransactions";
-import { Search, Filter, X, Plus, Calendar, ArrowRight } from "lucide-react";
-import FilterSelect from "../components/TransactionPageComponent/FilterSelect";
-import toast from "react-hot-toast";
 import ConfirmModal from "../components/ConfirmModal";
+import FilterSelect from "../components/TransactionPageComponent/FilterSelect"; // Component tách riêng (xem bên dưới)
+import Shimmer from "../components/Loading/Shimmer";
+import { formatCurrency } from "../utils/formatCurrency";
+import formatDateToString from "../utils/formatDateToString";
+import { groupTransactionsByDate } from "../utils/groupTransactions"; // Helper tách riêng (xem bên dưới)
+import { categoryList } from "../utils/categoryList";
 
 const TransactionPage = () => {
   const dispatch = useDispatch();
   const { t, i18n } = useTranslation();
+
+  // Redux State
   const { transactions, loading, total, page, totalPages, shouldRefetch } =
     useSelector((s) => s.transaction);
   const userCurrency = useSelector((state) => state.auth.user.currency);
   const { totalIncome, totalExpense } = useSelector((state) => state.dashboard);
 
-  // 1. Khởi tạo giá trị mặc định (để dùng cho Reset)
+  // --- 1. CONFIG & CONSTANTS ---
   const today = new Date();
   const defaultStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
   const defaultEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-  const [showModal, setShowModal] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [detailTransaction, setDetailTransaction] = useState(null);
-
-  // --- THÊM STATE MỚI CHO DELETE MODAL ---
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [transactionToDelete, setTransactionToDelete] = useState(null);
-
-  // 1. Chuẩn bị options cho Loại giao dịch
   const typeOptions = [
     { value: "income", label: t("income") || "Thu nhập" },
     { value: "expense", label: t("expense") || "Chi tiêu" },
   ];
 
-  // 2. Chuẩn bị options cho Danh mục (Giữ nguyên logic của bạn)
   const categorySelectOptions = useMemo(
     () =>
       categoryList.map((cat) => ({
@@ -61,49 +63,49 @@ const TransactionPage = () => {
     [t]
   );
 
-  // Trong TransactionPage component
+  // --- 2. LOCAL STATE ---
+  const [showModal, setShowModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [detailTransaction, setDetailTransaction] = useState(null);
+
+  // State cho Confirm Modal
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState(null);
+
+  // State Filters
+  const [filters, setFilters] = useState({
+    keyword: "",
+    type: "",
+    category: "",
+    startDate: defaultStartDate.toISOString().split("T")[0],
+    endDate: defaultEndDate.toISOString().split("T")[0],
+  });
+
+  // --- 3. LOGIC & EFFECTS ---
+
+  // Gom nhóm giao dịch theo ngày
   const groupedTransactions = useMemo(
     () => groupTransactionsByDate(transactions),
     [transactions]
   );
 
-  const [filters, setFilters] = useState({
-    keyword: "",
-    type: "",
-    category: "",
-    startDate: defaultStartDate.toISOString().split("T")[0], // Dùng string YYYY-MM-DD cho input date
-    endDate: defaultEndDate.toISOString().split("T")[0],
-  });
-  // 3. Debounce Search (Dùng useCallback để không bị tạo lại mỗi lần render)
-  // Lưu ý: debounce của lodash cần được bọc trong useCallback hoặc useMemo
+  // Debounce Search
   const debouncedFetch = useMemo(
     () =>
       debounce((currentFilters) => {
-        dispatch(getTransactions(currentFilters));
+        // Reset về trang 1 khi filter thay đổi
+        dispatch(getTransactions({ ...currentFilters, page: 1 }));
       }, 500),
     [dispatch]
   );
 
-  // 4. Effect: Gọi API khi filters thay đổi
-  // Bỏ rawKeyword/rawCategory riêng, dùng chung state filters
-  useEffect(() => {
-    // Gọi debounce khi filter thay đổi
-    debouncedFetch(filters);
-
-    // Cleanup debounce khi unmount
-    return () => debouncedFetch.cancel();
-  }, [filters, debouncedFetch]);
-
-  // 5. Handler chung cho tất cả input
+  // Handler thay đổi filter
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 6. Handler Reset Filter
+  // Handler Reset
   const handleResetFilter = () => {
     setFilters({
       keyword: "",
@@ -114,52 +116,45 @@ const TransactionPage = () => {
     });
   };
 
-  const { type, category, startDate, endDate, keyword } = filters;
+  // Effect: Gọi API khi filter thay đổi
+  useEffect(() => {
+    debouncedFetch(filters);
+    return () => debouncedFetch.cancel();
+  }, [filters, debouncedFetch]);
 
+  // Effect: Gọi Dashboard API để lấy tổng thu/chi theo filter
   useEffect(() => {
     dispatch(
-      getDashboard({ start: startDate, end: endDate, currency: userCurrency })
+      getDashboard({
+        start: filters.startDate,
+        end: filters.endDate,
+        currency: userCurrency,
+      })
     );
-  }, [dispatch, startDate, endDate]);
+  }, [dispatch, filters.startDate, filters.endDate, userCurrency]);
 
-  useEffect(() => {
-    dispatch(getTransactions(filters));
-  }, [dispatch, type, category, startDate, endDate, keyword]);
-
+  // Effect: Refetch khi có thay đổi (thêm/sửa/xóa thành công)
   useEffect(() => {
     if (shouldRefetch) {
-      dispatch(getTransactions(filters));
+      dispatch(getTransactions({ ...filters, page: 1 }));
       dispatch(setShouldRefetch(false));
+      // Cập nhật lại cả dashboard stats
+      dispatch(
+        getDashboard({
+          start: filters.startDate,
+          end: filters.endDate,
+          currency: userCurrency,
+        })
+      );
     }
-  }, [dispatch, shouldRefetch]);
+  }, [dispatch, shouldRefetch, filters, userCurrency]);
 
-  useEffect(() => {
-    // Mỗi khi filter đổi, luôn gọi trang 1
-    const params = { ...filters, page: 1 };
-    dispatch(getTransactions(params));
+  // --- 4. HANDLERS ---
 
-    // (Tùy chọn) Scroll lên đầu trang khi filter
-    // window.scrollTo(0, 0);
-  }, [
-    dispatch,
-    filters.type,
-    filters.category,
-    filters.startDate,
-    filters.endDate,
-    filters.keyword,
-  ]);
-
-  // 2. Hàm Load More
   const handleLoadMore = () => {
     if (page < totalPages && !loading) {
-      // Giữ nguyên filters, chỉ tăng page
       dispatch(getTransactions({ ...filters, page: page + 1 }));
     }
-  };
-
-  const handleEdit = (transaction) => {
-    setSelectedTransaction(transaction);
-    setShowModal(true);
   };
 
   const handleAdd = () => {
@@ -167,39 +162,94 @@ const TransactionPage = () => {
     setShowModal(true);
   };
 
+  const handleEdit = (transaction) => {
+    setSelectedTransaction(transaction);
+    setShowModal(true);
+  };
+
+  // Mở modal xóa
   const handleDeleteClick = (e, transaction) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Ngăn chặn click vào row
     setTransactionToDelete(transaction);
     setDeleteModalOpen(true);
   };
 
-  // --- THÊM HÀM XỬ LÝ KHI BẤM "XÓA" TRONG MODAL ---
-  const handleConfirmDelete = () => {
+  // Thực hiện xóa
+  const handleConfirmDelete = async () => {
     if (!transactionToDelete) return;
 
     const action = dispatch(
       deleteTransaction(transactionToDelete._id)
     ).unwrap();
-
     toast.promise(action, {
-      loading: "Đang xóa giao dịch...",
-      success: "Đã xóa giao dịch thành công!",
-      error: (err) => err?.message || "Có lỗi xảy ra khi xóa giao dịch!",
+      loading: "Đang xóa...",
+      success: "Đã xóa thành công!",
+      error: (err) => err?.message || "Lỗi khi xóa!",
     });
 
     setDeleteModalOpen(false);
     setTransactionToDelete(null);
   };
 
+  // Accessibility: Hỗ trợ phím Enter/Space
+  const handleKeyDown = (e, action, param) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      action(param);
+    }
+  };
+
+  // --- 5. RENDER ---
   return (
-    <div className="min-h-screen w-full bg-[#F5F6FA] 2xl:px-6 2xl:py-2 3xl:px-8 3xl:py-2 dark:bg-[#35363A] ">
-      <div className="flex flex-col gap-2 lg:flex-row justify-between 2xl:gap-6 3xl:gap-8 bg-[#F5F6FA] 2xl:p-6 3xl:p-8 rounded-md flex-wrap dark:bg-[#35363A]">
-        {/* --- NEW FILTER BAR --- */}
-        <div className="my-1 flex flex-col justify-center bg-white dark:bg-[#2E2E33] p-4 rounded shadow-sm border border-slate-200 dark:border-slate-700 ">
-          {/* Hàng 1: Tìm kiếm & Nút Thêm */}
+    <>
+      <Helmet>
+        <title>{t("transactions")} | FinTrack</title>
+        <meta name="description" content="Quản lý thu chi chi tiết." />
+      </Helmet>
+
+      <main className="min-h-screen w-full bg-[#F5F6FA] dark:bg-[#35363A] p-4 md:p-6 xl:p-8 transition-colors duration-300">
+        {/* --- A. SUMMARY CARDS (Mobile Friendly) --- */}
+        <section
+          aria-label="Thống kê nhanh"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"
+        >
+          {/* Income */}
+          <div className="bg-white dark:bg-[#2E2E33] p-4 rounded-xl shadow-sm border-l-4 border-green-500 flex flex-col">
+            <span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">
+              {t("totalIncome")}
+            </span>
+            <span className="text-xl font-bold text-green-600 mt-1 truncate">
+              + {formatCurrency(totalIncome, userCurrency, i18n.language)}
+            </span>
+          </div>
+          {/* Expense */}
+          <div className="bg-white dark:bg-[#2E2E33] p-4 rounded-xl shadow-sm border-l-4 border-red-500 flex flex-col">
+            <span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">
+              {t("totalExpense")}
+            </span>
+            <span className="text-xl font-bold text-red-600 mt-1 truncate">
+              - {formatCurrency(totalExpense, userCurrency, i18n.language)}
+            </span>
+          </div>
+          {/* Total Count */}
+          <div className="bg-white dark:bg-[#2E2E33] p-4 rounded-xl shadow-sm border-l-4 border-indigo-500 flex flex-col">
+            <span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">
+              {t("totalTransactions")}
+            </span>
+            <span className="text-xl font-bold text-indigo-600 mt-1">
+              {total} giao dịch
+            </span>
+          </div>
+        </section>
+
+        {/* --- B. FILTER TOOLBAR --- */}
+        <section
+          aria-label="Bộ lọc"
+          className="bg-white dark:bg-[#2E2E33] p-4 rounded-xl shadow-sm mb-6 border border-gray-100 dark:border-slate-700"
+        >
+          {/* Hàng 1: Search & Add */}
           <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-4">
-            {/* Ô tìm kiếm (Chiếm phần lớn) */}
-            <div className="relative w-full group">
+            <div className="relative w-full md:w-96 group">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
               </div>
@@ -208,65 +258,59 @@ const TransactionPage = () => {
                 name="keyword"
                 value={filters.keyword}
                 onChange={handleChange}
-                placeholder={t("searchPlaceholder") || "Tìm kiếm giao dịch..."}
-                className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg leading-5 bg-gray-50 dark:bg-[#3a3a41] text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none  focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 ease-in-out sm:text-sm"
+                placeholder={t("searchPlaceholder") || "Tìm kiếm..."}
+                aria-label="Tìm kiếm giao dịch"
+                className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-[#3a3a41] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all sm:text-sm"
               />
             </div>
-
-            {/* Nút Thêm (Nổi bật) */}
             <button
               onClick={handleAdd}
-              className="w-full md:w-auto flex items-center justify-center gap-2 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition-all shadow-md hover:shadow-lg active:scale-95"
+              className="w-full md:w-auto flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition-all shadow-md hover:shadow-lg active:scale-95"
+              aria-label={t("addTransaction")}
             >
               <Plus size={20} />
               <span>{t("add")}</span>
             </button>
           </div>
 
-          {/* Hàng 2: Các bộ lọc (Date, Type, Category) */}
+          {/* Hàng 2: Filters */}
           <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center">
-            {/* Nhóm lọc Ngày tháng (Giao diện gắn liền) */}
+            {/* Date Range */}
             <div className="flex items-center bg-gray-50 dark:bg-[#3a3a41] rounded-lg border border-gray-200 dark:border-gray-600 p-1">
-              <div className="relative">
-                <div className="pl-3 flex items-center">
-                  <Calendar className="h-4 w-4 text-gray-500" />
-                  <input
-                    type="date"
-                    name="startDate"
-                    value={filters.startDate}
-                    max={filters.endDate}
-                    onChange={handleChange}
-                    className="pl-2 pr-2 py-1.5 bg-transparent border-none focus:ring-0 text-sm text-gray-700 dark:text-gray-200 cursor-pointer w-32"
-                  />
-                </div>
-              </div>
-              <ArrowRight size={16} className="text-gray-400 mx-1" />
-              <div className="relative">
-                {/* (Tùy chọn: Icon calendar thứ 2 hoặc bỏ đi cho gọn) */}
+              <div className="relative flex items-center pl-3">
+                <Calendar className="h-4 w-4 text-gray-500" />
                 <input
                   type="date"
-                  name="endDate"
-                  value={filters.endDate}
-                  min={filters.startDate}
+                  name="startDate"
+                  value={filters.startDate}
+                  max={filters.endDate}
                   onChange={handleChange}
-                  className="pl-2 pr-2 py-1.5 bg-transparent border-none focus:ring-0 text-sm text-gray-700 dark:text-gray-200 cursor-pointer w-32"
+                  className="pl-2 pr-1 py-1.5 bg-transparent border-none focus:ring-0 text-sm text-gray-700 dark:text-gray-200 cursor-pointer outline-none"
+                  aria-label="Ngày bắt đầu"
                 />
               </div>
+              <ArrowRight size={16} className="text-gray-400 mx-1" />
+              <input
+                type="date"
+                name="endDate"
+                value={filters.endDate}
+                min={filters.startDate}
+                onChange={handleChange}
+                className="pl-2 pr-2 py-1.5 bg-transparent border-none focus:ring-0 text-sm text-gray-700 dark:text-gray-200 cursor-pointer outline-none"
+                aria-label="Ngày kết thúc"
+              />
             </div>
 
-            {/* Nhóm Dropdown (Type & Category) */}
-            <div className="flex flex-1 gap-4 w-full md:w-auto overflow-x-auto">
-              {/* Sử dụng FilterSelect cho Loại */}
+            {/* Dropdowns */}
+            <div className="flex flex-1 gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
               <FilterSelect
                 name="type"
                 value={filters.type}
                 onChange={handleChange}
                 options={typeOptions}
                 placeholder={t("allType") || "Tất cả loại"}
-                icon={Filter} // (Tùy chọn nếu bạn muốn truyền icon để render custom)
+                icon={Filter}
               />
-
-              {/* Sử dụng FilterSelect cho Danh mục */}
               <FilterSelect
                 name="category"
                 value={filters.category}
@@ -275,7 +319,7 @@ const TransactionPage = () => {
                 placeholder={t("allCategory") || "Tất cả danh mục"}
               />
 
-              {/* Nút Reset Filter */}
+              {/* Reset Button */}
               {(filters.keyword ||
                 filters.type ||
                 filters.category ||
@@ -283,115 +327,90 @@ const TransactionPage = () => {
                   defaultStartDate.toISOString().split("T")[0]) && (
                 <button
                   onClick={handleResetFilter}
-                  className="flex items-center gap-1 text-sm text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors whitespace-nowrap"
+                  className="flex items-center gap-1 text-sm text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-2 rounded-lg transition-colors whitespace-nowrap"
+                  aria-label="Xóa bộ lọc"
                 >
                   <X size={16} />
-                  {t("clearFilter") || "Xóa lọc"}
+                  <span className="hidden sm:inline">
+                    {t("clearFilter") || "Xóa lọc"}
+                  </span>
                 </button>
               )}
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* SUMMARY - bên phải */}
-        <div
-          className="
-            bg-white shadow-sm border border-slate-200 mt-2 rounded-md p-4 2xl:p-6 3xl:p-8 flex justify-between items-center flex-2 min-w-[300px] 2xl:min-w-[400px] 3xl:min-w-[500px] 
-            dark:bg-[#2E2E33] dark:border dark:border-slate-700 
-        "
-        >
-          <div className="flex-1">
-            <div className="flex justify-between text-[12px] 2xl:text-sm 3xl:text-base mb-2 2xl:mb-3">
-              <span className="text-gray-700 font-medium dark:text-white/90">
-                {t("totalIncome")}:
-              </span>
-              <span className="text-green-600 font-semibold text-right dark:text-green-700">
-                + {formatCurrency(totalIncome, userCurrency, i18n.language)}
-              </span>
-            </div>
-            <hr className="text-slate-300 dark:text-slate-700" />
-            <div className="flex justify-between text-[12px] 2xl:text-sm 3xl:text-base mt-2 2xl:mt-3">
-              <span className="text-gray-700 font-medium dark:text-white/90">
-                {t("totalExpense")}:
-              </span>
-              <span className="text-red-600 font-semibold text-right dark:text-red-700">
-                - {formatCurrency(totalExpense, userCurrency, i18n.language)}
-              </span>
-            </div>
-          </div>
-
-          <div className="w-[1px] h-16 2xl:h-20 3xl:h-24 bg-gray-300 mx-4 2xl:mx-6 dark:bg-slate-700" />
-
-          <div className="text-[12px] 2xl:text-sm 3xl:text-base text-gray-700 whitespace-nowrap">
-            <p className="font-medium dark:text-white/90">
-              {t("totalTransactions")}:
-            </p>
-            <p className="text-indigo-500 font-semibold text-right dark:text-indigo-600">
-              {total}{" "}
-            </p>
-          </div>
-        </div>
-      </div>
-      {/* Transactions List */}
-      <div className="bg-white rounded-md shadow p-4 2xl:p-4 3xl:p-6 overflow-x-auto dark:bg-[#2E2E33] mt-2 dark:border dark:border-slate-700">
-        <div className="mt-4 space-y-6">
+        {/* --- C. TRANSACTION LIST (Grouped) --- */}
+        <section aria-label="Danh sách giao dịch" className="space-y-6">
+          {/* Loading Skeleton (Chỉ hiện khi load lần đầu/filter) */}
           {loading && transactions.length === 0 ? (
             <Shimmer />
           ) : groupedTransactions.length === 0 ? (
-            <div className="text-center p-8 text-gray-500">{t("noData")}</div>
+            <div className="text-center p-12 bg-white dark:bg-[#2E2E33] rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+              <p className="text-gray-500 dark:text-gray-400 text-lg">
+                {t("noData")}
+              </p>
+              <button
+                onClick={handleResetFilter}
+                className="mt-2 text-indigo-500 hover:underline text-sm"
+              >
+                Thử xóa bộ lọc
+              </button>
+            </div>
           ) : (
             groupedTransactions.map((group) => (
-              <div
+              <article
                 key={group.date}
-                className="bg-white dark:bg-[#2E2E33] rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden"
+                className="bg-white dark:bg-[#2E2E33] rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden"
               >
                 {/* Header Ngày */}
-                <div className="bg-gray-50 dark:bg-[#3a3a41] px-4 py-2 border-b border-gray-100 dark:border-slate-600 flex justify-between items-center">
-                  <span className="font-semibold text-gray-700 dark:text-gray-200">
+                <header className="bg-gray-50 dark:bg-[#3a3a41] px-4 py-3 border-b border-gray-100 dark:border-slate-600 flex justify-between items-center sticky top-0 z-10">
+                  <h3 className="font-bold text-gray-700 dark:text-gray-200 text-sm sm:text-base">
                     {formatDateToString(group.date)}
-                    {/* Hàm format ngày của bạn */}
-                  </span>
-                  <span className="text-xs text-gray-500">
+                  </h3>
+                  <span className="text-xs font-medium px-2 py-1 bg-gray-200 dark:bg-slate-600 rounded-full text-gray-600 dark:text-gray-300">
                     {group.items.length} giao dịch
                   </span>
-                </div>
+                </header>
 
-                {/* Danh sách giao dịch trong ngày */}
-                <div>
+                {/* List Items */}
+                <div role="list">
                   {group.items.map((item) => (
                     <div
                       key={item._id}
+                      role="listitem"
+                      tabIndex={0}
                       onClick={() => setDetailTransaction(item)}
-                      className="flex items-center justify-between p-4 border-b text-[12px] lg:text-sm xl:text-base border-gray-50 dark:border-slate-700 last:border-0 hover:bg-gray-50 dark:hover:bg-[#45454d] cursor-pointer transition-colors group"
+                      onKeyDown={(e) =>
+                        handleKeyDown(e, setDetailTransaction, item)
+                      }
+                      className="group flex items-center justify-between p-4 border-b border-gray-50 dark:border-slate-700 last:border-0 hover:bg-indigo-50/30 dark:hover:bg-white/5 cursor-pointer transition-colors outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
                     >
-                      {/* Cột Trái: Icon + Tên + Note */}
-                      <div className="flex items-center gap-4">
-                        {/* Tìm icon từ categoryList */}
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-xl bg-gray-100 dark:bg-slate-600`}
-                        >
+                      {/* Left: Icon & Text */}
+                      <div className="flex items-center gap-4 overflow-hidden">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl bg-gray-100 dark:bg-slate-700 shrink-0 shadow-sm">
                           {categoryList.find((c) => c.key === item.category)
                             ?.icon || "🏷️"}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-gray-800 dark:text-gray-200">
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-gray-800 dark:text-gray-200 text-sm sm:text-base truncate">
                             {t(`categories.${item.category}`)}
                           </span>
                           {item.note && (
-                            <span className="text-xs text-gray-500 truncate max-w-[150px] sm:max-w-[300px]">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px] sm:max-w-[300px]">
                               {item.note}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      {/* Cột Phải: Số tiền + Actions */}
-                      <div className="flex items-center gap-4">
+                      {/* Right: Amount & Actions */}
+                      <div className="flex items-center gap-4 pl-2">
                         <span
-                          className={`font-bold ${
+                          className={`font-bold text-sm sm:text-base whitespace-nowrap ${
                             item.type === "income"
                               ? "text-green-600"
-                              : "text-red-500"
+                              : "text-red-600"
                           }`}
                         >
                           {item.type === "income" ? "+" : "-"}
@@ -402,20 +421,24 @@ const TransactionPage = () => {
                           )}
                         </span>
 
-                        {/* Action Buttons (Chỉ hiện khi hover vào dòng - Desktop) */}
-                        <div className="md:flex group-hover:opacity-100 transition-opacity gap-2">
+                        {/* Action Buttons (Desktop: Hover / Mobile: Always or use Swipe - here keep simple) */}
+                        <div className="hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity gap-1">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleEdit(item);
                             }}
-                            className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-full cursor-pointer transition-all"
+                            className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-slate-600 rounded-full transition-all"
+                            aria-label="Chỉnh sửa"
+                            title={t("edit")}
                           >
                             <FaEdit />
                           </button>
                           <button
                             onClick={(e) => handleDeleteClick(e, item)}
-                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-gray-600 rounded-full cursor-pointer transition-all"
+                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-slate-600 rounded-full transition-all"
+                            aria-label="Xóa"
+                            title={t("delete")}
                           >
                             <FaTrash />
                           </button>
@@ -424,95 +447,67 @@ const TransactionPage = () => {
                     </div>
                   ))}
                 </div>
-              </div>
+              </article>
             ))
           )}
+        </section>
+
+        {/* --- D. LOAD MORE --- */}
+        <div
+          className="w-full mt-8 mb-10 flex flex-col items-center justify-center gap-3"
+          aria-live="polite"
+        >
+          {loading && page > 1 ? (
+            <div className="flex items-center gap-2 text-indigo-600 font-medium">
+              <div className="animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+              <span>Đang tải thêm...</span>
+            </div>
+          ) : page < totalPages ? (
+            <button
+              onClick={handleLoadMore}
+              className="group flex items-center gap-2 px-6 py-2.5 rounded-full bg-white dark:bg-[#3a3a41] border border-gray-200 dark:border-slate-600 text-sm font-medium text-gray-600 dark:text-gray-300 shadow-sm hover:shadow-md hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 transition-all active:scale-95"
+            >
+              <span>Xem thêm</span>
+              <ChevronDown
+                size={16}
+                className="group-hover:translate-y-0.5 transition-transform"
+              />
+            </button>
+          ) : transactions.length > 0 ? (
+            <div className="flex items-center gap-2 text-gray-400 text-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-slate-600"></span>
+              <span>Đã hiển thị hết</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-slate-600"></span>
+            </div>
+          ) : null}
         </div>
-      </div>
-      {/* --- LOAD MORE SECTION --- */}
-      <div className="w-full mt-6 mb-10 flex flex-col items-center justify-center gap-2">
-        {/* Text thông tin (Optional) */}
-        {transactions.length > 0 && (
-          <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">
-            Đang hiển thị {transactions.length} trên tổng số {total} giao dịch
-          </p>
+
+        {/* --- MODALS --- */}
+        {showModal && (
+          <TransactionModal
+            visible={true}
+            onClose={() => setShowModal(false)}
+            transaction={selectedTransaction}
+          />
         )}
 
-        {/* Logic hiển thị nút */}
-        {loading && page > 1 ? (
-          // Case 1: Đang tải thêm (Loading Spinner)
-          <div className="flex items-center gap-2 text-indigo-500 font-medium cursor-progress">
-            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-                fill="none"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            <span>Đang tải thêm...</span>
-          </div>
-        ) : page < totalPages ? (
-          // Case 2: Còn trang để tải -> Hiện nút
-          <button
-            onClick={handleLoadMore}
-            className="
-            group flex items-center gap-2 px-6 py-2.5 rounded-full cursor-pointer
-            bg-white dark:bg-[#3a3a41] border border-gray-200 dark:border-slate-600 
-            text-sm font-medium text-gray-600 dark:text-gray-300 
-            shadow-sm hover:shadow-md hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 
-            transition-all duration-300 active:scale-95
-      "
-          >
-            <span>Xem thêm giao dịch cũ hơn</span>
-            <ChevronDown
-              size={16}
-              className="group-hover:translate-y-0.5 transition-transform"
-            />
-          </button>
-        ) : transactions.length > 0 ? (
-          // Case 3: Đã hết dữ liệu -> Hiện thông báo kết thúc
-          <div className="flex items-center gap-2 text-gray-400 text-sm py-2">
-            <span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-slate-600"></span>
-            <span>Bạn đã xem hết danh sách</span>
-            <span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-slate-600"></span>
-          </div>
-        ) : null}
-      </div>
+        {detailTransaction && (
+          <DetailTransaction
+            transaction={detailTransaction}
+            onClose={() => setDetailTransaction(null)}
+          />
+        )}
 
-      {showModal && (
-        <TransactionModal
-          visible={true}
-          onClose={() => setShowModal(false)}
-          transaction={selectedTransaction}
+        <ConfirmModal
+          isOpen={deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={handleConfirmDelete}
+          type="delete"
+          modalType="transaction"
+          transaction={transactionToDelete}
         />
-      )}
-
-      {detailTransaction && (
-        <DetailTransaction
-          transaction={detailTransaction}
-          onClose={() => setDetailTransaction(null)}
-        />
-      )}
-
-      {/* --- THÊM CONFIRM MODAL VÀO ĐÂY --- */}
-      <ConfirmModal
-        isOpen={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        onConfirm={handleConfirmDelete} // Truyền hàm xóa thật vào đây
-        type="delete" // Loại modal là delete
-        modalType="transaction" // Để hiển thị đúng text trong modal
-        transaction={transactionToDelete} // Truyền object để modal lấy tên (nếu cần)
-      />
-    </div>
+      </main>
+    </>
   );
 };
 

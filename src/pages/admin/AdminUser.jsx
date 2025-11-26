@@ -111,18 +111,6 @@ const AdminUser = () => {
     }
   };
 
-  const handleBan = async (id) => {
-    try {
-      await dispatch(adminBanUser(id));
-      toast("Đã hạn chế người dùng.", {
-        icon: "🚫",
-      });
-    } catch (error) {
-      toast.error("Có lỗi xảy ra.");
-      console.log(error);
-    }
-  };
-
   const handleOpenConfirmModal = ({ type, user }) => {
     setSelectedUser(user);
     setConfirmModalType(type);
@@ -289,7 +277,6 @@ const AdminUser = () => {
             modalType={"user"}
             isOpen={isConfirmModalOpen}
             onClose={() => setIsConfirmModalOpen(false)}
-            onConfirm={handleBan}
             type={confirmModalType}
             user={selectedUser}
           />
