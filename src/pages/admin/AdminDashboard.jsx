@@ -44,7 +44,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchSessions = async () => {
       const res = await axiosInstance.get(
-        `${BACK_END_URL}/api/admin/session/weekly-duration?mode=${mode}`
+        `/api/admin/session/weekly-duration?mode=${mode}`
       );
       setSessions(res.data);
     };
@@ -54,9 +54,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const fetchMostUsedCategories = async () => {
-      const res = await axiosInstance.get(
-        `${BACK_END_URL}/api/admin/categories/summary`
-      );
+      const res = await axiosInstance.get(`/api/admin/categories/summary`);
       setMostUsedCategories(res.data);
     };
 

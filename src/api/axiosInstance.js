@@ -4,11 +4,11 @@ const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
 
 // Tạo một Axios instance
 const axiosInstance = axios.create({
-  // baseURL: BACK_END_URL, trước
-  baseURL: '/', // sau
-  headers: {
-        'Content-Type': 'application/json', // sau
-  },
+  baseURL: BACK_END_URL,
+  // baseURL: '/', // sau
+  // headers: {
+  //       'Content-Type': 'application/json', // sau
+  // },
   withCredentials: true, // Quan trọng: Để gửi cookie tự động
 });
 
