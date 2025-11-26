@@ -42,7 +42,7 @@ const ConfirmModal = ({
       confirmColor: "bg-red-600 hover:bg-red-700",
     },
     delete: {
-      title: "Xóa mục này này",
+      title: "Xóa mục này",
       message: `Bạn có chắc chắn muốn xóa ${
         modalType === "user" ? user?.name : "mục"
       } này không?`,
@@ -71,6 +71,11 @@ const ConfirmModal = ({
   const content = modalText[type] || modalText.default;
 
   const handleConfirm = async () => {
+    if (onConfirm) {
+      await onConfirm(reason); // Truyền reason nếu cần
+      onClose();
+      return;
+    }
     if (type === "ban" && !reason.trim()) {
       setError("Vui lòng nhập lý do trước khi xác nhận!");
       toast.error("Thiếu lý do!");
@@ -136,13 +141,14 @@ const ConfirmModal = ({
       onClose();
     }
   };
+
   return (
     <AnimatePresence>
       {isOpen && (
         <>
           {/* Overlay */}
           <motion.div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -163,31 +169,34 @@ const ConfirmModal = ({
                 {content.message}
               </p>
 
-              {type === "ban" ||
-                ("delete" && (
-                  <div className="w-full text-left">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Lý do:
-                    </label>
-                    <textarea
-                      className={`w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 ${
-                        error
-                          ? "border-red-500 focus:ring-red-500"
-                          : "focus:ring-blue-500"
-                      }`}
-                      rows={3}
-                      placeholder="Nhập lý do..."
-                      value={reason}
-                      onChange={(e) => {
-                        setReason(e.target.value);
-                        if (error) setError("");
-                      }}
-                    />
-                    {error && (
-                      <p className="text-red-500 text-sm mt-1">{error}</p>
-                    )}
-                  </div>
-                ))}
+              {/* Chỉ hiển thị ô nhập Lý do khi: 
+                  1. KHÔNG có onConfirm (tức là Admin đang thao tác)
+                  2. VÀ loại modal là "ban" HOẶC "delete" 
+              */}
+              {!onConfirm && (type === "ban" || type === "delete") && (
+                <div className="w-full text-left">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Lý do:
+                  </label>
+                  <textarea
+                    className={`w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 ${
+                      error
+                        ? "border-red-500 focus:ring-red-500"
+                        : "focus:ring-blue-500"
+                    }`}
+                    rows={3}
+                    placeholder="Nhập lý do..."
+                    value={reason}
+                    onChange={(e) => {
+                      setReason(e.target.value);
+                      if (error) setError("");
+                    }}
+                  />
+                  {error && (
+                    <p className="text-red-500 text-sm mt-1">{error}</p>
+                  )}
+                </div>
+              )}
 
               <div className="flex gap-3 mt-4">
                 <button

@@ -6,11 +6,9 @@ import {
   updateTransaction,
 } from "../features/transactionSlice";
 import toast from "react-hot-toast";
-import getUsedCategories from "../thunks/getUsedCategories";
 import { useTranslation } from "react-i18next";
 import { getNotifications } from "../features/notificationSlice";
 import { debounce } from "lodash";
-import getCategorySuggestion from "../thunks/getCategorySuggestion";
 import { currencyMap } from "../utils/currencies";
 import { categoryList } from "../utils/categoryList";
 import { getGoals } from "../features/goalSlice";
@@ -35,7 +33,7 @@ const TransactionModal = ({
     receiptImages: [],
     isRecurring: false,
     recurringDay: now.getDate(),
-    currency: "VND", // --- THÊM MỚI ---: Thêm tiền tệ vào trạng thái ban đầu
+    currency: "VND",
     goal: goalId ? goalId : "",
     reason: "",
   };
@@ -45,9 +43,12 @@ const TransactionModal = ({
   const goals = useSelector((state) => state.goals.goals);
   const { t, i18n } = useTranslation();
   const dispatch = useDispatch();
+
   const [formData, setFormData] = useState(initialState);
   const [existingImages, setExistingImages] = useState([]);
-  const [categorySuggest, setCategorySuggest] = useState("");
+
+  // 1️⃣ State lưu lỗi validation
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (transaction) {
@@ -56,64 +57,56 @@ const TransactionModal = ({
         date: transaction.date ? transaction.date.slice(0, 10) : "",
         receiptImages: [],
         currency: transaction.currency || "VND",
-        reason: "", // 🆕 reset lý do
+        reason: "",
       });
       setExistingImages(transaction.receiptImage || []);
     } else {
       setFormData(initialState);
       setExistingImages([]);
     }
+    setErrors({}); // Reset lỗi khi mở modal
   }, [transaction]);
 
   useEffect(() => {
     dispatch(getGoals());
   }, []);
 
-  useEffect(() => {
-    console.log(goalId);
-    console.log(transaction);
-  }, []);
-
-  //Category Suggestion
-  const debouncedSuggest = useMemo(
-    () =>
-      debounce(async (typeVal, noteVal) => {
-        const suggestion = await getCategorySuggestion(typeVal, noteVal, token);
-        setCategorySuggest(suggestion);
-      }, 500),
-    []
-  );
-
   // Change handler
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
 
-    if (name === "note") {
-      debouncedSuggest(formData.type, value);
+    // 2️⃣ Xóa lỗi của trường đang nhập khi người dùng thay đổi giá trị
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: null }));
     }
 
     if (type === "checkbox") {
       setFormData((prev) => ({ ...prev, [name]: checked }));
     } else if (type === "file") {
       const selectedFiles = Array.from(files);
-      const currentFiles = formData.receiptImages || [];
+      // Validate file size/type nếu cần (Ví dụ < 5MB)
+      const validFiles = selectedFiles.filter((file) => {
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(`File ${file.name} quá lớn (Max 5MB)`);
+          return false;
+        }
+        return true;
+      });
 
-      const totalFiles = [...currentFiles, ...selectedFiles];
+      const currentFiles = formData.receiptImages || [];
+      const totalFiles = [...currentFiles, ...validFiles];
+
       const uniqueFiles = totalFiles.reduce((acc, file) => {
         if (!acc.find((f) => f.name === file.name)) acc.push(file);
         return acc;
       }, []);
 
       if (uniqueFiles.length > 5) {
-        toast.error("You can upload up to 5 images only!");
+        toast.error("Bạn chỉ có thể tải lên tối đa 5 ảnh!");
         return;
       }
 
-      setFormData((prev) => {
-        const updated = { ...prev, receiptImages: uniqueFiles };
-        console.log("Ảnh mới:", updated.receiptImages);
-        return updated;
-      });
+      setFormData((prev) => ({ ...prev, receiptImages: uniqueFiles }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
       if (name === "category" && value !== "saving") {
@@ -133,11 +126,63 @@ const TransactionModal = ({
     }));
   };
 
+  // 3️⃣ Hàm Validation
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Validate Amount
+    if (!formData.amount) {
+      newErrors.amount =
+        t("validate.amountRequired") || "Vui lòng nhập số tiền";
+    } else if (Number(formData.amount) <= 0) {
+      newErrors.amount =
+        t("validate.amountPositive") || "Số tiền phải lớn hơn 0";
+    }
+
+    // Validate Category
+    if (!formData.category) {
+      newErrors.category =
+        t("validate.categoryRequired") || "Vui lòng chọn danh mục";
+    }
+
+    // Validate Goal (nếu category là saving)
+    if (formData.category === "saving" && !formData.goal) {
+      newErrors.goal =
+        t("validate.goalRequired") || "Vui lòng chọn mục tiêu tiết kiệm";
+    }
+
+    // Validate Recurring Day
+    if (formData.isRecurring) {
+      const day = Number(formData.recurringDay);
+      if (!day || day < 1 || day > 31) {
+        newErrors.recurringDay =
+          t("validate.invalidDay") || "Ngày phải từ 1 đến 31";
+      }
+    } else {
+      // Validate Date (nếu không recurring)
+      if (!formData.date) {
+        newErrors.date = t("validate.dateRequired") || "Vui lòng chọn ngày";
+      }
+    }
+
+    // Validate Admin Reason
+    if (user.role === "admin" && !formData.reason?.trim()) {
+      newErrors.reason =
+        t("validate.reasonRequired") || "Vui lòng nhập lý do chỉnh sửa";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0; // Trả về true nếu không có lỗi
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (user.role === "admin" && !formData.reason.trim()) {
-      toast.error("Vui lòng nhập lý do trước khi xác nhận!");
+    // 4️⃣ Gọi validate trước khi submit
+    if (!validateForm()) {
+      toast.error(
+        t("validate.checkForm") || "Vui lòng kiểm tra lại thông tin!"
+      );
       return;
     }
 
@@ -160,7 +205,6 @@ const TransactionModal = ({
 
     existingImages.forEach((url) => formPayload.append("existingImages", url));
 
-    // 🪄 Wrap promise logic trong toast.promise
     const actionPromise = (async () => {
       if (transaction) {
         if (user.role === "admin") {
@@ -190,15 +234,17 @@ const TransactionModal = ({
       error: (err) => err?.message || "Đã xảy ra lỗi!",
     });
 
-    actionPromise.finally(() => onClose());
+    actionPromise.then(() => onClose()).catch(() => {}); // Catch lỗi để không crash app, toast đã handle hiển thị lỗi
   };
+
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-[2px] bg-black/20">
-      <div className="bg-white p-6 rounded shadow-lg w-[90%] max-w-lg relative z-50 animate-fadeIn dark:bg-[#2E2E33] dark:text-white/83 dark:border dark:border-slate-700">
+      <div className="bg-white p-6 rounded shadow-lg w-[90%] max-w-lg relative z-50 animate-fadeIn dark:bg-[#2E2E33] dark:text-white/83 dark:border dark:border-slate-700 max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-semibold mb-4">
           {transaction ? t("editTransaction") : t("addTransaction")}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Type Select */}
           <div>
             <label className="block text-sm font-medium">{t("type")}</label>
             <select
@@ -218,20 +264,26 @@ const TransactionModal = ({
             </select>
           </div>
 
-          {/* --- CHỈNH SỬA ---: Bọc Amount và Currency trong flex */}
+          {/* Amount & Currency */}
           <div className="flex flex-row gap-4">
             <div className="flex-1">
               <label className="block text-sm dark:focus:outline-slate-700">
-                {t("amount")}
+                {t("amount")} <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
                 name="amount"
                 value={formData.amount}
                 onChange={handleChange}
-                className="w-full border px-3 py-2 rounded"
-                required
+                // 5️⃣ UI hiển thị lỗi (Border đỏ)
+                className={`w-full border px-3 py-2 rounded ${
+                  errors.amount ? "border-red-500 focus:ring-red-200" : ""
+                }`}
               />
+              {/* 6️⃣ UI hiển thị text lỗi */}
+              {errors.amount && (
+                <p className="text-red-500 text-xs mt-1">{errors.amount}</p>
+              )}
             </div>
 
             <div className="w-1/3">
@@ -253,6 +305,7 @@ const TransactionModal = ({
             </div>
           </div>
 
+          {/* Note */}
           <div>
             <label className="block text-sm font-medium">{t("note")}</label>
             <textarea
@@ -264,9 +317,10 @@ const TransactionModal = ({
             ></textarea>
           </div>
 
+          {/* Category */}
           <div className="flex flex-col gap-2">
             <label className="block text-sm font-medium">
-              {t("categoriesLabel")}
+              {t("categoriesLabel")} <span className="text-red-500">*</span>
             </label>
             <select
               name="category"
@@ -274,8 +328,7 @@ const TransactionModal = ({
               onChange={handleChange}
               className={`w-full border px-3 py-2 rounded dark:focus:outline-slate-700 ${
                 goalCategory ? "pointer-events-none opacity-70" : ""
-              }`}
-              required
+              } ${errors.category ? "border-red-500" : ""}`}
             >
               <option value="">-- {t("selectCategory")} --</option>
               {Array.isArray(categoryList) &&
@@ -289,18 +342,16 @@ const TransactionModal = ({
                   </option>
                 ))}
             </select>
-
-            {categorySuggest !== "" && formData.note !== "" && (
-              <span className="text-sm font-medium text-slate-500">
-                {t("suggestion")}: {t(`categories.${categorySuggest}`)}
-              </span>
+            {errors.category && (
+              <p className="text-red-500 text-xs">{errors.category}</p>
             )}
           </div>
 
+          {/* Goal Selection (If saving) */}
           {formData.category === "saving" && (
             <div className="flex flex-col gap-2">
               <label className="block text-sm font-medium">
-                {t("financialGoal")}
+                {t("financialGoal")} <span className="text-red-500">*</span>
               </label>
               <select
                 name="goal"
@@ -312,8 +363,7 @@ const TransactionModal = ({
                     : goalId
                     ? "pointer-events-none opacity-70"
                     : ""
-                }`}
-                required
+                } ${errors.goal ? "border-red-500" : ""}`}
               >
                 <option value="">-- {t("selectGoal")} --</option>
                 {Array.isArray(goals) &&
@@ -327,23 +377,34 @@ const TransactionModal = ({
                     </option>
                   ))}
               </select>
+              {errors.goal && (
+                <p className="text-red-500 text-xs">{errors.goal}</p>
+              )}
             </div>
           )}
 
+          {/* Date Selection */}
           {!formData.isRecurring && (
             <div>
-              <label className="block text-sm font-medium">{t("date")}</label>
+              <label className="block text-sm font-medium">
+                {t("date")} <span className="text-red-500">*</span>
+              </label>
               <input
                 type="date"
                 name="date"
                 value={formData.date}
                 onChange={handleChange}
-                className="w-full border px-3 py-2 rounded dark:bg-[#2E2E33]"
-                required
+                className={`w-full border px-3 py-2 rounded dark:bg-[#2E2E33] ${
+                  errors.date ? "border-red-500" : ""
+                }`}
               />
+              {errors.date && (
+                <p className="text-red-500 text-xs mt-1">{errors.date}</p>
+              )}
             </div>
           )}
 
+          {/* Recurring Checkbox */}
           <div className="flex items-center space-x-2">
             <input
               type="checkbox"
@@ -357,23 +418,33 @@ const TransactionModal = ({
             </label>
           </div>
 
+          {/* Recurring Day */}
           {formData.isRecurring && (
             <div>
               <label className="block text-sm font-medium">
-                {t("recurringDay")} (1-31)
+                {t("recurringDay")} (1-31){" "}
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
                 name="recurringDay"
                 min={1}
                 max={31}
-                value={formData.recurringDay ?? 0}
+                value={formData.recurringDay ?? ""}
                 onChange={handleChange}
-                className="w-full border px-3 py-2 rounded"
+                className={`w-full border px-3 py-2 rounded ${
+                  errors.recurringDay ? "border-red-500" : ""
+                }`}
               />
+              {errors.recurringDay && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.recurringDay}
+                </p>
+              )}
             </div>
           )}
 
+          {/* Images */}
           <div>
             <label className="block text-sm font-medium mb-1">
               {t("receipt")}
@@ -388,15 +459,14 @@ const TransactionModal = ({
               <input
                 id="file-upload"
                 type="file"
-                name="receiptImages" // ✅ Bổ sung dòng này
+                name="receiptImages"
                 multiple
                 onChange={handleChange}
                 className="hidden"
+                accept="image/*" // Chỉ cho phép chọn ảnh
               />
             </div>
-
-            {/* Render receipt's images */}
-            {/* Ảnh hóa đơn cũ từ backend */}
+            {/* ... Phần hiển thị ảnh giữ nguyên ... */}
             {existingImages.length > 0 && (
               <div className="mt-4 grid grid-cols-2 gap-2">
                 {existingImages.map((url, idx) => (
@@ -410,7 +480,6 @@ const TransactionModal = ({
                       type="button"
                       onClick={() => handleRemoveExistingImage(idx)}
                       className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full px-1 opacity-100 transition-opacity"
-                      title="Xóa ảnh cũ"
                     >
                       ✕
                     </button>
@@ -418,8 +487,6 @@ const TransactionModal = ({
                 ))}
               </div>
             )}
-
-            {/* Ảnh hóa đơn mới vừa chọn (từ File) */}
             {formData.receiptImages.length > 0 && (
               <div className="mt-4 grid grid-cols-2 gap-2">
                 {formData.receiptImages.map((file, idx) => {
@@ -435,7 +502,6 @@ const TransactionModal = ({
                         type="button"
                         onClick={() => handleRemoveNewImage(idx)}
                         className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full px-1 opacity-100 transition-opacity"
-                        title="Xóa ảnh mới"
                       >
                         ✕
                       </button>
@@ -444,26 +510,32 @@ const TransactionModal = ({
                 })}
               </div>
             )}
-
-            {user?.role === "admin" && (
-              <div>
-                <label className="block text-sm font-medium">
-                  Lý do chỉnh sửa
-                </label>
-                <textarea
-                  name="reason"
-                  value={formData.reason}
-                  onChange={handleChange}
-                  placeholder="Nhập lý do (bắt buộc cho admin)"
-                  className="w-full border-2 border-red-400 px-3 py-2 rounded outline-none bg-red-50 placeholder-red-400"
-                  rows="2"
-                  required
-                ></textarea>
-              </div>
-            )}
           </div>
 
-          <div className="flex justify-end gap-2">
+          {/* Admin Reason */}
+          {user?.role === "admin" && (
+            <div>
+              <label className="block text-sm font-medium">
+                Lý do chỉnh sửa <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                name="reason"
+                value={formData.reason}
+                onChange={handleChange}
+                placeholder="Nhập lý do (bắt buộc cho admin)"
+                className={`w-full border-2 px-3 py-2 rounded outline-none bg-red-50 placeholder-red-400 ${
+                  errors.reason ? "border-red-500" : "border-red-400"
+                }`}
+                rows="2"
+              ></textarea>
+              {errors.reason && (
+                <p className="text-red-500 text-xs mt-1">{errors.reason}</p>
+              )}
+            </div>
+          )}
+
+          {/* Buttons */}
+          <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}

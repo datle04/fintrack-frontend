@@ -128,5 +128,17 @@
   "saveGoal": "Save Goal", 
   "pleaseSetGoal": "Set up your first financial goal!", 
   "completed": "Completed", 
-  "inProgress": "In Progress" 
+  "inProgress": "In Progress",
+  "validate": {
+    "amountRequired": "Please enter an amount",
+    "amountPositive": "Amount must be greater than 0",
+    "categoryRequired": "Please select a category",
+    "goalRequired": "Please select a saving goal",
+    "invalidDay": "Day must be between 1 and 31",
+    "dateRequired": "Please select a date",
+    "reasonRequired": "Please enter a reason for the edit",
+    "checkForm": "Please check your information!",
+    "nameRequired": "Please enter a goal name",
+    "futureDate": "The goal date must be in the future"
+  } 
 }

@@ -128,5 +128,17 @@
   "saveGoal": "Lưu mục tiêu", 
   "pleaseSetGoal": "Hãy thiết lập mục tiêu đầu tiên của bạn!", 
   "completed": "Đã hoàn thành", 
-  "inProgress": "Đang tiến hành" 
+  "inProgress": "Đang tiến hành",
+  "validate": {
+    "amountRequired": "Vui lòng nhập số tiền",
+    "amountPositive": "Số tiền phải lớn hơn 0",
+    "categoryRequired": "Vui lòng chọn danh mục",
+    "goalRequired": "Vui lòng chọn mục tiêu tiết kiệm",
+    "invalidDay": "Ngày phải từ 1 đến 31",
+    "dateRequired": "Vui lòng chọn ngày",
+    "reasonRequired": "Vui lòng nhập lý do chỉnh sửa",
+    "checkForm": "Vui lòng kiểm tra lại thông tin!",
+    "nameRequired": "Vui lòng nhập tên mục tiêu",
+    "futureDate": "Ngày mục tiêu phải ở trong tương lai"
+  }
 }

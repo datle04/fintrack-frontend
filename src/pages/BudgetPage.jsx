@@ -13,6 +13,7 @@ import { useBudgetCalculations } from "../hooks/useBudgetCalculations";
 import { categoryList } from "../utils/categoryList";
 import { Plus, Trash2, Calendar, Edit } from "lucide-react";
 import { TfiWallet } from "react-icons/tfi";
+import ConfirmModal from "../components/ConfirmModal";
 
 const BudgetPage = () => {
   const now = new Date();
@@ -28,6 +29,8 @@ const BudgetPage = () => {
     budget.year === Number(selectedYear) &&
     (budget.totalBudget > 0 || budget.originalAmount > 0);
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const fetchBudget = useCallback(() => {
     dispatch(getBudget({ month: selectedMonth, year: selectedYear }));
   }, [dispatch, selectedMonth, selectedYear]);
@@ -36,12 +39,13 @@ const BudgetPage = () => {
     fetchBudget();
   }, [fetchBudget]);
 
-  const handleDelete = async () => {
-    if (
-      !window.confirm("Bạn có chắc chắn muốn xóa toàn bộ ngân sách tháng này?")
-    )
-      return;
+  const handleDeleteClick = () => {
+    // Thay vì window.confirm, hãy mở modal
+    setShowDeleteConfirm(true);
+  };
 
+  // Hàm xóa thật sự (sẽ được gọi khi User bấm "Xóa" trong Modal)
+  const handleConfirmDelete = async () => {
     toast.promise(
       dispatch(
         deleteBudget({ month: selectedMonth, year: selectedYear })
@@ -52,6 +56,7 @@ const BudgetPage = () => {
         error: "Gặp lỗi khi xóa",
       }
     );
+    setShowDeleteConfirm(false); // Đóng modal sau khi dispatch
   };
   // 🔥 THAY THẾ TOÀN BỘ KHỐI TÍNH TOÁN CŨ BẰNG 1 DÒNG NÀY:
   const {
@@ -141,7 +146,7 @@ const BudgetPage = () => {
           {/* Nút Delete (Chỉ hiện khi đã có Budget) */}
           {hasBudget && (
             <button
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
               className="bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 p-2 rounded-lg transition-colors"
               title={t("delete_budget")}
             >
@@ -258,6 +263,17 @@ const BudgetPage = () => {
           onClose={() => fetchBudget()} // Reload sau khi đóng
         />
       )}
+
+      {/* --- CUỐI CÙNG: Thêm ConfirmModal --- */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleConfirmDelete} // Hàm xóa thật
+        type="delete" // Loại modal (icon thùng rác đỏ)
+        modalType="budget" // Để hiển thị text "xóa ngân sách"
+        // Nếu ConfirmModal của bạn hỗ trợ hiển thị tên, bạn có thể truyền thêm:
+        // budget={{ name: `Tháng ${selectedMonth}/${selectedYear}` }}
+      />
     </section>
   );
 };

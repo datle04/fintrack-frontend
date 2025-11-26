@@ -21,6 +21,8 @@ import { categoryList } from "../utils/categoryList";
 import { groupTransactionsByDate } from "../utils/groupTransactions";
 import { Search, Filter, X, Plus, Calendar, ArrowRight } from "lucide-react";
 import FilterSelect from "../components/TransactionPageComponent/FilterSelect";
+import toast from "react-hot-toast";
+import ConfirmModal from "../components/ConfirmModal";
 
 const TransactionPage = () => {
   const dispatch = useDispatch();
@@ -38,6 +40,10 @@ const TransactionPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [detailTransaction, setDetailTransaction] = useState(null);
+
+  // --- THÊM STATE MỚI CHO DELETE MODAL ---
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState(null);
 
   // 1. Chuẩn bị options cho Loại giao dịch
   const typeOptions = [
@@ -161,16 +167,28 @@ const TransactionPage = () => {
     setShowModal(true);
   };
 
-  const handleDelete = (e, id) => {
+  const handleDeleteClick = (e, transaction) => {
     e.stopPropagation();
+    setTransactionToDelete(transaction);
+    setDeleteModalOpen(true);
+  };
 
-    const action = dispatch(deleteTransaction(id)).unwrap();
+  // --- THÊM HÀM XỬ LÝ KHI BẤM "XÓA" TRONG MODAL ---
+  const handleConfirmDelete = () => {
+    if (!transactionToDelete) return;
+
+    const action = dispatch(
+      deleteTransaction(transactionToDelete._id)
+    ).unwrap();
 
     toast.promise(action, {
       loading: "Đang xóa giao dịch...",
       success: "Đã xóa giao dịch thành công!",
       error: (err) => err?.message || "Có lỗi xảy ra khi xóa giao dịch!",
     });
+
+    setDeleteModalOpen(false);
+    setTransactionToDelete(null);
   };
 
   return (
@@ -385,7 +403,7 @@ const TransactionPage = () => {
                         </span>
 
                         {/* Action Buttons (Chỉ hiện khi hover vào dòng - Desktop) */}
-                        <div className="hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity gap-2">
+                        <div className="md:flex group-hover:opacity-100 transition-opacity gap-2">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -396,7 +414,7 @@ const TransactionPage = () => {
                             <FaEdit />
                           </button>
                           <button
-                            onClick={(e) => handleDelete(e, item._id)}
+                            onClick={(e) => handleDeleteClick(e, item)}
                             className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-gray-600 rounded-full cursor-pointer transition-all"
                           >
                             <FaTrash />
@@ -484,6 +502,16 @@ const TransactionPage = () => {
           onClose={() => setDetailTransaction(null)}
         />
       )}
+
+      {/* --- THÊM CONFIRM MODAL VÀO ĐÂY --- */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete} // Truyền hàm xóa thật vào đây
+        type="delete" // Loại modal là delete
+        modalType="transaction" // Để hiển thị đúng text trong modal
+        transaction={transactionToDelete} // Truyền object để modal lấy tên (nếu cần)
+      />
     </div>
   );
 };
