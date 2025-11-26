@@ -20,7 +20,8 @@ export const setupAxiosInterceptors = (store, axiosInstance) => {
       if (
         error.response?.status === 401 &&
         !originalRequest._retry &&
-        !originalRequest.url.includes("/api/auth/refresh")
+        !originalRequest.url.includes("/api/auth/refresh") &&
+        !originalRequest.url.includes("/api/auth/login")
       ) {
         if (isRefreshing) {
           return new Promise((resolve, reject) => {

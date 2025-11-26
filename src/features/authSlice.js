@@ -28,9 +28,22 @@ export const loginUser = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const res = await axiosInstance.post("/api/auth/login", credentials);
-      return res.data; // { user, refreshToken }
+      return res.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || error.message);
+      console.log(error);
+      
+      // Ưu tiên 1: Lấy message từ response backend (401/400/500)
+      if (error.response && error.response.data) {
+        // Nếu backend trả về { message: "..." } -> lấy .message
+        if (error.response.data.message) {
+             return rejectWithValue(error.response.data.message);
+        }
+        // Nếu backend trả về string trực tiếp hoặc cấu trúc khác
+        return rejectWithValue(JSON.stringify(error.response.data));
+      }
+      
+      // Ưu tiên 2: Lỗi mạng hoặc lỗi code (error.message)
+      return rejectWithValue(error.message || "Lỗi không xác định");
     }
   }
 );

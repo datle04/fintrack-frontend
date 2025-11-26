@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import LandingPage from "./pages/LandingPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -29,7 +29,7 @@ import ChatWidget from "./components/Chat/ChatWidget";
 import AdminGoalPage from "./pages/admin/AdminGoalPage";
 import AdminBudgetPage from "./pages/admin/AdminBudgetPage";
 import PrivateRoute from "./routes/PrivateRoute";
-import { useLocation } from "react-router-dom";
+import NotFoundPage from "./pages/NotFoundPage";
 
 function App() {
   const { isAppLoading } = useLoading();
@@ -47,7 +47,16 @@ function App() {
       {isAppLoading && <FullScreenLottie />}
       <ThemeProvider>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route
+            path="/"
+            element={
+              user ? (
+                <Navigate to="/dashboard" replace />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
           <Route path="/login" element={<LoginPage />} />
           {/* Route yêu cầu đăng nhập */}
           <Route element={<PrivateRoute />}>
@@ -76,6 +85,7 @@ function App() {
               </Route>
             </Route>
           </Route>
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
 
         {/* ======================================= */}

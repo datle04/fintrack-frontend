@@ -35,7 +35,17 @@ export default function LoginPage() {
     toast.promise(action, {
       loading: isRegister ? "Đang tạo tài khoản..." : "Đang đăng nhập...",
       success: isRegister ? "Đăng ký thành công!" : "Đăng nhập thành công!",
-      error: (err) => err || "Có lỗi xảy ra!",
+      error: (err) => {
+        // Log ra để kiểm tra
+        console.log("Lỗi trả về:", err);
+
+        // Nếu err là object có key message (do backend trả về { message: "..." })
+        if (typeof err === "object" && err !== null && err.message) {
+          return err.message;
+        }
+        // Nếu err là string
+        return err || "Có lỗi xảy ra!";
+      },
     });
 
     try {
