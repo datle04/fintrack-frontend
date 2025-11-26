@@ -374,7 +374,7 @@ const SettingPage = () => {
                 />
               </div>
               <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-                {profile?.name}
+                {user?.name}
               </h2>
               <p className="text-gray-500 text-sm">{user?.email}</p>
             </div>

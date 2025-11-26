@@ -36,7 +36,6 @@ export default function LoginPage() {
       loading: isRegister ? "Đang tạo tài khoản..." : "Đang đăng nhập...",
       success: {
         render: isRegister ? "Đăng ký thành công!" : "Đăng nhập thành công!",
-        duration: 5000, // 5 giây nè, muốn bao nhiêu chơi bấy nhiêu
       },
       error: (err) => {
         console.log("Lỗi trả về:", err);
