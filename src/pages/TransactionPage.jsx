@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Helmet } from "react-helmet-async"; // SEO
 import { debounce } from "lodash";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
@@ -202,11 +201,6 @@ const TransactionPage = () => {
   // --- 5. RENDER ---
   return (
     <>
-      <Helmet>
-        <title>{t("transactions")} | FinTrack</title>
-        <meta name="description" content="Quản lý thu chi chi tiết." />
-      </Helmet>
-
       <main className="min-h-screen w-full bg-[#F5F6FA] dark:bg-[#35363A] p-4 md:p-6 xl:p-8 transition-colors duration-300">
         {/* --- A. SUMMARY CARDS (Mobile Friendly) --- */}
         <section
