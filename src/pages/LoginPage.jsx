@@ -34,9 +34,7 @@ export default function LoginPage() {
 
     toast.promise(action, {
       loading: isRegister ? "Đang tạo tài khoản..." : "Đang đăng nhập...",
-      success: {
-        render: isRegister ? "Đăng ký thành công!" : "Đăng nhập thành công!",
-      },
+      success: isRegister ? "Đăng ký thành công!" : "Đăng nhập thành công!",
       error: (err) => {
         console.log("Lỗi trả về:", err);
         if (typeof err === "object" && err !== null && err.message) {
