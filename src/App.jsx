@@ -29,11 +29,12 @@ import ChatWidget from "./components/Chat/ChatWidget";
 import AdminGoalPage from "./pages/admin/AdminGoalPage";
 import AdminBudgetPage from "./pages/admin/AdminBudgetPage";
 import PrivateRoute from "./routes/PrivateRoute";
+import { useLocation } from "react-router-dom";
 
 function App() {
   const { isAppLoading } = useLoading();
   const user = useSelector((state) => state.auth.user);
-
+  const location = useLocation();
   // ⚠️ State mới cho Chat Widget
   const [isChatOpen, setIsChatOpen] = useState(false);
 
@@ -79,7 +80,7 @@ function App() {
 
         {/* ======================================= */}
         {/* ⚠️ Tích hợp Chat Widget/Icon ở đây (Chỉ khi User tồn tại) */}
-        {user && user.role === "user" && (
+        {user && user.role === "user" && location.pathname !== "/login" && (
           <>
             <ChatWidget
               isOpen={isChatOpen}
