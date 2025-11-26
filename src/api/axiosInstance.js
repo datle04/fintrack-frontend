@@ -5,7 +5,7 @@ const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
 // Tạo một Axios instance
 const axiosInstance = axios.create({
   // baseURL: BACK_END_URL,
-  baseURL: '/api',
+  baseURL: '/',
   headers: {
         'Content-Type': 'application/json',
   },
