@@ -117,9 +117,7 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
       <div className="p-3 sm:p-4 border-b bg-indigo-500 rounded-t-xl text-white flex items-center justify-between dark:bg-indigo-700">
         <div className="flex items-center gap-2">
           <Bot size={20} className="sm:size-6" />
-          <h3 className="font-semibold text-lg sm:text-xl">
-            {t("suggestion")} FinAI
-          </h3>
+          <h3 className="font-semibold text-lg sm:text-xl">FinAI</h3>
         </div>
         {/* Nút đóng cho Mobile & Desktop */}
         {/* Dùng onClick={onClose} để gọi hàm setIsChatOpen(false) từ App.jsx */}
