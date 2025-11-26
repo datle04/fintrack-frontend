@@ -63,7 +63,7 @@ export default function LoginPage() {
             navigate("/dashboard");
           }
           setIsAppLoading(false);
-        }, 1500); // Giảm thời gian chờ xuống chút cho mượt
+        }, 0); // Giảm thời gian chờ xuống chút cho mượt
       }
 
       // Reset form
