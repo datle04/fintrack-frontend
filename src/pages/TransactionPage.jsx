@@ -112,7 +112,7 @@ const TransactionPage = () => {
     dispatch(
       getDashboard({ start: startDate, end: endDate, currency: userCurrency })
     );
-  }, [dispatch, startDate, endDate]);
+  }, [dispatch, startDate, endDate, transactions]);
 
   useEffect(() => {
     if (shouldRefetch) {
