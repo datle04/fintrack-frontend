@@ -49,6 +49,7 @@ const TransactionPage = () => {
   const [detailTransaction, setDetailTransaction] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const typeOptions = [
     { value: "income", label: t("income") || "Thu nhập" },
@@ -157,18 +158,31 @@ const TransactionPage = () => {
     setDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!transactionToDelete) return;
-    const action = dispatch(
-      deleteTransaction(transactionToDelete._id)
-    ).unwrap();
-    toast.promise(action, {
-      loading: "Đang xóa giao dịch...",
-      success: "Đã xóa giao dịch thành công!",
-      error: (err) => err?.message || "Có lỗi xảy ra khi xóa giao dịch!",
-    });
-    setDeleteModalOpen(false);
-    setTransactionToDelete(null);
+
+    // 1. Bật trạng thái loading để Modal hiện spinner
+    setIsDeleting(true);
+
+    try {
+      // 2. Gọi API xóa
+      await dispatch(deleteTransaction(transactionToDelete._id)).unwrap();
+
+      // 3. Thông báo thành công
+      toast.success(
+        t("transactionDeleteSuccess") || "Đã xóa giao dịch thành công!"
+      );
+
+      // 4. Đóng modal và reset
+      setDeleteModalOpen(false);
+      setTransactionToDelete(null);
+    } catch (err) {
+      // 5. Thông báo lỗi (Không đóng modal để user thử lại)
+      toast.error(err?.message || "Có lỗi xảy ra khi xóa!");
+    } finally {
+      // 6. Tắt loading dù thành công hay thất bại
+      setIsDeleting(false);
+    }
   };
 
   // --- A11Y HELPER: Hỗ trợ phím Enter/Space cho các thẻ div tương tác ---
@@ -574,9 +588,21 @@ const TransactionPage = () => {
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        type="delete"
-        modalType="transaction"
-        transaction={transactionToDelete}
+        isLoading={isDeleting} // Truyền state loading vào đây
+        // --- CÁC PROPS MỚI ---
+        title={t("deleteTransactionTitle") || "Xóa giao dịch này?"} // Tiêu đề
+        message={
+          // Nội dung chi tiết
+          transactionToDelete
+            ? `${t("deleteConfirmation")} ${formatCurrency(
+                transactionToDelete.amount,
+                transactionToDelete.currency
+              )}?`
+            : t("defaultDeleteMessage")
+        }
+        variant="danger" // Màu đỏ cảnh báo
+        confirmText={t("delete") || "Xóa bỏ"} // Chữ trên nút
+        cancelText={t("cancel") || "Hủy"}
       />
     </main>
   );
