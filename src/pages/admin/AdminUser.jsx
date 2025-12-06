@@ -4,6 +4,7 @@ import {
   adminBanUser,
   adminDeleteUser,
   adminGetUsers,
+  adminUnbanUser,
   adminUpdateUser,
 } from "../../features/userSlice";
 import formatDateToString from "../../utils/formatDateToString";
@@ -46,8 +47,8 @@ const AdminUser = () => {
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [confirmModalType, setConfirmModalType] = useState("ban");
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [confirmModalType, setConfirmModalType] = useState("ban"); // 'ban' | 'unban' | 'delete'
+  const [isProcessing, setIsProcessing] = useState(false); // Loading state cho modal
 
   const handleEdit = (user) => {
     setSelectedUser(user);
@@ -100,21 +101,89 @@ const AdminUser = () => {
     debouncedSearch(value, role, status, 1);
   };
 
-  const handleDelete = async (id) => {
-    try {
-      await dispatch(adminDeleteUser(id));
-      toast("Đã xóa người dùng.", {
-        icon: "🗑️",
-      });
-    } catch (error) {
-      toast.error("Có lỗi xảy ra.");
-    }
-  };
-
+  // Hàm mở modal (thay thế cho handleDelete cũ)
   const handleOpenConfirmModal = ({ type, user }) => {
     setSelectedUser(user);
     setConfirmModalType(type);
     setIsConfirmModalOpen(true);
+  };
+
+  // --- HÀM XỬ LÝ LOGIC CONFIRM (QUAN TRỌNG NHẤT) ---
+  const handleConfirmAction = async (reason) => {
+    if (!selectedUser) return;
+    setIsProcessing(true); // Bật loading
+
+    try {
+      let action;
+      let successMessage = "";
+
+      // Chọn hành động dựa trên loại modal
+      switch (confirmModalType) {
+        case "ban":
+          action = adminBanUser({ id: selectedUser._id, reason });
+          successMessage = `Đã cấm người dùng ${selectedUser.name}`;
+          break;
+        case "unban":
+          action = adminUnbanUser(selectedUser._id);
+          successMessage = `Đã gỡ cấm người dùng ${selectedUser.name}`;
+          break;
+        case "delete":
+          // Nếu API delete có hỗ trợ lưu reason thì truyền vào, không thì chỉ truyền ID
+          action = adminDeleteUser({ id: selectedUser._id, reason });
+          successMessage = "Đã xóa người dùng thành công";
+          break;
+        default:
+          throw new Error("Hành động không hợp lệ");
+      }
+
+      // Dispatch action
+      await dispatch(action).unwrap();
+
+      toast.success(successMessage);
+      setIsConfirmModalOpen(false); // Đóng modal
+      setSelectedUser(null);
+
+      // Refresh lại list user hiện tại (nếu cần)
+      // debouncedSearch(search, role, status, page);
+    } catch (error) {
+      toast.error(error?.message || "Có lỗi xảy ra!");
+    } finally {
+      setIsProcessing(false); // Tắt loading
+    }
+  };
+
+  // --- CẤU HÌNH GIAO DIỆN MODAL DỰA TRÊN TYPE ---
+  const getModalProps = () => {
+    if (!selectedUser) return {};
+
+    switch (confirmModalType) {
+      case "ban":
+        return {
+          title: "Cấm người dùng này?",
+          message: `Bạn có chắc chắn muốn cấm tài khoản "${selectedUser.name}"? Người dùng này sẽ không thể đăng nhập.`,
+          variant: "warning", // Màu cam
+          confirmText: "Cấm ngay",
+          requireReason: true, // Bắt buộc nhập lý do
+        };
+      case "unban":
+        return {
+          title: "Gỡ lệnh cấm?",
+          message: `Khôi phục quyền truy cập cho tài khoản "${selectedUser.name}"?`,
+          variant: "success", // Màu xanh lá
+          confirmText: "Gỡ cấm",
+          requireReason: false, // Không cần lý do
+        };
+      case "delete":
+        return {
+          title: "Xóa vĩnh viễn?",
+          message: `Hành động này sẽ xóa hoàn toàn user "${selectedUser.name}" và dữ liệu liên quan. Không thể hoàn tác!`,
+          variant: "danger", // Màu đỏ
+          confirmText: "Xóa bỏ",
+          requireReason: true, // Admin xóa nên nhập lý do để log
+        };
+      default:
+        return {};
+    }
   };
 
   return (
@@ -272,13 +341,15 @@ const AdminUser = () => {
           </table>
         </div>
 
-        {isConfirmModalOpen && (
+        {isConfirmModalOpen && selectedUser && (
           <ConfirmModal
-            modalType={"user"}
             isOpen={isConfirmModalOpen}
-            onClose={() => setIsConfirmModalOpen(false)}
-            type={confirmModalType}
-            user={selectedUser}
+            onClose={() => {
+              if (!isProcessing) setIsConfirmModalOpen(false);
+            }}
+            onConfirm={handleConfirmAction} // Hàm xử lý logic chung
+            isLoading={isProcessing} // State loading
+            {...getModalProps()} // Spread các props cấu hình (title, message, variant...)
           />
         )}
 

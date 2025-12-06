@@ -30,6 +30,7 @@ const BudgetPage = () => {
     (budget.totalBudget > 0 || budget.originalAmount > 0);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchBudget = useCallback(() => {
     dispatch(getBudget({ month: selectedMonth, year: selectedYear }));
@@ -46,18 +47,29 @@ const BudgetPage = () => {
 
   // Hàm xóa thật sự (sẽ được gọi khi User bấm "Xóa" trong Modal)
   const handleConfirmDelete = async () => {
-    toast.promise(
-      dispatch(
+    // Bật loading để nút trong Modal xoay xoay
+    setIsDeleting(true);
+
+    try {
+      // Gọi API xóa
+      await dispatch(
         deleteBudget({ month: selectedMonth, year: selectedYear })
-      ).unwrap(),
-      {
-        loading: "Đang xóa...",
-        success: <b>Xóa thành công!</b>,
-        error: "Gặp lỗi khi xóa",
-      }
-    );
-    setShowDeleteConfirm(false); // Đóng modal sau khi dispatch
+      ).unwrap();
+
+      // Thành công: Thông báo & Đóng modal
+      toast.success(t("deleteBudgetSuccess") || "Xóa ngân sách thành công!");
+      setShowDeleteConfirm(false);
+    } catch (error) {
+      // Thất bại: Thông báo lỗi (Không đóng modal để user biết)
+      toast.error(
+        error?.message || t("deleteBudgetError") || "Gặp lỗi khi xóa!"
+      );
+    } finally {
+      // Tắt loading
+      setIsDeleting(false);
+    }
   };
+
   // 🔥 THAY THẾ TOÀN BỘ KHỐI TÍNH TOÁN CŨ BẰNG 1 DÒNG NÀY:
   const {
     displayBudget,
@@ -268,11 +280,20 @@ const BudgetPage = () => {
       <ConfirmModal
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
-        onConfirm={handleConfirmDelete} // Hàm xóa thật
-        type="delete" // Loại modal (icon thùng rác đỏ)
-        modalType="budget" // Để hiển thị text "xóa ngân sách"
-        // Nếu ConfirmModal của bạn hỗ trợ hiển thị tên, bạn có thể truyền thêm:
-        // budget={{ name: `Tháng ${selectedMonth}/${selectedYear}` }}
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleting} // Truyền state loading vào đây
+        // Cấu hình nội dung hiển thị
+        title={t("deleteBudgetTitle") || "Xóa ngân sách?"}
+        message={
+          t("deleteBudgetMessage", {
+            month: selectedMonth,
+            year: selectedYear,
+          }) ||
+          `Bạn có chắc chắn muốn xóa toàn bộ ngân sách tháng ${selectedMonth}/${selectedYear} không? Dữ liệu này không thể khôi phục.`
+        }
+        variant="danger" // Màu đỏ
+        confirmText={t("delete") || "Xóa bỏ"}
+        cancelText={t("cancel") || "Hủy"}
       />
     </section>
   );

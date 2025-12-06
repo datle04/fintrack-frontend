@@ -23,6 +23,7 @@ const AdminBudgetPage = () => {
   const [selectedBudget, setSelectedBudget] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // (Filter state vẫn giữ ở local)
   const [filters, setFilters] = useState({
@@ -70,6 +71,33 @@ const AdminBudgetPage = () => {
   const handleDelete = (budget) => {
     setSelectedBudget(budget);
     setIsDeleteModalOpen(true);
+  };
+
+  // 3. Viết hàm xử lý sự kiện Xóa (Chuyển logic cũ từ Modal ra đây)
+  const handleConfirmDelete = async (reason) => {
+    if (!selectedBudget) return;
+
+    setIsDeleting(true); // Bật loading
+    try {
+      // Gọi action Redux
+      await dispatch(
+        deleteAdminBudget({
+          budgetId: selectedBudget._id,
+          reason: reason, // Truyền lý do xóa (quan trọng với Admin)
+        })
+      ).unwrap();
+
+      toast.success("Đã xóa ngân sách thành công!");
+      setIsDeleteModalOpen(false); // Đóng modal
+      setSelectedBudget(null);
+
+      // Tùy chọn: Refresh lại danh sách nếu Redux store không tự cập nhật
+      // fetchBudgets(page, filterParams);
+    } catch (err) {
+      toast.error(err?.message || "Lỗi khi xóa ngân sách!");
+    } finally {
+      setIsDeleting(false); // Tắt loading
+    }
   };
 
   return (
@@ -224,13 +252,25 @@ const AdminBudgetPage = () => {
       {isDeleteModalOpen && selectedBudget && (
         <ConfirmModal
           isOpen={isDeleteModalOpen}
-          modalType="budget"
-          type="delete"
-          budget={selectedBudget}
           onClose={() => {
-            setIsDeleteModalOpen(false);
-            setSelectedBudget(null);
+            if (!isDeleting) {
+              // Chặn đóng khi đang xóa
+              setIsDeleteModalOpen(false);
+              setSelectedBudget(null);
+            }
           }}
+          onConfirm={handleConfirmDelete} // Truyền hàm xử lý
+          isLoading={isDeleting} // Truyền trạng thái loading
+          // Cấu hình nội dung
+          title="Xóa ngân sách này?"
+          message={`Bạn đang thực hiện xóa ngân sách tháng ${
+            selectedBudget.month
+          }/${selectedBudget.year} của người dùng ${
+            selectedBudget.user?.name || "này"
+          }.`}
+          variant="danger" // Màu đỏ
+          confirmText="Xóa bỏ"
+          requireReason={true} // Admin xóa thường cần lý do
         />
       )}
     </div>

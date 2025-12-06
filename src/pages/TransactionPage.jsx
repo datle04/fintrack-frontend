@@ -124,17 +124,17 @@ const TransactionPage = () => {
     }
   }, [dispatch, shouldRefetch]);
 
-  useEffect(() => {
-    const params = { ...filters, page: 1 };
-    dispatch(getTransactions(params));
-  }, [
-    dispatch,
-    filters.type,
-    filters.category,
-    filters.startDate,
-    filters.endDate,
-    filters.keyword,
-  ]);
+  // useEffect(() => {
+  //   const params = { ...filters, page: 1 };
+  //   dispatch(getTransactions(params));
+  // }, [
+  //   dispatch,
+  //   filters.type,
+  //   filters.category,
+  //   filters.startDate,
+  //   filters.endDate,
+  //   filters.keyword,
+  // ]);
 
   const handleLoadMore = () => {
     if (page < totalPages && !loading) {

@@ -39,6 +39,7 @@ const AdminTransaction = () => {
   const [selectingStartDate, setSelectingStartDate] = useState(true);
   const [idSearch, setIdSearch] = useState("");
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const datePickerRef = useRef(null);
 
@@ -277,6 +278,31 @@ const AdminTransaction = () => {
     setIsConfirmModalOpen(true);
   };
 
+  // 👉 VIẾT HÀM XỬ LÝ XÓA MỚI (Thay thế hàm handleDelete cũ hoặc viết mới)
+  const handleConfirmDelete = async (reason) => {
+    if (!selectedTransaction) return;
+
+    setIsDeleting(true); // Bật loading
+    try {
+      await dispatch(
+        adminDeleteTransaction({
+          id: selectedTransaction._id,
+          reason: reason, // Truyền lý do xóa (quan trọng với Admin)
+        })
+      ).unwrap();
+
+      toast.success("Đã xóa giao dịch thành công!");
+      setIsConfirmModalOpen(false); // Đóng modal
+
+      // Load lại trang (nếu cần thiết, tuỳ vào slice của bạn có tự update state không)
+      // fetchTransactions();
+    } catch (error) {
+      toast.error(error?.message || "Có lỗi xảy ra khi xóa!");
+    } finally {
+      setIsDeleting(false); // Tắt loading
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 bg-blue-50 min-h-screen">
       {/* Ẩn hoàn toàn trên điện thoại */}
@@ -482,14 +508,22 @@ const AdminTransaction = () => {
             </tbody>
           </table>
 
-          {isConfirmModalOpen && (
+          {isConfirmModalOpen && selectedTransaction && (
             <ConfirmModal
-              modalType={"transaction"}
               isOpen={isConfirmModalOpen}
-              onClose={() => setIsConfirmModalOpen(false)}
-              // onConfirm={handleBan}
-              type={"delete"}
-              transaction={selectedTransaction}
+              onClose={() => {
+                if (!isDeleting) setIsConfirmModalOpen(false);
+              }}
+              onConfirm={handleConfirmDelete} // Hàm xử lý xóa
+              isLoading={isDeleting} // State loading
+              // Cấu hình hiển thị
+              title="Xóa giao dịch này?"
+              message={`Bạn có chắc chắn muốn xóa giao dịch ${
+                selectedTransaction.amount
+              } của user ${selectedTransaction.user?.name || "này"}?`}
+              variant="danger" // Màu đỏ cảnh báo
+              confirmText="Xóa bỏ"
+              requireReason={true} // Admin xóa cần nhập lý do
             />
           )}
         </div>
