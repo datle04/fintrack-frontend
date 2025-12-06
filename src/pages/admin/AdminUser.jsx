@@ -44,7 +44,7 @@ const AdminUser = () => {
   const [role, setRole] = useState("");
   const [status, setStatus] = useState();
   const [page, setPage] = useState(1);
-
+  const [selectedUser, setSelectedUser] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmModalType, setConfirmModalType] = useState("ban"); // 'ban' | 'unban' | 'delete'
