@@ -35,7 +35,9 @@ const TransactionPage = () => {
   const { transactions, loading, total, page, totalPages, shouldRefetch } =
     useSelector((s) => s.transaction);
   const userCurrency = useSelector((state) => state.auth.user.currency);
-  const { totalIncome, totalExpense } = useSelector((state) => state.dashboard);
+  const { totalIncome, totalExpense, balance } = useSelector(
+    (state) => state.dashboard
+  );
 
   // 1. Khởi tạo giá trị mặc định
   const today = new Date();
@@ -180,12 +182,7 @@ const TransactionPage = () => {
   return (
     /* SEO: Sử dụng <main> thay vì <div> cho nội dung chính */
     <main className="min-h-screen w-full bg-[#F5F6FA] 2xl:px-6 2xl:py-2 3xl:px-8 3xl:py-2 dark:bg-[#35363A]">
-      {/* A11y: Thêm tiêu đề ẩn h1 cho SEO nếu trang này chưa có h1, 
-         hoặc nếu đây là trang con của Dashboard thì có thể dùng h2.
-         Ở đây tôi giả định cần 1 h1 ẩn để định danh trang. */}
       <h1 className="sr-only">Quản lý giao dịch tài chính</h1>
-
-      {/* A11y: Dùng <section> thay vì <div> cho các vùng nội dung lớn */}
       <section
         aria-label="Bộ lọc tìm kiếm"
         className="flex flex-col gap-2 lg:flex-row justify-between 2xl:gap-6 3xl:gap-8 bg-[#F5F6FA] 2xl:p-6 3xl:p-8 rounded-md flex-wrap dark:bg-[#35363A]"
@@ -215,7 +212,7 @@ const TransactionPage = () => {
             {/* Add Button */}
             <button
               onClick={handleAdd}
-              aria-label={t("add") + " giao dịch mới"} // A11y: Label rõ ràng
+              aria-label={t("add") + " giao dịch mới"}
               className="w-full md:w-auto flex items-center justify-center gap-2 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition-all shadow-md hover:shadow-lg active:scale-95"
             >
               <Plus size={20} aria-hidden="true" />
@@ -312,38 +309,66 @@ const TransactionPage = () => {
           aria-label="Tóm tắt thu chi"
           className="bg-white shadow-sm border border-slate-200 mt-2 rounded-md p-4 2xl:p-6 3xl:p-8 flex justify-between items-center flex-2 min-w-[300px] 2xl:min-w-[400px] 3xl:min-w-[500px] dark:bg-[#2E2E33] dark:border dark:border-slate-700"
         >
-          <div className="flex-1">
-            <div className="flex justify-between text-[12px] 2xl:text-sm 3xl:text-base mb-2 2xl:mb-3">
+          {/* --- CỘT TRÁI: THU - CHI - SỐ DƯ --- */}
+          <div className="flex-1 flex flex-col justify-center">
+            {/* Total Income */}
+            <div className="flex justify-between text-[12px] 2xl:text-sm 3xl:text-base mb-2">
               <span className="text-gray-700 font-medium dark:text-white/90">
                 {t("totalIncome")}:
               </span>
-              <span className="text-green-600 font-semibold text-right dark:text-green-700">
+              <span className="text-green-600 font-semibold text-right dark:text-green-500">
                 + {formatCurrency(totalIncome, userCurrency, i18n.language)}
               </span>
             </div>
-            <hr className="text-slate-300 dark:text-slate-700" />
-            <div className="flex justify-between text-[12px] 2xl:text-sm 3xl:text-base mt-2 2xl:mt-3">
+
+            {/* Total Expense */}
+            <div className="flex justify-between text-[12px] 2xl:text-sm 3xl:text-base mb-2">
               <span className="text-gray-700 font-medium dark:text-white/90">
                 {t("totalExpense")}:
               </span>
-              <span className="text-red-600 font-semibold text-right dark:text-red-700">
+              <span className="text-red-600 font-semibold text-right dark:text-red-500">
                 - {formatCurrency(totalExpense, userCurrency, i18n.language)}
+              </span>
+            </div>
+
+            {/* Đường kẻ ngang phân cách */}
+            <hr className="border-t border-slate-200 dark:border-slate-600 my-1" />
+
+            {/* Balance (Mới thêm) */}
+            <div className="flex justify-between text-[13px] 2xl:text-[15px] 3xl:text-lg mt-2">
+              <span className="text-gray-900 font-bold dark:text-white">
+                {t("balance")}:
+              </span>
+              <span
+                className={`font-bold text-right ${
+                  balance >= 0
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-red-600 dark:text-red-500"
+                }`}
+              >
+                {balance >= 0 ? "+" : ""}{" "}
+                {formatCurrency(balance, userCurrency, i18n.language)}
               </span>
             </div>
           </div>
 
+          {/* --- ĐƯỜNG KẺ DỌC (DIVIDER) --- */}
+          {/* Đổi từ h-16 sang self-stretch để tự động cao theo nội dung bên trái */}
           <div
-            className="w-[1px] h-16 2xl:h-20 3xl:h-24 bg-gray-300 mx-4 2xl:mx-6 dark:bg-slate-700"
+            className="w-[1px] self-stretch bg-gray-300 mx-4 2xl:mx-6 dark:bg-slate-600"
             aria-hidden="true"
           />
 
-          <div className="text-[12px] 2xl:text-sm 3xl:text-base text-gray-700 whitespace-nowrap">
-            <p className="font-medium dark:text-white/90">
-              {t("totalTransactions")}:
-            </p>
-            <p className="text-indigo-500 font-semibold text-right dark:text-indigo-600">
-              {total}{" "}
-            </p>
+          {/* --- CỘT PHẢI: SỐ LƯỢNG GIAO DỊCH --- */}
+          <div className="flex flex-col justify-center h-full">
+            <div className="text-[12px] 2xl:text-sm 3xl:text-base text-gray-700 whitespace-nowrap">
+              <p className="font-medium dark:text-white/90 mb-1">
+                {t("totalTransactions")}:
+              </p>
+              <p className="text-indigo-500 font-bold text-right text-lg 2xl:text-xl dark:text-indigo-400">
+                {total}
+              </p>
+            </div>
           </div>
         </section>
       </section>
