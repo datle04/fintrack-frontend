@@ -18,7 +18,7 @@ export const connectSocket = (userId) => {
 
   socket = io(BACK_END_URL, {
     transports: ["websocket"],
-    withCredentials: true, // Gửi Cookie (HttpOnly)
+    // withCredentials: true, // Gửi Cookie (HttpOnly)
     query: { userId: userId }, // 👈 GỬI USERID ĐỂ BACKEND JOIN ROOM
   });
 
