@@ -129,7 +129,7 @@ const DashboardRecentTransactions = ({ className = "" }) => {
           /* HIỂN THỊ EMPTY STATE KHI KHÔNG CÓ DỮ LIỆU */
           <EmptyTransactionState
             t={t}
-            onAddClick={() => navigate("/transactions/add")} // Hoặc route thêm giao dịch của bạn
+            onAddClick={() => navigate("/transactions")} // Hoặc route thêm giao dịch của bạn
           />
         )}
       </div>
