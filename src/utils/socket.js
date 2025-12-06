@@ -39,14 +39,10 @@ export const connectSocket = (userId) => {
   console.log(`🔌 [Socket] Creating NEW connection for User: ${userId}`);
   
   socket = io(BACK_END_URL, {
-    transports: ["websocket"],
+    transports: ["websocket"], // Chỉ dùng websocket để ổn định
     withCredentials: true,
-    query: { userId: userId }, // Gửi userId để Join Room
-    
-    // Thêm options để ổn định kết nối
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
+    query: { userId: userId },
+    reconnection: true,        // Cho phép tự kết nối lại
   });
 
   // 3. Setup Listeners cơ bản (Chỉ setup 1 lần khi tạo mới)
@@ -55,14 +51,21 @@ export const connectSocket = (userId) => {
     socket?.emit("session.start", { userId });
   });
 
+  socket.on("disconnect", (reason, details) => {
+    console.error(`❌ Disconnected. Reason: ${reason}`);
+    // Nếu server đá, reason sẽ là "io server disconnect"
+    if (reason === "io server disconnect") {
+      // Server đá thì client sẽ không tự connect lại, phải gọi thủ công nếu muốn
+      // socket.connect(); 
+      console.warn("👉 Server chủ động ngắt kết nối. Kiểm tra Auth/CORS trên server.");
+    }
+    if (details) console.log("Details:", details);
+  });
+
   socket.on("connect_error", (err) => {
-    console.error("❌ [Socket] Connection Error:", err.message);
+    console.error("🔥 Connection Error:", err.message); 
+    // Nếu lỗi là "xhr poll error" hoặc "websocket error", thường là do CORS
   });
-
-  socket.on("disconnect", (reason) => {
-    console.log("⚠️ [Socket] Disconnected. Reason:", reason);
-  });
-
   return socket;
 };
 
