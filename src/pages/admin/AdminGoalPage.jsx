@@ -6,281 +6,144 @@ import { FaEdit, FaTrash, FaCalculator, FaTimes } from "react-icons/fa";
 import { formatCurrency } from "../../utils/formatCurrency";
 import formatDateToString from "../../utils/formatDateToString";
 import { merge } from "lodash";
+import ConfirmModal from "../../components/ConfirmModal";
+import EditGoalModal from "../../components/AdminGoalComponent/EditGoalModal";
 
-// --- Giả định bạn có các hàm helper này ---
-// const formatCurrency = (num) => {
-//   if (!num) return "0 đ";
-//   return new Intl.NumberFormat("vi-VN", {
-//     style: "currency",
-//     currency: "VND",
-//   }).format(num);
-// };
-
-const formatDate = (dateString) => {
-  if (!dateString) return "N/A";
-  return new Date(dateString).toLocaleDateString("vi-VN");
-};
-// -----------------------------------------
-
-// Component Progress Bar
-const ProgressBar = ({ current, target }) => {
-  const percentage = Math.min(Math.max((current / target) * 100, 0), 100);
-  return (
-    <div className="w-full bg-gray-200 rounded-full h-2.5">
-      <div
-        className="bg-blue-600 h-2.5 rounded-full"
-        style={{ width: `${percentage}%` }}
-      ></div>
-    </div>
-  );
-};
-
-// Component Modal để Sửa Goal
-const EditGoalModal = ({ goal, onClose, onSave }) => {
-  const [formData, setFormData] = useState({
-    name: goal.name,
-    targetBaseAmount: goal.targetBaseAmount,
-    currentBaseAmount: goal.currentBaseAmount, // Admin có thể sửa
-    status: goal.status,
-    deadline: goal.deadline ? goal.deadline.split("T")[0] : "",
-  });
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    // Gọi API PUT /admin/goals/:goalId
-    const savePromise = axiosInstance
-      .put(`/api/admin/goals/${goal._id}`, formData)
-      .then((res) => res.data); //
-
-    toast.promise(savePromise, {
-      loading: "Đang lưu thay đổi...",
-      success: (updatedGoal) => {
-        onSave(updatedGoal); // Cập nhật state ở trang cha
-        onClose(); // Đóng modal
-        return "Cập nhật mục tiêu thành công!";
-      },
-      error: "Cập nhật thất bại!",
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Sửa Mục tiêu</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-800"
-          >
-            <FaTimes />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit}>
-          {/* Tên Mục tiêu */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Tên mục tiêu
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            />
-          </div>
-          {/* Mục tiêu (Số tiền) */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Số tiền mục tiêu
-            </label>
-            <input
-              type="number"
-              name="targetBaseAmount"
-              value={formData.targetBaseAmount}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            />
-          </div>
-          {/* Hiện tại (Số tiền) - Admin có thể sửa */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Số tiền hiện tại (Sửa thủ công)
-            </label>
-            <input
-              type="number"
-              name="currentBaseAmount"
-              value={formData.currentBaseAmount}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            />
-          </div>
-          {/* Trạng thái */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Trạng thái
-            </label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            >
-              <option value="in_progress">Đang tiến hành</option>
-              <option value="completed">Hoàn thành</option>
-              <option value="failed">Thất bại</option>
-            </select>
-          </div>
-          {/* Hạn chót */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Hạn chót
-            </label>
-            <input
-              type="date"
-              name="deadline"
-              value={formData.deadline}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            />
-          </div>
-          <div className="flex justify-end gap-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Lưu thay đổi
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// --- Component Trang Chính ---
+// --- Component Trang Chính (Đã Sửa) ---
 const AdminGoalPage = () => {
   const [goals, setGoals] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // State cho Modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // State cho Modal Edit
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
+
+  // 👉 STATE CHO CONFIRM MODAL (MỚI)
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    type: null, // 'delete' | 'recalculate'
+    data: null, // goal object
+  });
+  const [isProcessing, setIsProcessing] = useState(false); // Loading state cho API action
 
   // Hàm gọi API
   const fetchGoals = useCallback(async (currentPage) => {
     setLoading(true);
     try {
-      // Gọi API GET /admin/goals
       const res = await axiosInstance.get("/api/admin/goals", {
         params: { page: currentPage, limit: 10 },
-      }); //
+      });
       setGoals(res.data.goals);
       setTotalPages(res.data.pages);
       setPage(res.data.page);
     } catch (err) {
-      console.error("Lỗi khi tải mục tiêu:", err);
       toast.error("Không thể tải danh sách mục tiêu!");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Fetch dữ liệu khi tải trang hoặc đổi trang
   useEffect(() => {
     fetchGoals(page);
   }, [page, fetchGoals]);
 
-  // --- Các Hàm Xử lý ---
-
-  const handleEdit = (goal) => {
-    setSelectedGoal(goal);
-    setIsModalOpen(true);
-  };
-
-  const handleModalSave = (updatedGoal) => {
-    // Cập nhật lại danh sách goals trên UI
-    setGoals(
-      goals.map((g) => {
+  // --- Các Hàm Helper Update State Local ---
+  const updateGoalInList = (updatedGoal) => {
+    setGoals((prev) =>
+      prev.map((g) => {
         if (g._id !== updatedGoal._id) return g;
-
-        // clone g để tránh mutate
-        const merged = { ...g, ...updatedGoal };
-
-        // Giữ lại object userId nếu updatedGoal.userId chỉ là string
-        if (
-          typeof updatedGoal.userId === "string" &&
-          typeof g.userId === "object"
-        ) {
-          merged.userId = g.userId;
-        }
-
-        return merged;
+        // Merge data mới vào cũ để tránh mất thông tin populate (user)
+        return { ...g, ...updatedGoal, userId: g.userId };
       })
     );
   };
 
-  const handleDelete = (goal) => {
-    // Dùng toast.custom để tạo xác nhận
-    toast(
-      (t) => (
-        <span>
-          Bạn có chắc muốn xóa mục tiêu "<b>{goal.name}</b>"?
-          <button
-            onClick={() => {
-              toast.dismiss(t.id); // Đóng toast xác nhận
-              // Gọi API DELETE /admin/goals/:goalId
-              const deletePromise = axiosInstance.delete(
-                `/api/admin/goals/${goal._id}`
-              ); //
-
-              toast.promise(deletePromise, {
-                loading: "Đang xóa...",
-                success: () => {
-                  fetchGoals(page); // Tải lại dữ liệu
-                  return "Đã xóa mục tiêu thành công!";
-                },
-                error: "Xóa thất bại!",
-              });
-            }}
-            className="ml-2 px-3 py-1 rounded bg-red-600 text-white text-sm"
-          >
-            Xóa
-          </button>
-        </span>
-      ),
-      { duration: 6000 }
-    ); // Tự đóng sau 6 giây
+  const removeGoalFromList = (goalId) => {
+    setGoals((prev) => prev.filter((g) => g._id !== goalId));
   };
 
-  const handleRecalculate = (goal) => {
-    // Gọi API POST /admin/goals/:goalId/recalculate
-    const recalcPromise = axiosInstance.post(
-      `/api/admin/goals/${goal._id}/recalculate`
-    ); //
+  // --- Handlers Mở Modal ---
+  const handleEditClick = (goal) => {
+    setSelectedGoal(goal);
+    setIsEditModalOpen(true);
+  };
 
-    toast.promise(recalcPromise, {
-      loading: "Đang tính toán lại...",
-      success: (res) => {
-        handleModalSave(res.data.goal); // Cập nhật lại dòng đó
-        return "Đã tính toán lại tiến độ!";
-      },
-      error: "Tính toán lại thất bại!",
-    });
+  const handleDeleteClick = (goal) => {
+    // Mở ConfirmModal thay vì toast custom
+    setConfirmConfig({ isOpen: true, type: "delete", data: goal });
+  };
+
+  const handleRecalculateClick = (goal) => {
+    // Mở ConfirmModal cho tính toán (để tránh click nhầm)
+    setConfirmConfig({ isOpen: true, type: "recalculate", data: goal });
+  };
+
+  // --- 🔥 HÀM XỬ LÝ LOGIC CHUNG CHO CONFIRM MODAL ---
+  const handleConfirmAction = async (reason) => {
+    const { type, data } = confirmConfig;
+    if (!data) return;
+
+    setIsProcessing(true); // Bật loading spinner
+
+    try {
+      if (type === "delete") {
+        // Gọi API Xóa
+        await axiosInstance.delete(`/api/admin/goals/${data._id}`);
+        removeGoalFromList(data._id);
+        toast.success("Đã xóa mục tiêu thành công!");
+      } else if (type === "recalculate") {
+        // Gọi API Tính toán lại
+        const res = await axiosInstance.post(
+          `/api/admin/goals/${data._id}/recalculate`
+        );
+        // Giả sử API trả về { goal: ... }
+        updateGoalInList(res.data.goal || res.data);
+        toast.success("Đã tính toán lại tiến độ!");
+      }
+
+      // Đóng modal sau khi xong
+      setConfirmConfig({ isOpen: false, type: null, data: null });
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra!");
+    } finally {
+      setIsProcessing(false); // Tắt loading spinner
+    }
+  };
+
+  // --- Cấu hình nội dung Modal ---
+  const getConfirmModalProps = () => {
+    const { type, data } = confirmConfig;
+    if (!data) return {};
+
+    if (type === "delete") {
+      return {
+        title: "Xóa Mục Tiêu?",
+        message: `Bạn có chắc chắn muốn xóa mục tiêu "${data.name}" của user ${
+          data.userId?.name || "này"
+        }? Hành động này không thể hoàn tác.`,
+        variant: "danger",
+        confirmText: "Xóa bỏ",
+        requireReason: true, // Admin xóa cần lý do (tuỳ chọn)
+      };
+    }
+    if (type === "recalculate") {
+      return {
+        title: "Tính toán lại tiến độ?",
+        message: `Hệ thống sẽ quét lại toàn bộ giao dịch để cập nhật số tiền hiện tại cho mục tiêu "${data.name}".`,
+        variant: "info", // Hoặc warning
+        confirmText: "Tính toán",
+        requireReason: false,
+      };
+    }
+    return {};
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
   return (
@@ -290,7 +153,9 @@ const AdminGoalPage = () => {
       </h1>
 
       {loading ? (
-        <p>Đang tải dữ liệu...</p>
+        <div className="flex justify-center p-10">
+          <span className="loading-spinner">Loading...</span>
+        </div>
       ) : (
         <div className="bg-white shadow-md rounded-lg overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -321,19 +186,19 @@ const AdminGoalPage = () => {
                 <tr key={goal._id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      {goal.userId?.name}
+                      {goal.userId?.name || "Unknown"}
                     </div>
                     <div className="text-sm text-gray-500">
                       {goal.userId?.email}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{goal?.name}</div>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {goal.name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {formatCurrency(goal?.currentBaseAmount)} /{" "}
-                      {formatCurrency(goal?.targetBaseAmount)}
+                  <td className="px-6 py-4 whitespace-nowrap min-w-[200px]">
+                    <div className="text-sm text-gray-900 mb-1">
+                      {formatCurrency(goal.currentBaseAmount)} /{" "}
+                      {formatCurrency(goal.targetBaseAmount)}
                     </div>
                     <ProgressBar
                       current={goal.currentBaseAmount}
@@ -342,38 +207,39 @@ const AdminGoalPage = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        goal.isCompleted === "completed"
-                          ? "bg-green-100 text-green-800"
-                          : goal.isCompleted === "failed"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        ${
+                          goal.status === "completed"
+                            ? "bg-green-100 text-green-800"
+                            : goal.status === "failed"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}
                     >
-                      {goal.isCompleted}
+                      {goal.status || "in_progress"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(goal.targetDate)}
+                    {formatDate(goal.targetDate || goal.deadline)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <button
-                      onClick={() => handleRecalculate(goal)}
-                      className="text-green-600 hover:text-green-900"
+                      onClick={() => handleRecalculateClick(goal)}
+                      className="text-green-600 hover:text-green-900 p-2 hover:bg-green-50 rounded-full transition-colors"
                       title="Tính toán lại"
                     >
                       <FaCalculator />
                     </button>
                     <button
-                      onClick={() => handleEdit(goal)}
-                      className="text-indigo-600 hover:text-indigo-900"
+                      onClick={() => handleEditClick(goal)}
+                      className="text-indigo-600 hover:text-indigo-900 p-2 hover:bg-indigo-50 rounded-full transition-colors"
                       title="Sửa"
                     >
                       <FaEdit />
                     </button>
                     <button
-                      onClick={() => handleDelete(goal)}
-                      className="text-red-600 hover:text-red-900"
+                      onClick={() => handleDeleteClick(goal)}
+                      className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-full transition-colors"
                       title="Xóa"
                     >
                       <FaTrash />
@@ -386,33 +252,47 @@ const AdminGoalPage = () => {
         </div>
       )}
 
-      {/* Pagination */}
+      {/* Pagination (Giữ nguyên logic cũ) */}
       <div className="flex justify-between items-center mt-4">
         <button
-          onClick={() => setPage(page - 1)}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page <= 1 || loading}
-          className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="px-4 py-2 border rounded disabled:opacity-50"
         >
           Trang trước
         </button>
-        <span className="text-sm text-gray-700">
+        <span>
           Trang {page} / {totalPages}
         </span>
         <button
-          onClick={() => setPage(page + 1)}
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           disabled={page >= totalPages || loading}
-          className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="px-4 py-2 border rounded disabled:opacity-50"
         >
           Trang sau
         </button>
       </div>
 
-      {/* Modal */}
-      {isModalOpen && selectedGoal && (
+      {/* --- MODAL EDIT (Form riêng) --- */}
+      {isEditModalOpen && selectedGoal && (
         <EditGoalModal
           goal={selectedGoal}
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleModalSave}
+          onClose={() => setIsEditModalOpen(false)}
+          onSave={updateGoalInList}
+        />
+      )}
+
+      {/* --- 🔥 MODAL CONFIRM (Xóa & Recalculate) --- */}
+      {confirmConfig.isOpen && (
+        <ConfirmModal
+          isOpen={confirmConfig.isOpen}
+          onClose={() => {
+            if (!isProcessing)
+              setConfirmConfig({ ...confirmConfig, isOpen: false });
+          }}
+          onConfirm={handleConfirmAction} // Gọi hàm xử lý chung
+          isLoading={isProcessing} // State loading
+          {...getConfirmModalProps()} // Spread props (Title, Message, Variant)
         />
       )}
     </div>
