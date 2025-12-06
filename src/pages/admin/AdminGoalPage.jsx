@@ -9,7 +9,20 @@ import { merge } from "lodash";
 import ConfirmModal from "../../components/ConfirmModal";
 import EditGoalModal from "../../components/AdminGoalComponent/EditGoalModal";
 
-// --- Component Trang Chính (Đã Sửa) ---
+// Component Progress Bar
+const ProgressBar = ({ current, target }) => {
+  const percentage = Math.min(Math.max((current / target) * 100, 0), 100);
+  return (
+    <div className="w-full bg-gray-200 rounded-full h-2.5">
+      <div
+        className="bg-blue-600 h-2.5 rounded-full"
+        style={{ width: `${percentage}%` }}
+      ></div>
+    </div>
+  );
+};
+
+// --- Component Trang Chính ---
 const AdminGoalPage = () => {
   const [goals, setGoals] = useState([]);
   const [page, setPage] = useState(1);
