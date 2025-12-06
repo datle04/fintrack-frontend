@@ -37,6 +37,7 @@ const Header = () => {
   const [toggleSidebar, setToggleSidebar] = useState(false);
   const [toggleNotification, setToggleNotification] = useState(false);
   const [hasRead, setHasRead] = useState(false);
+  const isConnecting = useRef(false);
 
   const notiRef = useRef();
 
@@ -81,6 +82,9 @@ const Header = () => {
   useEffect(() => {
     // Chỉ kết nối nếu có user ID
     if (!user?.id) return;
+    if (isConnecting.current) return;
+
+    isConnecting.current = true;
 
     // 1. Gọi hàm connect từ utils (truyền userId)
     const socket = connectSocket(user.id);
@@ -154,12 +158,13 @@ const Header = () => {
     return () => {
       clearInterval(interval);
       // Tắt lắng nghe sự kiện cụ thể
+      isConnecting.current = false;
       socket.off("new_notification");
 
       // Nếu user đăng xuất (user._id thay đổi thành null), ngắt kết nối
       // disconnectSocket(); // (Tùy chọn: Uncomment nếu muốn ngắt hẳn khi Header unmount)
     };
-  }, [user?.id, dispatch, toggleNotification]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (theme === "light") {
