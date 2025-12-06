@@ -38,10 +38,6 @@ function App() {
   // ⚠️ State mới cho Chat Widget
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  useEffect(() => {
-    console.log(user);
-  }, [user]);
-
   return (
     <>
       {isAppLoading && <FullScreenLottie />}
