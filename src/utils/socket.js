@@ -2,7 +2,13 @@
 import { io, Socket } from "socket.io-client";
 
 let socket = null;
-const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
+
+// 1. XÁC ĐỊNH URL DỰA TRÊN MÔI TRƯỜNG
+// - Nếu là Production: Để undefined (nó sẽ tự lấy domain của trang web hiện tại)
+// - Nếu là Development: Dùng link localhost:5000 (để debug cho dễ)
+const SOCKET_URL = import.meta.env.PROD 
+  ? undefined 
+  : import.meta.env.VITE_BACK_END_URL;
 
 export const connectSocket = (userId) => {
   // 0. Kiểm tra UserID (Quan trọng nhất)
@@ -36,13 +42,18 @@ export const connectSocket = (userId) => {
   }
 
   // 2. Tạo kết nối mới (Nếu chưa có hoặc đã reset)
-  console.log(`🔌 [Socket] Creating NEW connection for User: ${userId}`);
+  console.log("🔌 [Socket] Connecting to:", SOCKET_URL || "Current Host (Same-Origin)");
   
-  socket = io(BACK_END_URL, {
-    transports: ["websocket"], // Chỉ dùng websocket để ổn định
+  socket = io(SOCKET_URL, {
+    transports: ["websocket"],
     withCredentials: true,
     query: { userId: userId },
-    reconnection: true,        // Cho phép tự kết nối lại
+    reconnection: true,
+    
+    // 2. QUAN TRỌNG: Cấu hình đường dẫn (Path)
+    // Mặc định socket.io dùng path "/socket.io/".
+    // Nếu bạn dùng setup proxy ở dưới, path này phải khớp.
+    path: "/socket.io/", 
   });
 
   // 3. Setup Listeners cơ bản (Chỉ setup 1 lần khi tạo mới)

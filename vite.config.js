@@ -8,4 +8,21 @@ export default defineConfig({
     react(),
     tailwindcss()
   ],
+  server: {
+    proxy: {
+      // 1. Proxy cho API thường (như bạn đã làm với Axios)
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
+      
+      // 2. 🔥 PROXY CHO SOCKET.IO 🔥
+      '/socket.io': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        ws: true, // Quan trọng: Bật hỗ trợ WebSocket
+      }
+    }
+  }
 })
