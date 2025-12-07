@@ -80,29 +80,38 @@ const SettingPage = () => {
     formData.append("currency", profile.currency);
     formData.append("dob", profile.dob);
     formData.append("address", profile.address);
-    if (avatarFile) formData.append("avatar", avatarFile);
 
-    // 1. Định nghĩa promise
+    // Đảm bảo key là 'avatar' (hoặc key mà backend bạn yêu cầu)
+    if (avatarFile) {
+      formData.append("avatar", avatarFile);
+    }
+
     const promise = dispatch(updateUser(formData)).unwrap();
 
-    // 2. Gọi toast.promise
     toast
       .promise(promise, {
-        // 3. Các thông báo
-        loading: t("saving", "Đang lưu..."),
-        success: <b>{t("saveSuccess", "Đã lưu thông tin!")}</b>,
-        error: (err) => (
-          <b>{`${t("saveError", "Lỗi khi lưu")}: ${err.message || err}`}</b>
-        ),
+        loading: t("saving"), // Nên truyền string
+        // Dùng function để render JSX an toàn hơn
+        success: () => <b>{t("saveSuccess")}</b>,
+        error: (err) => <b>{`${t("saveError")}: ${err?.message || "Lỗi"}`}</b>,
       })
-      .then(() => {
-        // 4. Xử lý logic sau khi thành công
-        initialProfile.current = profile;
+      .then((updatedUser) => {
+        // Cập nhật lại ref để nút Lưu disable đi
+        // Quan trọng: Update state profile với dữ liệu mới từ server trả về để đồng bộ
+        const newProfile = {
+          name: updatedUser.name,
+          phone: updatedUser.phone,
+          currency: updatedUser.currency,
+          dob: updatedUser.dob,
+          address: updatedUser.address,
+        };
+        setProfile(newProfile);
+        initialProfile.current = newProfile;
+
         setAvatarFile(null);
       })
       .catch((err) => {
-        // 5. Thêm catch rỗng để tránh lỗi "Unhandled promise rejection"
-        // (Toast đã tự hiển thị lỗi rồi)
+        console.error("Update failed:", err);
       });
   };
 
