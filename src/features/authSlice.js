@@ -170,6 +170,7 @@ extraReducers: (builder) => {
   builder
     .addCase(updateUser.pending, (state) => {
       state.loading = true;
+      state.error = null;
     })
     .addCase(updateUser.fulfilled, (state, action) => {
       state.loading = false;

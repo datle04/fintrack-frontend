@@ -18,11 +18,12 @@ import { useTheme } from "../context/ThemeContext";
 import { useTranslation } from "react-i18next";
 import EditableField from "../components/EditableField";
 import { currencyMap } from "../utils/currencies";
+import SettingPageLoading from "../components/Loading/SettingLoading/SettingPageLoading";
 
 const SettingPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
+  const { user, loading } = useSelector((state) => state.auth);
   const { theme, toggleTheme } = useTheme();
   const { t, i18n } = useTranslation();
 
@@ -69,7 +70,7 @@ const SettingPage = () => {
     if (!user) {
       dispatch(getUserInfo());
     }
-  }, [user]);
+  }, [user, dispatch]);
 
   const handleSaveProfile = () => {
     if (!isDirty) return;
@@ -336,6 +337,10 @@ const SettingPage = () => {
         return null;
     }
   };
+
+  if (!user) {
+    return <SettingPageLoading />;
+  }
 
   return (
     <div className="min-h-screen bg-[#F5F6FA] dark:bg-[#35363A] p-4 md:p-8">
