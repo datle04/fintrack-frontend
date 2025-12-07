@@ -28,6 +28,7 @@ import { groupTransactionsByDate } from "../utils/groupTransactions";
 import FilterSelect from "../components/TransactionPageComponent/FilterSelect";
 import toast from "react-hot-toast";
 import ConfirmModal from "../components/ConfirmModal";
+import TransactionPageLoading from "../components/Loading/TransactionLoading/TransactionPageLoading";
 
 const TransactionPage = () => {
   const dispatch = useDispatch();
@@ -192,6 +193,10 @@ const TransactionPage = () => {
       action();
     }
   };
+
+  if (loading && transactions.length === 0) {
+    return <TransactionPageLoading />;
+  }
 
   return (
     /* SEO: Sử dụng <main> thay vì <div> cho nội dung chính */
