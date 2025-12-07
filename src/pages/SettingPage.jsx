@@ -234,7 +234,7 @@ const SettingPage = () => {
                 </label>
                 <input
                   type="email"
-                  value={user.email}
+                  value={user?.email}
                   readOnly
                   className="w-full px-4 py-2.5 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 cursor-not-allowed"
                 />
@@ -347,9 +347,9 @@ const SettingPage = () => {
                 onMouseLeave={() => setIsHovering(false)}
               >
                 {avatarPreview ||
-                (user?.avatarUrl && user.avatarUrl.trim() !== "") ? (
+                (user?.avatarUrl && user?.avatarUrl.trim() !== "") ? (
                   <img
-                    src={avatarPreview || user.avatarUrl}
+                    src={avatarPreview || user?.avatarUrl}
                     className="w-full h-full rounded-full object-cover border-4 border-indigo-50 dark:border-slate-600"
                     alt="avatar"
                   />
