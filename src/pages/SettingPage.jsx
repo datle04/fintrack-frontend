@@ -80,7 +80,7 @@ const SettingPage = () => {
     formData.append("currency", profile.currency);
     formData.append("dob", profile.dob);
     formData.append("address", profile.address);
-    if (avatarFile) formData.append("avatarUrl", avatarFile);
+    if (avatarFile) formData.append("avatar", avatarFile);
 
     // 1. Định nghĩa promise
     const promise = dispatch(updateUser(formData)).unwrap();
