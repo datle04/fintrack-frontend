@@ -37,6 +37,19 @@ export const markNotificationAsRead = createAsyncThunk('notificaiton/markNotific
     }
 })
 
+export const deleteAllNotifications = createAsyncThunk(
+  'notification/deleteAllNotifications',
+  async (_, { rejectWithValue }) => {
+    try {
+      // Gọi đúng route bạn vừa tạo ở backend
+      const res = await axiosInstance.delete('/api/notification/delete-all');
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
 export const deleteNotification = createAsyncThunk('notification/deleteNotification', async (id, { rejectWithValue }) => {
     try {
         const res = await axiosInstance.delete(
@@ -114,7 +127,18 @@ const notificationSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload;
             })
-    }
+            .addCase(deleteAllNotifications.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(deleteAllNotifications.fulfilled, (state) => {
+                state.loading = false;
+                state.notifications = []; // Xóa sạch mảng local để UI cập nhật ngay lập tức
+            })
+            .addCase(deleteAllNotifications.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+        }
 });
 
 export const { addNewNotification } = notificationSlice.actions;

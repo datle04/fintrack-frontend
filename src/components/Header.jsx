@@ -7,6 +7,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router";
 import {
   addNewNotification,
+  deleteAllNotifications,
+  deleteNotification,
   getNotifications,
   markNotificationAsRead,
 } from "../features/notificationSlice";
@@ -248,6 +250,27 @@ const Header = () => {
     }
   };
 
+  // 3. THÊM HÀM XỬ LÝ XÓA TẤT CẢ
+  const handleClearAllNotifications = async (e) => {
+    e.stopPropagation(); // Ngăn chặn sự kiện click lan ra ngoài làm đóng dropdown
+
+    if (notifications.length === 0) return;
+
+    // Xác nhận đơn giản (Tùy chọn)
+    // if (!window.confirm("Bạn có chắc muốn xóa tất cả thông báo?")) return;
+
+    try {
+      // Dispatch action xóa (Bạn cần đảm bảo action này đã được viết trong slice)
+      // Nếu chưa có action trong slice, bạn có thể tạm thời set state rỗng ở đây nếu chỉ muốn test UI
+      await dispatch(deleteAllNotifications()).unwrap();
+
+      toast.success("Đã xóa tất cả thông báo");
+    } catch (error) {
+      console.error("Lỗi khi xóa:", error);
+      // toast.error("Có lỗi xảy ra khi xóa");
+    }
+  };
+
   const highlightPercent = (message) => {
     const match = message.match(/(\d+)%/);
     if (!match) return message;
@@ -340,6 +363,21 @@ const Header = () => {
                 <span className="text-[#464646] font-semibold text-sm lg:text-base 3xl:text-lg dark:text-white/90">
                   Notifications
                 </span>
+
+                {/* NÚT XÓA: Chỉ hiện khi có thông báo */}
+                {notifications.length > 0 && (
+                  <button
+                    onClick={handleClearAllNotifications}
+                    title="Xóa tất cả"
+                    className="
+                      flex items-center gap-1 text-xs text-red-500 hover:text-red-700 
+                      transition-colors cursor-pointer p-1 rounded hover:bg-red-50 dark:hover:bg-white/10
+                    "
+                  >
+                    <FaTrash />
+                    <span className="font-medium">Xóa tất cả</span>
+                  </button>
+                )}
               </div>
               <hr className="text-slate-300 h-1 w-full dark:text-slate-700" />
               <div className="h-full w-full flex flex-col overflow-y-scroll">
