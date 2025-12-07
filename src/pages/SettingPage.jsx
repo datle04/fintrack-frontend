@@ -5,8 +5,6 @@ import {
   FaCamera,
   FaEye,
   FaEyeSlash,
-  FaGlobe,
-  FaImage,
   FaUserCircle,
   FaShieldAlt,
   FaPalette,
@@ -23,40 +21,63 @@ import SettingPageLoading from "../components/Loading/SettingLoading/SettingPage
 const SettingPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  // Lấy thêm loading từ redux để xử lý UI
   const { user, loading } = useSelector((state) => state.auth);
   const { theme, toggleTheme } = useTheme();
   const { t, i18n } = useTranslation();
 
-  // 1. STATE CHO TAB (Mới)
-  const [activeTab, setActiveTab] = useState("profile"); // 'profile' | 'security' | 'interface'
-
+  const [activeTab, setActiveTab] = useState("profile");
   const [language, setLanguage] = useState(
     localStorage.getItem("lang") || "vi"
   );
 
+  // Khởi tạo state profile an toàn với fallback rỗng
   const [profile, setProfile] = useState({
-    name: user?.name,
-    phone: user?.phone,
+    name: user?.name || "",
+    phone: user?.phone || "",
     currency: user?.currency || "VND",
-    dob: user?.dob,
-    address: user?.address,
+    dob: user?.dob || "",
+    address: user?.address || "",
   });
-  const initialProfile = useRef(profile);
 
+  const initialProfile = useRef(profile);
   const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(user?.avatarUrl);
+  const [avatarPreview, setAvatarPreview] = useState(null); // Tách biệt preview
   const fileInputRef = useRef(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
 
-  const isDirty =
-    JSON.stringify(profile) !== JSON.stringify(initialProfile.current) ||
-    avatarFile !== null;
+  // Kiểm tra thay đổi (Is Dirty)
+  const isDirty = useMemo(() => {
+    return (
+      JSON.stringify(profile) !== JSON.stringify(initialProfile.current) ||
+      avatarFile !== null
+    );
+  }, [profile, avatarFile]);
+
+  // --- FIX 1: ĐỒNG BỘ USER VÀO PROFILE KHI REDUX CẬP NHẬT ---
+  // Điều này giúp form luôn tươi mới sau khi lưu xong mà không cần set thủ công
+  useEffect(() => {
+    if (user) {
+      const newProfileState = {
+        name: user.name || "",
+        phone: user.phone || "",
+        currency: user.currency || "VND",
+        dob: user.dob || "",
+        address: user.address || "",
+      };
+      setProfile(newProfileState);
+      initialProfile.current = newProfileState;
+
+      // Reset avatar preview về null để dùng avatarUrl từ user
+      setAvatarPreview(null);
+    }
+  }, [user]);
 
   useEffect(() => {
     i18n.changeLanguage(language);
     localStorage.setItem("lang", language);
-  }, [language]);
+  }, [language, i18n]);
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -76,13 +97,12 @@ const SettingPage = () => {
     if (!isDirty) return;
 
     const formData = new FormData();
-    formData.append("name", profile.name);
-    formData.append("phone", profile.phone);
-    formData.append("currency", profile.currency);
-    formData.append("dob", profile.dob);
-    formData.append("address", profile.address);
+    formData.append("name", profile.name || ""); // FIX 2: Luôn có fallback chuỗi rỗng
+    formData.append("phone", profile.phone || "");
+    formData.append("currency", profile.currency || "VND");
+    formData.append("dob", profile.dob || "");
+    formData.append("address", profile.address || "");
 
-    // Đảm bảo key là 'avatar' (hoặc key mà backend bạn yêu cầu)
     if (avatarFile) {
       formData.append("avatar", avatarFile);
     }
@@ -91,28 +111,17 @@ const SettingPage = () => {
 
     toast
       .promise(promise, {
-        loading: t("saving"), // Nên truyền string
-        // Dùng function để render JSX an toàn hơn
-        success: () => <b>{t("saveSuccess")}</b>,
+        loading: t("saving"),
+        success: (data) => {
+          // FIX 3: Chỉ clear file, không setProfile thủ công ở đây
+          // vì useEffect ở trên sẽ tự chạy khi Redux update state
+          setAvatarFile(null);
+          return <b>{t("saveSuccess")}</b>;
+        },
         error: (err) => <b>{`${t("saveError")}: ${err?.message || "Lỗi"}`}</b>,
       })
-      .then((updatedUser) => {
-        // Cập nhật lại ref để nút Lưu disable đi
-        // Quan trọng: Update state profile với dữ liệu mới từ server trả về để đồng bộ
-        const newProfile = {
-          name: updatedUser.name,
-          phone: updatedUser.phone,
-          currency: updatedUser.currency,
-          dob: updatedUser.dob,
-          address: updatedUser.address,
-        };
-        setProfile(newProfile);
-        initialProfile.current = newProfile;
-
-        setAvatarFile(null);
-      })
       .catch((err) => {
-        console.error("Update failed:", err);
+        console.error("Lỗi update:", err);
       });
   };
 
@@ -123,35 +132,21 @@ const SettingPage = () => {
         success: "Đã đăng xuất! 👋",
         error: (err) => err?.message || "Đăng xuất thất bại!",
       });
-
       navigate("/login");
     } catch (err) {
       console.error(err);
     }
   };
-  // 2. CẤU HÌNH DANH SÁCH TAB (Mới)
+
   const tabs = useMemo(
     () => [
-      {
-        id: "profile",
-        label: t("userInfo") || "Thông tin cá nhân",
-        icon: <FaUserCircle />,
-      },
-      {
-        id: "security",
-        label: t("security") || "Tài khoản & Bảo mật",
-        icon: <FaShieldAlt />,
-      },
-      {
-        id: "interface",
-        label: t("interface") || "Giao diện & Ngôn ngữ",
-        icon: <FaPalette />,
-      },
+      { id: "profile", label: t("userInfo"), icon: <FaUserCircle /> },
+      { id: "security", label: t("security"), icon: <FaShieldAlt /> },
+      { id: "interface", label: t("interface"), icon: <FaPalette /> },
     ],
     [t]
   );
 
-  // 3. HÀM RENDER NỘI DUNG THEO TAB (Mới)
   const renderContent = () => {
     switch (activeTab) {
       case "profile":
@@ -160,24 +155,29 @@ const SettingPage = () => {
             <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6 pb-4 border-b border-gray-100 dark:border-slate-700">
               {t("userInfo")}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Nếu đang loading API update, làm mờ form để tránh thao tác */}
+            <div
+              className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${
+                loading ? "opacity-50 pointer-events-none" : ""
+              }`}
+            >
               <EditableField
                 label={t("name")}
-                value={profile.name}
+                value={profile.name || ""} // FIX 2: Chống undefined
                 onChange={(e) =>
                   setProfile({ ...profile, name: e.target.value })
                 }
               />
               <EditableField
                 label={t("phone")}
-                value={profile.phone}
+                value={profile.phone || ""}
                 onChange={(e) =>
                   setProfile({ ...profile, phone: e.target.value })
                 }
               />
               <EditableField
                 label={t("dob")}
-                value={profile.dob}
+                value={profile.dob || ""}
                 type="date"
                 onChange={(e) =>
                   setProfile({ ...profile, dob: e.target.value })
@@ -185,7 +185,7 @@ const SettingPage = () => {
               />
               <EditableField
                 label={t("address")}
-                value={profile.address}
+                value={profile.address || ""}
                 onChange={(e) =>
                   setProfile({ ...profile, address: e.target.value })
                 }
@@ -196,7 +196,7 @@ const SettingPage = () => {
                   {t("currency")}
                 </label>
                 <select
-                  value={profile.currency}
+                  value={profile.currency || "VND"}
                   onChange={(e) =>
                     setProfile((prev) => ({
                       ...prev,
@@ -214,17 +214,19 @@ const SettingPage = () => {
               </div>
             </div>
 
-            {/* Nút Save đặt ở đây cho Tab Profile */}
             <div className="mt-8 flex justify-end">
               <button
                 onClick={handleSaveProfile}
-                disabled={!isDirty}
-                className={`px-8 py-2.5 text-white rounded-xl font-medium transition-all ${
-                  isDirty
+                disabled={!isDirty || loading} // Disable khi đang loading
+                className={`px-8 py-2.5 text-white rounded-xl font-medium transition-all flex items-center gap-2 ${
+                  isDirty && !loading
                     ? "bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200"
                     : "bg-gray-300 cursor-not-allowed"
                 }`}
               >
+                {loading && (
+                  <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                )}
                 {t("save")}
               </button>
             </div>
@@ -244,7 +246,7 @@ const SettingPage = () => {
                 </label>
                 <input
                   type="email"
-                  value={user?.email}
+                  value={user?.email || ""} // FIX 2: An toàn tuyệt đối
                   readOnly
                   className="w-full px-4 py-2.5 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 cursor-not-allowed"
                 />
@@ -256,7 +258,7 @@ const SettingPage = () => {
                 </label>
                 <input
                   type={showPassword ? "text" : "password"}
-                  value="123456" // Dummy value
+                  value="123456"
                   readOnly
                   className="w-full px-4 py-2.5 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 cursor-not-allowed pr-10"
                 />
@@ -338,6 +340,7 @@ const SettingPage = () => {
     }
   };
 
+  // Nếu không có user (lần đầu vào)
   if (!user) {
     return <SettingPageLoading />;
   }
@@ -350,7 +353,7 @@ const SettingPage = () => {
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* --- CỘT TRÁI (Sidebar Menu) --- */}
+          {/* --- CỘT TRÁI --- */}
           <div className="lg:col-span-4 space-y-6">
             {/* Profile Summary Card */}
             <div className="bg-white dark:bg-[#2E2E33] rounded-2xl p-6 shadow-sm text-center border border-gray-100 dark:border-slate-700">
@@ -360,18 +363,22 @@ const SettingPage = () => {
                 onMouseEnter={() => setIsHovering(true)}
                 onMouseLeave={() => setIsHovering(false)}
               >
-                {avatarPreview ||
-                (user?.avatarUrl && user?.avatarUrl.trim() !== "") ? (
-                  <img
-                    src={avatarPreview || user?.avatarUrl}
-                    className="w-full h-full rounded-full object-cover border-4 border-indigo-50 dark:border-slate-600"
-                    alt="avatar"
-                  />
-                ) : (
-                  <div className="w-full h-full rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 text-3xl">
-                    <FaUser />
-                  </div>
-                )}
+                {/* FIX 4: Logic hiển thị ảnh an toàn */}
+                <img
+                  src={
+                    avatarPreview ||
+                    user?.avatarUrl ||
+                    "https://ui-avatars.com/api/?name=" + (user?.name || "User")
+                  }
+                  className="w-full h-full rounded-full object-cover border-4 border-indigo-50 dark:border-slate-600"
+                  alt="avatar"
+                  onError={(e) => {
+                    e.target.src =
+                      "https://ui-avatars.com/api/?name=" +
+                      (user?.name || "User");
+                  }}
+                />
+
                 <div
                   className={`absolute bottom-0 right-0 bg-indigo-600 text-white p-2 rounded-full shadow-md transition-opacity duration-200 ${
                     isHovering ? "opacity-100" : "opacity-0 lg:opacity-100"
@@ -393,7 +400,7 @@ const SettingPage = () => {
               <p className="text-gray-500 text-sm">{user?.email}</p>
             </div>
 
-            {/* Menu Navigation */}
+            {/* Menu */}
             <nav className="bg-white dark:bg-[#2E2E33] rounded-2xl shadow-sm overflow-hidden border border-gray-100 dark:border-slate-700">
               {tabs.map((tab) => (
                 <button
@@ -416,7 +423,7 @@ const SettingPage = () => {
             </nav>
           </div>
 
-          {/* --- CỘT PHẢI (Nội dung thay đổi theo Tab) --- */}
+          {/* --- CỘT PHẢI --- */}
           <div className="lg:col-span-8">{renderContent()}</div>
         </div>
       </div>
