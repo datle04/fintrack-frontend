@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import logoLight from "../assets/img/logo.webp";
 import { TfiMenuAlt } from "react-icons/tfi";
+import { FaTrash } from "react-icons/fa";
 import SidebarComponent from "./SideBarComponent";
 import { IoNotifications } from "react-icons/io5";
 import { useDispatch, useSelector } from "react-redux";
