@@ -25,6 +25,7 @@ import { currencyMap } from "../utils/currencies";
 import TransactionModal from "../components/TransactionModal";
 import GoalCard from "../components/GoalPageComponent/GoalCard";
 import GoalModal from "../components/GoalPageComponent/GoalModal";
+import GoalPageLoading from "../components/Loading/GoalLoading/GoalPageLoading";
 
 const GoalPage = () => {
   const { t, i18n } = useTranslation();
@@ -79,45 +80,47 @@ const GoalPage = () => {
 
   return (
     <div className="p-4 sm:p-6 bg-[#f5f6fa] min-h-screen dark:bg-[#35363A]">
-      <header className="flex justify-end items-center mb-6">
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-lg shadow cursor-pointer hover:bg-indigo-600 transition-colors"
-        >
-          <Plus size={20} />
-          {t("add")}
-        </button>
-      </header>
+           {/* 👉 THAY THẾ LOGIC LOADING TẠI ĐÂY */}
+      {loading && <GoalPageLoading />}
+      {!loading && (
+        <>
+          <header className="flex justify-end items-center mb-6">
+            <button
+              onClick={() => handleOpenModal()}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-lg shadow cursor-pointer hover:bg-indigo-600 transition-colors"
+            >
+              <Plus size={20} />
+              {t("add")}
+            </button>
+          </header>
 
-      {loading && (
-        <p className="text-center text-indigo-500">{t("loading")}...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {goals.map((goal) => (
+              <GoalCard
+                key={goal._id}
+                goal={goal}
+                onEdit={() => handleOpenModal(goal)}
+                onDelete={() => handleDelete(goal._id)}
+                onComplete={() => handleMarkCompleted(goal)}
+                onContribute={() => handleOpenContributeModal(goal)}
+                t={t}
+                i18n={i18n}
+              />
+            ))}
+          </div>
+
+          {goals.length === 0 && (
+            <div className="text-center p-10 bg-white rounded-lg shadow dark:bg-[#2E2E33] dark:text-white/83">
+              <Target size={40} className="mx-auto mb-3 text-indigo-400" />
+              <p className="text-lg">
+                {t("noData")}.{" "}
+                {t("pleaseSetGoal") ||
+                  "Hãy thiết lập mục tiêu đầu tiên của bạn!"}
+              </p>
+            </div>
+          )}
+        </>
       )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {goals.map((goal) => (
-          <GoalCard
-            key={goal._id}
-            goal={goal}
-            onEdit={() => handleOpenModal(goal)}
-            onDelete={() => handleDelete(goal._id)}
-            onComplete={() => handleMarkCompleted(goal)}
-            onContribute={() => handleOpenContributeModal(goal)}
-            t={t}
-            i18n={i18n}
-          />
-        ))}
-      </div>
-
-      {goals.length === 0 && !loading && (
-        <div className="text-center p-10 bg-white rounded-lg shadow dark:bg-[#2E2E33] dark:text-white/83">
-          <Target size={40} className="mx-auto mb-3 text-indigo-400" />
-          <p className="text-lg">
-            {t("noData")}.{" "}
-            {t("pleaseSetGoal") || "Hãy thiết lập mục tiêu đầu tiên của bạn!"}
-          </p>
-        </div>
-      )}
-
       {isModalOpen && (
         <GoalModal
           goal={selectedGoalForEdit}
@@ -125,7 +128,6 @@ const GoalPage = () => {
           t={t}
         />
       )}
-
       {isTransactionModalOpen && (
         <TransactionModal
           visible={isTransactionModalOpen}
