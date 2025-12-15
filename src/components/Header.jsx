@@ -9,7 +9,6 @@ import { useNavigate } from "react-router";
 import {
   addNewNotification,
   deleteAllNotifications,
-  deleteNotification,
   getNotifications,
   markNotificationAsRead,
 } from "../features/notificationSlice";
@@ -251,24 +250,19 @@ const Header = () => {
     }
   };
 
-  // 3. THÊM HÀM XỬ LÝ XÓA TẤT CẢ
+  // Xóa thông báo
   const handleClearAllNotifications = async (e) => {
-    e.stopPropagation(); // Ngăn chặn sự kiện click lan ra ngoài làm đóng dropdown
+    e.stopPropagation();
 
     if (notifications.length === 0) return;
 
-    // Xác nhận đơn giản (Tùy chọn)
-    // if (!window.confirm("Bạn có chắc muốn xóa tất cả thông báo?")) return;
-
     try {
-      // Dispatch action xóa (Bạn cần đảm bảo action này đã được viết trong slice)
-      // Nếu chưa có action trong slice, bạn có thể tạm thời set state rỗng ở đây nếu chỉ muốn test UI
       await dispatch(deleteAllNotifications()).unwrap();
 
       toast.success("Đã xóa tất cả thông báo");
     } catch (error) {
       console.error("Lỗi khi xóa:", error);
-      // toast.error("Có lỗi xảy ra khi xóa");
+      toast.error("Có lỗi xảy ra khi xóa");
     }
   };
 
@@ -284,7 +278,7 @@ const Header = () => {
     const after = message.slice(percentIndex + percentStr.length);
 
     let colorClass = "";
-    let icon = "✅"; // mặc định
+    let icon = "✅";
 
     if (percent >= 100) {
       colorClass = "text-red-500 font-semibold";

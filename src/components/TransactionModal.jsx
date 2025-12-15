@@ -9,8 +9,8 @@ import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { getNotifications } from "../features/notificationSlice";
 import { debounce } from "lodash";
-import { currencyMap } from "../utils/currencies";
-import { categoryList } from "../utils/categoryList";
+import { currencyMap } from "../constant/currencies";
+import { categoryList } from "../constant/categoryList";
 import { getGoals } from "../features/goalSlice";
 
 const now = new Date();
@@ -130,49 +130,53 @@ const TransactionModal = ({
   const validateForm = () => {
     const newErrors = {};
 
-    // Validate Amount
+    // 1. Validate Amount (Thêm check isNaN)
+    const amountNum = Number(formData.amount);
     if (!formData.amount) {
       newErrors.amount =
         t("validate.amountRequired") || "Vui lòng nhập số tiền";
-    } else if (Number(formData.amount) <= 0) {
+    } else if (isNaN(amountNum) || amountNum <= 0) {
+      // Check thêm isNaN để chặn nhập chữ
       newErrors.amount =
-        t("validate.amountPositive") || "Số tiền phải lớn hơn 0";
+        t("validate.amountPositive") || "Số tiền phải là số lớn hơn 0";
     }
 
-    // Validate Category
+    // 2. Validate Category
     if (!formData.category) {
       newErrors.category =
         t("validate.categoryRequired") || "Vui lòng chọn danh mục";
     }
 
-    // Validate Goal (nếu category là saving)
+    // 3. Validate Goal
     if (formData.category === "saving" && !formData.goal) {
       newErrors.goal =
         t("validate.goalRequired") || "Vui lòng chọn mục tiêu tiết kiệm";
     }
 
-    // Validate Recurring Day
+    // 4. Validate Recurring Logic
     if (formData.isRecurring) {
       const day = Number(formData.recurringDay);
-      if (!day || day < 1 || day > 31) {
+      // Thêm Number.isInteger để chặn số lẻ (ví dụ 5.5)
+      if (!day || isNaN(day) || day < 1 || day > 31 || !Number.isInteger(day)) {
         newErrors.recurringDay =
-          t("validate.invalidDay") || "Ngày phải từ 1 đến 31";
+          t("validate.invalidDay") ||
+          "Ngày định kỳ phải là số nguyên từ 1 đến 31";
       }
     } else {
-      // Validate Date (nếu không recurring)
+      // Chỉ bắt buộc Date nếu KHÔNG phải là recurring
       if (!formData.date) {
         newErrors.date = t("validate.dateRequired") || "Vui lòng chọn ngày";
       }
     }
 
-    // Validate Admin Reason
+    // 5. Validate Admin Reason
     if (user.role === "admin" && !formData.reason?.trim()) {
       newErrors.reason =
         t("validate.reasonRequired") || "Vui lòng nhập lý do chỉnh sửa";
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0; // Trả về true nếu không có lỗi
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
@@ -191,14 +195,32 @@ const TransactionModal = ({
     formPayload.append("amount", String(formData.amount));
     formPayload.append("currency", formData.currency);
     formPayload.append("category", formData.category);
-    formPayload.append("note", formData.note);
-    formPayload.append("date", formData.date);
-    formPayload.append("isRecurring", formData.isRecurring ? "true" : "false");
-    formPayload.append("reason", formData.reason || "");
-    if (formData.goal) formPayload.append("goalId", formData.goal);
-    if (formData.isRecurring)
-      formPayload.append("recurringDay", formData.recurringDay || "1");
+    formPayload.append("note", formData.note || "");
 
+    // 2️⃣ XỬ LÝ LOGIC DATE CHO RECURRING
+    // - Nếu có formData.date (User chọn) -> Gửi đi bình thường.
+    // - Nếu là Recurring mà KHÔNG chọn date -> Mặc định lấy ngày hiện tại (Start Date = Today).
+    // - Nếu là giao dịch thường mà không có date -> Đã bị chặn ở validate rồi.
+
+    if (formData.date) {
+      formPayload.append("date", formData.date);
+    } else if (formData.isRecurring) {
+      // Fallback: Nếu không chọn ngày bắt đầu, mặc định là ngay bây giờ
+      formPayload.append("date", new Date().toISOString());
+    }
+
+    // 3️⃣ Xử lý các trường Recurring
+    // Chuyển boolean sang string "true"/"false" cho FormData
+    formPayload.append("isRecurring", formData.isRecurring ? "true" : "false");
+
+    if (formData.isRecurring) {
+      // Mặc định ngày 1 nếu không nhập
+      formPayload.append("recurringDay", formData.recurringDay || "1");
+      // Nếu có logic ngày kết thúc (recurringEndDate), append tại đây
+    }
+
+    if (formData.reason) formPayload.append("reason", formData.reason);
+    if (formData.goal) formPayload.append("goalId", formData.goal);
     (formData.receiptImages || []).forEach((file) => {
       if (file instanceof File) formPayload.append("receiptImages", file);
     });
@@ -216,7 +238,7 @@ const TransactionModal = ({
             updateTransaction({ id: transaction._id, fields: formPayload })
           ).unwrap();
         }
-        dispatch(getNotifications());
+        // dispatch(getNotifications());
       } else {
         await dispatch(createTransaction(formPayload)).unwrap();
       }

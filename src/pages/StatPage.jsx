@@ -6,11 +6,13 @@ import DonutChart from "../components/Chart/DonutChart";
 import ReportExport from "./ReportExport";
 import { useTranslation } from "react-i18next";
 import { formatCurrency } from "../utils/formatCurrency";
+import { MONTH_NAMES } from "../constant/months";
 
 const StatPage = () => {
   const dispatch = useDispatch();
   const now = new Date();
   const { t, i18n } = useTranslation();
+  const currentLang = i18n.language;
   const [month, setMonth] = useState(now.getMonth() + 1); // UI: 1-12
   const [year, setYear] = useState(now.getFullYear());
   const [selectedDate, setSelectedDate] = useState(null);
@@ -43,9 +45,6 @@ const StatPage = () => {
     ? Math.floor(budget.totalBudget / totalDays)
     : 0;
 
-  // useEffect(() => {
-  //   console.log(budget.totalBudget / totalDays);
-  // }, []);
   const transactionsByDayMap = useMemo(() => {
     const map = {};
     for (let i = 1; i <= totalDays; i++) map[i] = [];
@@ -103,7 +102,7 @@ const StatPage = () => {
       {/* --- 1. HEADER & FILTER (Trải dài trên cùng) --- */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-          Thống kê chi tiêu
+          {t("statPage.title")}
         </h1>
 
         {/* Bộ chọn Tháng/Năm (Gom gọn lại) */}
@@ -114,9 +113,13 @@ const StatPage = () => {
               onChange={(e) => setMonth(Number(e.target.value))}
               className="bg-transparent outline-none text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer py-1"
             >
-              {Array.from({ length: 12 }).map((_, i) => (
-                <option key={i} value={i + 1} className="dark:bg-[#2E2E33]">
-                  Tháng {i + 1}
+              {MONTH_NAMES[currentLang].map((label, index) => (
+                <option
+                  key={index}
+                  value={index + 1}
+                  className="dark:bg-[#2E2E33]"
+                >
+                  {label}
                 </option>
               ))}
             </select>
@@ -148,7 +151,6 @@ const StatPage = () => {
           <div className="flex-1 flex items-center justify-center relative">
             {budget.totalBudget > 0 ? (
               <div className="scale-90">
-                {" "}
                 {/* Thu nhỏ chart một chút */}
                 <DonutChart
                   categoryStats={budget.categoryStats}
@@ -158,7 +160,7 @@ const StatPage = () => {
               </div>
             ) : (
               <div className="text-center text-gray-400 text-sm">
-                <p>Chưa có dữ liệu ngân sách</p>
+                <p>{t("statPage.noBudget")}</p>
               </div>
             )}
           </div>
@@ -173,19 +175,18 @@ const StatPage = () => {
         <div className="lg:col-span-6 bg-white dark:bg-[#2E2E33] rounded-2xl shadow-sm p-6 flex flex-col border border-gray-100 dark:border-slate-700">
           {/* Calendar Header */}
           <div className="grid grid-cols-7 mb-2">
-            {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((d, i) => (
+            {["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((d, i) => (
               <div
                 key={i}
                 className="text-center text-xs font-medium text-gray-400 uppercase"
               >
-                {d}
+                {t(`statPage.weekdays.${d}`)}
               </div>
             ))}
           </div>
 
           {/* Calendar Grid */}
           <div className="flex-1 grid grid-cols-7 gap-2 auto-rows-fr">
-            {" "}
             {/* auto-rows-fr giúp ô vuông đều nhau */}
             {Array.from({ length: firstDay }).map((_, i) => (
               <div key={`empty-${i}`} />
@@ -253,8 +254,8 @@ const StatPage = () => {
         <div className="lg:col-span-3 bg-white dark:bg-[#2E2E33] rounded-2xl shadow-sm p-4 flex flex-col h-full border border-gray-100 dark:border-slate-700 overflow-hidden">
           <h3 className="text-base font-semibold mb-3 text-gray-700 dark:text-white border-b pb-2 dark:border-slate-700">
             {selectedDate
-              ? `Giao dịch ngày ${selectedDate}/${month}`
-              : "Chọn ngày để xem"}
+              ? t("statPage.transactionsOfDay", { day: selectedDate, month })
+              : t("statPage.selectDay")}
           </h3>
 
           <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
@@ -294,7 +295,9 @@ const StatPage = () => {
               // Empty State
               <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-2 opacity-60">
                 <div className="text-4xl">📅</div>
-                <p className="text-xs text-center">Không có giao dịch</p>
+                <p className="text-xs text-center">
+                  {t("statPage.noTransactions")}
+                </p>
               </div>
             )}
           </div>

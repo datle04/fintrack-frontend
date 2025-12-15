@@ -42,6 +42,99 @@
     "saving": "Tiết kiệm",
     "other": "Khác"
 },
+  "loginPage": {
+    "toast": {
+      "registerLoading": "Đang tạo tài khoản...",
+      "loginLoading": "Đang đăng nhập...",
+      "registerSuccess": "Đăng ký thành công!",
+      "loginSuccess": "Đăng nhập thành công!",
+      "defaultError": "Có lỗi xảy ra!"
+    },
+    "mobile": {
+      "headerRegister": "Tạo tài khoản mới",
+      "headerLogin": "Chào mừng trở lại!",
+      "subHeaderRegister": "Bắt đầu quản lý tài chính thông minh ngay hôm nay.",
+      "subHeaderLogin": "Đăng nhập để tiếp tục hành trình của bạn."
+    },
+    "form": {
+      "nameLabel": "Họ và Tên",
+      "namePlaceholder": "VD: Nguyễn Văn A",
+      "emailLabel": "Email",
+      "emailPlaceholder": "name@example.com",
+      "passwordLabel": "Mật khẩu",
+      "passwordPlaceholderDesktop": "Nhập mật khẩu của bạn"
+    },
+    "button": {
+      "login": "Đăng nhập",
+      "register": "Đăng ký ngay",
+      "registerLong": "Đăng ký tài khoản"
+    },
+    "link": {
+      "forgotPassword": "Quên mật khẩu?"
+    },
+    "footer": {
+      "hasAccount": "Đã có tài khoản?",
+      "noAccount": "Chưa có tài khoản?",
+      "loginLink": "Đăng nhập",
+      "registerLink": "Đăng ký ngay"
+    },
+    "desktop": {
+      "headerRegister": "Tạo tài khoản",
+      "headerLogin": "Chào mừng trở lại",
+      "subHeaderRegister": "Nhập thông tin của bạn để bắt đầu miễn phí.",
+      "subHeaderLogin": "Vui lòng nhập thông tin đăng nhập của bạn.",
+      "footerHasAccount": "Bạn đã là thành viên?",
+      "footerNoAccount": "Bạn mới sử dụng FinTrack?",
+      "footerLoginLink": "Đăng nhập ngay",
+      "footerRegisterLink": "Tạo tài khoản"
+    },
+    "visuals": {
+      "income": "Thu nhập",
+      "expense": "Chi tiêu",
+      "sloganTitle": "Quản lý tài chính thông minh",
+      "sloganDesc": "Theo dõi thu chi, lập ngân sách và đạt được mục tiêu tài chính của bạn dễ dàng hơn bao giờ hết."
+    }
+  },
+  "forgotPasswordPage": {
+    "titleRequest": "Quên mật khẩu?",
+    "titleReset": "Đặt lại mật khẩu",
+    "descRequest": "Nhập email của bạn để nhận mã xác thực OTP.",
+    "descReset": "Nhập mã OTP đã được gửi đến {{email}}",
+    
+    "emailRequired": "Vui lòng nhập email",
+    "emailNotFound": "Không tìm thấy email này trong hệ thống",
+    "emailPlaceholder": "Nhập địa chỉ email...",
+    
+    "otpRequired": "Vui lòng nhập mã OTP",
+    "otpInvalidLength": "Mã OTP phải có 6 chữ số",
+    "otpError": "Mã OTP không đúng hoặc đã hết hạn",
+    "otpSentSuccess": "Mã OTP đã được gửi đến email của bạn!",
+    "otpPlaceholder": "######",
+
+    "newPasswordRequired": "Vui lòng nhập mật khẩu mới",
+    "passwordTooShort": "Mật khẩu phải từ 6 ký tự",
+    "passwordMismatch": "Mật khẩu xác nhận không khớp",
+    "newPasswordPlaceholder": "Mật khẩu mới (tối thiểu 6 ký tự)",
+    "confirmPasswordPlaceholder": "Nhập lại mật khẩu mới",
+
+    "resetSuccess": "Đặt lại mật khẩu thành công! Hãy đăng nhập ngay.",
+    
+    "btnSendOtp": "Gửi mã xác nhận",
+    "btnConfirm": "Xác nhận đổi",
+    "btnBack": "Quay lại",
+    "linkBackToLogin": "Quay lại đăng nhập"
+  },
+  "transactionPage": {
+    "everyDay": "Ngày {{day}} hàng tháng",
+    "confirmStopTitle": "Ngưng gia hạn",
+    "confirmDeleteAllTitle": "Xóa tất cả",
+    "confirmStopMessage": "Bạn có chắc muốn DỪNG giao dịch định kỳ này? Các giao dịch đã tạo trong quá khứ sẽ được GIỮ NGUYÊN.",
+    "confirmDeleteAllMessage": "CẢNH BÁO: Hành động này sẽ XÓA SẠCH toàn bộ giao dịch trong quá khứ lẫn tương lai của chuỗi này. Tiền trong Mục tiêu (nếu có) sẽ bị trừ lại. Không thể hoàn tác!",
+    "toast": {
+      "deleteAllSuccess": "Xóa thành công",
+      "stopSuccess": "Đã ngưng gia hạn"
+    }
+  },
   "budgetPage": {
     "warning": {
       "title": "⚠️ Chú ý: Đổi đơn vị tiền tệ",
@@ -49,13 +142,89 @@
       "messageNote": "Các con số đã nhập sẽ <1>không tự động quy đổi</1>. Vui lòng kiểm tra lại số tiền!",
       "btnManual": "Tôi sẽ sửa tay",
       "btnReset": "Reset số tiền"
+    },
+    "success": {
+      "add": "Đã lưu ngân sách"
+    }
+  },
+  "goalPage": {
+    "noData": "Không có dữ liệu để hiển thị",
+    "pleaseSetGoal": "Hãy thiết lập mục tiêu đầu tiên của bạn!",
+    "toast": {
+      "updating": "Đang cập nhật...",
+      "resetStatus": "Đã đặt lại trạng thái Đang tiến hành!",
+      "completed": "Chúc mừng! Mục tiêu đã hoàn thành!",
+      "updateError": "Lỗi khi cập nhật.",
+      "creating": "Đang tạo mục tiêu mới...",
+      "updatingGoal": "Đang cập nhật mục tiêu...",
+      "createSuccess": "Đã tạo mục tiêu thành công!",
+      "updateSuccess": "Cập nhật mục tiêu thành công!",
+      "saveError": "Lỗi khi lưu mục tiêu.",
+      "deletingGoal": "Đang xóa mục tiêu...",
+      "deleteSuccess": "Đã xóa mục tiêu thành công!",
+      "deleteError": "Có lỗi khi xóa mục tiêu."
+    }
+  },
+  "statPage": {
+    "title": "Thống kê chi tiêu",
+
+    "noBudget": "Chưa có dữ liệu ngân sách",
+
+    "weekdays": {
+      "mon": "T2",
+      "tue": "T3",
+      "wed": "T4",
+      "thu": "T5",
+      "fri": "T6",
+      "sat": "T7",
+      "sun": "CN"
+    },
+
+    "transactionsOfDay": "Giao dịch ngày {{day}}/{{month}}",
+    "selectDay": "Chọn ngày để xem",
+    "noTransactions": "Không có giao dịch"
+  },
+  "settingPage": {
+    "changePassword": "Đổi mật khẩu",
+    "steps": {
+      "verifyOldPassword": "Bước 1: Xác thực mật khẩu cũ",
+      "verifyOtpAndChange": "Bước 2: Xác thực OTP & Đổi mới"
+    },
+    "validate": {
+      "passwordRequired": "Vui lòng nhập mật khẩu",
+      "otpRequired": "Vui lòng nhập mã OTP",
+      "newPasswordRequired": "Vui lòng nhập mật khẩu mới",
+      "passwordMismatch": "Mật khẩu xác nhận không khớp",
+      "passwordMinLength": "Mật khẩu phải từ 6 ký tự"
+    },
+    "toast": {
+      "otpSentSuccess": "Đã gửi mã OTP",
+      "changePasswordSuccess": "Đổi mật khẩu thành công! Vui lòng đăng nhập lại.",
+      "logoutLoading": "Đang đăng xuất...",
+      "logoutSuccess": "Đã đăng xuất! 👋",
+      "logoutError": "Đăng xuất thất bại!"
+    },
+    "description": {
+      "otpInfo": "Chúng tôi sẽ gửi mã OTP đến email của bạn để xác thực."
+    },
+    "label": {
+      "currentPassword": "Mật khẩu hiện tại",
+      "otp": "Mã OTP (6 số)",
+      "newPassword": "Mật khẩu mới",
+      "confirmPassword": "Nhập lại mật khẩu mới"
+    },
+    "placeholder": {
+      "currentPassword": "Nhập mật khẩu cũ...",
+      "confirmPassword": "Xác nhận lại..."
+    },
+    "info": {
+      "otpSentToEmail": "📩 Mã OTP đã được gửi đến <b>{{email}}</b>. Vui lòng kiểm tra (cả hộp thư rác)."
     }
   },
   "availableBudget": "TỔNG NGÂN SÁCH (KHẢ DỤNG)",
   "allType": "Tất cả loại",
   "allCategory": "Tất cả danh mục",
   "type": "Loại",
-  "month": "Tháng",
   "year": "Năm",
   "totalTransactions": "Tổng giao dịch",
   "searchPlaceholder": "Tìm theo từ khóa, số tiền, danh mục,...",
@@ -129,6 +298,51 @@
   "pleaseSetGoal": "Hãy thiết lập mục tiêu đầu tiên của bạn!", 
   "completed": "Đã hoàn thành", 
   "inProgress": "Đang tiến hành",
+  "transactionDeleteSuccess": "Xóa giao dịch thành công",
+  "smthIsWrong": "Có lỗi xảy ra",
+  "newTx": "giao dịch mới",
+  "clearFilter": "Xóa bộ lọc",
+  "loading": "Đang tải",
+  "deleteTransactionTitle": "Xóa giao dịch này?",
+  "deleteConfirmation": "Xác nhận xóa",
+  "delete":"Xóa",
+  "loadMoreOldTransactions": "Xem thêm giao dịch cũ hơn",
+  "noMoreTransactions": "Bạn đã xem hết danh sách",
+  "showingCount": "Đang hiển thị {{count}} trên tổng số {{total}} giao dịch",
+  "txManagement": "Quản lí giao dịch",
+  "tx": "giao dịch",
+  "deleteBudgetSuccess": "Xóa ngân sách thành công",
+  "deleteBudgetError": "Gặp lỗi khi xóa",
+  "edit_budget": "Sửa ngân sách",
+  "add_budget": "Thêm ngân sách",
+  "delete_budget": "Xóa ngân sách",
+  "no_budget_this_month": "Bạn chưa thiết lập ngân sách cho tháng này",
+  "create_now": "Tạo ngay",
+  "budget_by_category": "Chi tiết theo Danh mục",
+  "deleteBudgetTitle": "Xóa ngân sách?",
+  "deleteBudgetMessage": "Bạn có chắc chắn muốn xóa toàn bộ ngân sách tháng {{month}}/{{year}} không? Dữ liệu này không thể khôi phục.",
+  "manageMonthlyBudget": "Quản lý chi tiêu tháng {{month}}/{{year}}",
+  "edit": "Sửa",
+  "stop": "Dừng",
+  "history": "Lịch sử",
+  "continue": "Tiếp tục",
+  "recurring": "Định kỳ",
+  "deleteAll": "Xóa tất cả",
+  "month": "Tháng {{number}}",
+  "months": {
+    "1": "Tháng 1",
+    "2": "Tháng 2",
+    "3": "Tháng 3",
+    "4": "Tháng 4",
+    "5": "Tháng 5",
+    "6": "Tháng 6",
+    "7": "Tháng 7",
+    "8": "Tháng 8",
+    "9": "Tháng 9",
+    "10": "Tháng 10",
+    "11": "Tháng 11",
+    "12": "Tháng 12"
+  },
   "validate": {
     "amountRequired": "Vui lòng nhập số tiền",
     "amountPositive": "Số tiền phải lớn hơn 0",

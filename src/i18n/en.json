@@ -42,6 +42,99 @@
       "saving": "Saving",
       "other": "Other"
   },
+  "loginPage": {
+    "toast": {
+      "registerLoading": "Creating account...",
+      "loginLoading": "Logging in...",
+      "registerSuccess": "Registration successful!",
+      "loginSuccess": "Login successful!",
+      "defaultError": "An error occurred!"
+    },
+    "mobile": {
+      "headerRegister": "Create new account",
+      "headerLogin": "Welcome back!",
+      "subHeaderRegister": "Start managing your finances smartly today.",
+      "subHeaderLogin": "Log in to continue your journey."
+    },
+    "form": {
+      "nameLabel": "Full Name",
+      "namePlaceholder": "Ex: John Doe",
+      "emailLabel": "Email",
+      "emailPlaceholder": "name@example.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholderDesktop": "Enter your password"
+    },
+    "button": {
+      "login": "Log In",
+      "register": "Register Now",
+      "registerLong": "Create Account"
+    },
+    "link": {
+      "forgotPassword": "Forgot password?"
+    },
+    "footer": {
+      "hasAccount": "Already have an account?",
+      "noAccount": "Don't have an account?",
+      "loginLink": "Log In",
+      "registerLink": "Register Now"
+    },
+    "desktop": {
+      "headerRegister": "Create Account",
+      "headerLogin": "Welcome Back",
+      "subHeaderRegister": "Enter your details to get started for free.",
+      "subHeaderLogin": "Please enter your login credentials.",
+      "footerHasAccount": "Already a member?",
+      "footerNoAccount": "New to FinTrack?",
+      "footerLoginLink": "Log In Now",
+      "footerRegisterLink": "Create Account"
+    },
+    "visuals": {
+      "income": "Income",
+      "expense": "Expense",
+      "sloganTitle": "Smart Financial Management",
+      "sloganDesc": "Track income & expenses, set budgets, and achieve your financial goals easier than ever."
+    }
+  },
+  "forgotPasswordPage": {
+    "titleRequest": "Forgot your password?",
+    "titleReset": "Reset password",
+    "descRequest": "Enter your email address to receive an OTP verification code.",
+    "descReset": "Enter the OTP code sent to {{email}}",
+    
+    "emailRequired": "Please enter your email",
+    "emailNotFound": "This email address was not found in our system",
+    "emailPlaceholder": "Enter your email address...",
+    
+    "otpRequired": "Please enter the OTP code",
+    "otpInvalidLength": "The OTP code must be 6 digits",
+    "otpError": "The OTP code is invalid or has expired",
+    "otpSentSuccess": "The OTP code has been sent to your email!",
+    "otpPlaceholder": "######",
+
+    "newPasswordRequired": "Please enter a new password",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "passwordMismatch": "Password confirmation does not match",
+    "newPasswordPlaceholder": "New password (at least 6 characters)",
+    "confirmPasswordPlaceholder": "Confirm new password",
+
+    "resetSuccess": "Password reset successfully! Please log in.",
+    
+    "btnSendOtp": "Send verification code",
+    "btnConfirm": "Confirm reset",
+    "btnBack": "Back",
+    "linkBackToLogin": "Back to login"
+  },
+  "transactionPage": {
+    "everyDay": "Every month on day {{day}}",
+    "confirmStopTitle": "Stop recurring transaction",
+    "confirmDeleteAllTitle": "Delete all transactions",
+    "confirmStopMessage": "Are you sure you want to STOP this recurring transaction? All past transactions will be KEPT.",
+    "confirmDeleteAllMessage": "WARNING: This action will PERMANENTLY DELETE all past and future transactions in this series. Any amount linked to Goals (if any) will be deducted. This action cannot be undone!",
+    "toast": {
+      "deleteAllSuccess": "Deleted successfully",
+      "stopSuccess": "Recurring transaction stopped"
+    }
+  },
   "budgetPage": {
     "warning": {
       "title": "⚠️ Warning: Currency Changed",
@@ -49,17 +142,95 @@
       "messageNote": "Entered amounts will <1>NOT convert automatically</1>. Please check your numbers!",
       "btnManual": "I'll edit manually",
       "btnReset": "Reset amounts"
+    },
+    "success": {
+      "add": "Budget saved"
+    }
+  },
+  "goalPage": {
+    "noData": "No data to display",
+    "pleaseSetGoal": "Set up your first financial goal!",
+    "toast": {
+      "updating": "Updating...",
+      "resetStatus": "Status reset to In Progress!",
+      "completed": "Congrats! The goal has been completed!",
+      "updateError": "Error updating.",
+      
+      "creating": "Creating new goal...",
+      "updatingGoal": "Updating goal...",
+      
+      "createSuccess": "Goal created successfully!",
+      "updateSuccess": "Goal updated successfully!",
+      
+      "saveError": "Error saving goal.",
+
+      "deletingGoal": "Deleting goal...",
+      "deleteSuccess": "Goal deleted successfully!",
+      "deleteError": "Error deleting goal."
+    }
+  },
+  "statPage": {
+    "title": "Expense Statistics",
+
+    "noBudget": "No budget data",
+
+    "weekdays": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+
+    "transactionsOfDay": "Transactions on {{day}}/{{month}}",
+    "selectDay": "Select a day to view",
+    "noTransactions": "No transactions"
+  },
+  "settingPage": {
+    "changePassword": "Change Password",
+    "steps": {
+      "verifyOldPassword": "Step 1: Verify current password",
+      "verifyOtpAndChange": "Step 2: Verify OTP & set new password"
+    },
+    "validate": {
+      "passwordRequired": "Please enter your password",
+      "otpRequired": "Please enter the OTP code",
+      "newPasswordRequired": "Please enter a new password",
+      "passwordMismatch": "Password confirmation does not match",
+      "passwordMinLength": "Password must be at least 6 characters"
+    },
+    "toast": {
+      "otpSentSuccess": "OTP has been sent",
+      "changePasswordSuccess": "Password changed successfully! Please log in again."
+    },
+    "description": {
+      "otpInfo": "We will send an OTP code to your email for verification."
+    },
+    "label": {
+      "currentPassword": "Current password",
+      "otp": "OTP code (6 digits)",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password"
+    },
+    "placeholder": {
+      "currentPassword": "Enter your current password...",
+      "confirmPassword": "Confirm again..."
+    },
+    "info": {
+      "otpSentToEmail": "📩 The OTP code has been sent to <b>{{email}}</b>. Please check your inbox (including spam)."
     }
   },
   "availableBudget": "TOTAL BUDGET (AVAILABLE)",
   "allType": "All Type",
   "allCategory": "All Category",
   "type": "Type",
-  "month": "Month",
   "year": "Year",
   "totalTransactions": "Total Transactions",
   "searchPlaceholder": "Search by note, category, amount,...",
   "add" : "Add",
+  "edit": "Edit",
   "remove": "Remove",
   "amount": "Amount",
   "date": "Date",
@@ -129,6 +300,49 @@
   "pleaseSetGoal": "Set up your first financial goal!", 
   "completed": "Completed", 
   "inProgress": "In Progress",
+  "transactionDeleteSuccess": "Transaction deleted successfully",
+  "smthIsWrong": "Something went wrong",
+  "newTx": "new transaction",
+  "clearFilter": "Clear filter",
+  "loading": "Loading",
+  "deleteTransactionTitle": "Delete this transaction?",
+  "deleteConfirmation": "Confirm deletion",
+  "delete":"Delete",
+  "loadMoreOldTransactions": "View older transactions",
+  "noMoreTransactions": "You've reached the end of the list",
+  "showingCount": "Showing {{count}} of {{total}} transactions",
+  "txManagement": "Transactions Management",
+  "tx": "transactions",
+  "deleteBudgetSuccess": "Budget deleted successfully",
+  "deleteBudgetError": "An error occurred while deleting",
+  "edit_budget": "Edit budget",
+  "add_budget": "Add budget",
+  "delete_budget": "Delete budget",
+  "no_budget_this_month": "You haven’t set a budget for this month",
+  "create_now": "Create now",
+  "budget_by_category": "Budget by category",
+  "deleteBudgetTitle": "Delete budget?",
+  "deleteBudgetMessage": "Are you sure you want to delete the entire budget for {{month}}/{{year}}? This action cannot be undone.",
+  "manageMonthlyBudget": "Manage expenses for {{month}}/{{year}}",
+  "stop": "Stop",
+  "history": "History",
+  "continue": "Continue",
+  "recurring": "Recurring",
+  "month": "Month {{number}}",
+  "months": {
+    "1": "January",
+    "2": "February",
+    "3": "March",
+    "4": "April",
+    "5": "May",
+    "6": "June",
+    "7": "July",
+    "8": "August",
+    "9": "September",
+    "10": "October",
+    "11": "November",
+    "12": "December"
+  },
   "validate": {
     "amountRequired": "Please enter an amount",
     "amountPositive": "Amount must be greater than 0",

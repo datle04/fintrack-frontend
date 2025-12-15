@@ -1,93 +1,86 @@
-// components/chatbot/ChatBubble.jsx
 import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Bot, User } from "lucide-react";
 import WidgetRenderer from "./WidgetRenderer";
 import { gsap } from "gsap";
 
-const ChatBubble = ({ message, isBot, isTyping }) => {
+// Thêm prop shouldAnimate (mặc định là true để an toàn)
+const ChatBubble = ({ message, isBot, isTyping, shouldAnimate = true }) => {
   const { reply, intent, data } = message;
   const replyRef = useRef(null);
-  const [animated, setAnimated] = useState(false);
 
-  // Letter render component
-  const Letter = ({ children }) => (
-    <span className="gsap-letter">{children}</span>
-  );
+  // LOGIC QUAN TRỌNG:
+  // Nếu shouldAnimate = false (tin cũ), ta set animated = true ngay lập tức
+  // để Widget hiển thị luôn và Text không bị tách ra animate lại.
+  const [animated, setAnimated] = useState(!shouldAnimate);
 
   useEffect(() => {
-    // Chỉ chạy animation khi: Là Bot, không đang gõ (loading), chưa animate xong, và DOM đã có
-    if (isBot && !isTyping && !animated && replyRef.current) {
-      const allSpans = []; // Mảng chứa tất cả các chữ cái để animate
+    // 1. CHẶN ANIMATION:
+    // Nếu không phải Bot, hoặc đang gõ, hoặc ĐÃ animate rồi, hoặc KHÔNG ĐƯỢC animate
+    // -> Thì return ngay, không chạy logic tách DOM phía dưới.
+    if (!isBot || isTyping || animated || !shouldAnimate || !replyRef.current) {
+      return;
+    }
 
-      // --- HÀM ĐỆ QUY: DUYỆT CÂY DOM ---
-      // Giúp giữ nguyên cấu trúc thẻ (Bold, Italic...)
-      const splitTextNodes = (node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.nodeValue;
-          if (!text.trim() && text !== " ") return; // Bỏ qua node rỗng (trừ khoảng trắng đơn)
+    const allSpans = [];
 
-          const fragment = document.createDocumentFragment();
+    // --- HÀM ĐỆ QUY: DUYỆT CÂY DOM (GIỮ NGUYÊN) ---
+    const splitTextNodes = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.nodeValue;
+        if (!text.trim() && text !== " ") return;
 
-          // 1. SỬA LỖI ICON "?" & EMOJI:
-          // Dùng Array.from (hoặc spread syntax) để tách Emoji đúng cách thay vì split('')
-          // Hoặc tốt nhất là dùng Intl.Segmenter nếu trình duyệt hỗ trợ (để xử lý Emoji phức tạp)
-          let chars;
-          if (typeof Intl !== "undefined" && Intl.Segmenter) {
-            const segmenter = new Intl.Segmenter("vi", {
-              granularity: "grapheme",
-            });
-            chars = Array.from(segmenter.segment(text)).map((s) => s.segment);
-          } else {
-            chars = Array.from(text); // Fallback
+        const fragment = document.createDocumentFragment();
+
+        let chars;
+        if (typeof Intl !== "undefined" && Intl.Segmenter) {
+          const segmenter = new Intl.Segmenter("vi", {
+            granularity: "grapheme",
+          });
+          chars = Array.from(segmenter.segment(text)).map((s) => s.segment);
+        } else {
+          chars = Array.from(text);
+        }
+
+        chars.forEach((char) => {
+          const span = document.createElement("span");
+          span.textContent = char;
+          span.style.opacity = "0"; // Ẩn để chờ GSAP
+          span.className = "gsap-letter";
+
+          if (char === " ") {
+            span.style.whiteSpace = "pre";
           }
 
-          chars.forEach((char) => {
-            const span = document.createElement("span");
-            span.textContent = char;
-            span.style.opacity = "0"; // Ẩn ban đầu
-            span.className = "gsap-letter"; // Class để style nếu cần
-
-            // 2. SỬA LỖI KHOẢNG CÁCH:
-            // Nếu là khoảng trắng, giữ nguyên width của nó
-            if (char === " ") {
-              span.style.whiteSpace = "pre";
-            }
-
-            fragment.appendChild(span);
-            allSpans.push(span); // Thu thập vào mảng chung
-          });
-
-          node.replaceWith(fragment);
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-          // Nếu là thẻ (ví dụ <strong>), đi sâu vào bên trong nó
-          // (Tránh widget renderer nếu nó nằm trong này - tuỳ cấu trúc)
-          const children = Array.from(node.childNodes);
-          children.forEach(splitTextNodes);
-        }
-      };
-
-      // Bắt đầu duyệt từ root
-      splitTextNodes(replyRef.current);
-
-      // 3. ANIMATION GSAP
-      if (allSpans.length > 0) {
-        gsap.to(allSpans, {
-          opacity: 1,
-          duration: 0.01, // Rất nhanh cho mỗi chữ
-          stagger: 0.02, // Độ trễ giữa các chữ tạo hiệu ứng gõ
-          ease: "none",
-          onComplete: () => {
-            setAnimated(true);
-            // Tùy chọn: Xóa các thẻ span để DOM sạch sẽ (nhưng sẽ gây repaint)
-            // replyRef.current.innerHTML = reply;
-          },
+          fragment.appendChild(span);
+          allSpans.push(span);
         });
-      } else {
-        setAnimated(true); // Fallback nếu không có text
+
+        node.replaceWith(fragment);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const children = Array.from(node.childNodes);
+        children.forEach(splitTextNodes);
       }
+    };
+
+    // Bắt đầu tách text
+    splitTextNodes(replyRef.current);
+
+    // 2. CHẠY GSAP
+    if (allSpans.length > 0) {
+      gsap.to(allSpans, {
+        opacity: 1,
+        duration: 0.01,
+        stagger: 0.02,
+        ease: "none",
+        onComplete: () => {
+          setAnimated(true);
+        },
+      });
+    } else {
+      setAnimated(true);
     }
-  }, [reply, isBot, isTyping, animated]);
+  }, [reply, isBot, isTyping, animated, shouldAnimate]); // Thêm shouldAnimate vào dependency
 
   return (
     <div className={`flex gap-3 ${isBot ? "justify-start" : "justify-end"}`}>
@@ -126,15 +119,13 @@ const ChatBubble = ({ message, isBot, isTyping }) => {
               ref={replyRef}
               className="prose prose-sm dark:prose-invert max-w-none"
             >
-              {/* ReactMarkdown render HTML đầy đủ (bao gồm strong, em, a...)
-                  Sau đó useEffect sẽ "mổ xẻ" HTML này để animate từng chữ bên trong 
-                  mà KHÔNG làm mất thẻ bao ngoài.
-              */}
               <ReactMarkdown>{reply}</ReactMarkdown>
             </div>
           )}
         </div>
 
+        {/* Widget: Chỉ hiện khi (isBot && không gõ && có data). 
+            Hiệu ứng Fade dựa vào state animated */}
         {isBot && !isTyping && data && (
           <div
             className={`transition-opacity duration-500 ${

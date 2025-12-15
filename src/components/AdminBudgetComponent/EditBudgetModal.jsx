@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useDispatch } from "react-redux";
 import { FaEdit, FaTrash, FaTimes, FaFilter } from "react-icons/fa";
-import { currencyMap } from "../../utils/currencies";
-import { categoryList, getCategoryMeta } from "../../utils/categoryList";
+import { currencyMap } from "../../constant/currencies";
+import { categoryList, getCategoryMeta } from "../../constant/categoryList";
 import { useTranslation } from "react-i18next";
 import { updateAdminBudget } from "../../features/adminBudgetSlice";
 

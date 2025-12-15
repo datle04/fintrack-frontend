@@ -30,13 +30,24 @@ import AdminGoalPage from "./pages/admin/AdminGoalPage";
 import AdminBudgetPage from "./pages/admin/AdminBudgetPage";
 import PrivateRoute from "./routes/PrivateRoute";
 import NotFoundPage from "./pages/NotFoundPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import { Bot } from "lucide-react";
+import AdminSettingPage from "./pages/admin/AdminSettingPage";
+import { useTranslation } from "react-i18next";
 
 function App() {
   const { isAppLoading } = useLoading();
+  const { i18n } = useTranslation();
   const user = useSelector((state) => state.auth.user);
   const location = useLocation();
   // ⚠️ State mới cho Chat Widget
   const [isChatOpen, setIsChatOpen] = useState(false);
+
+  useEffect(() => {
+    if (user.role === "admin") {
+      i18n.changeLanguage("vi");
+    }
+  }, [i18n]);
 
   return (
     <>
@@ -54,6 +65,7 @@ function App() {
             }
           />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           {/* Route yêu cầu đăng nhập */}
           <Route element={<PrivateRoute />}>
             <Route
@@ -78,6 +90,7 @@ function App() {
                 <Route path="goals" element={<AdminGoalPage />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="logs" element={<AdminLog />} />
+                <Route path="settings" element={<AdminSettingPage />} />
               </Route>
             </Route>
           </Route>
@@ -88,14 +101,20 @@ function App() {
         {/* ⚠️ Tích hợp Chat Widget/Icon ở đây (Chỉ khi User tồn tại) */}
         {user && user.role === "user" && location.pathname !== "/login" && (
           <>
+            {/* ✅ Cách mới (Giữ state, chỉ ẩn bằng CSS) */}
             <ChatWidget
               isOpen={isChatOpen}
-              onClick={() => setIsChatOpen((prev) => !prev)}
+              onClick={() => setIsChatOpen(!isChatOpen)}
             />
-            <ChatIcon
-              isOpen={isChatOpen}
-              onClick={() => setIsChatOpen((prev) => !prev)}
-            />
+            {/* Nút Floating Button để mở chat (nếu bạn để nó riêng bên ngoài widget) */}
+            <button
+              onClick={() => setIsChatOpen(true)}
+              className={`fixed bottom-6 right-6 z-50 p-4 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all hover:scale-110 active:scale-95 cursor-pointer ${
+                isChatOpen ? "opacity-0 pointer-events-none" : "opacity-100"
+              }`}
+            >
+              <Bot size={28} />
+            </button>
           </>
         )}
         {/* ======================================= */}

@@ -91,6 +91,62 @@ export const refreshAuthToken = createAsyncThunk(
   }
 );
 
+// 1. Yêu cầu đổi mật khẩu (Gửi Pass cũ -> Nhận OTP)
+export const requestChangePassword = createAsyncThunk(
+  "auth/requestChangePassword",
+  async ({ oldPassword }, thunkAPI) => {
+    try {
+      const response = await axiosInstance.post("/api/auth/change-password/request", { oldPassword });
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "Lỗi hệ thống");
+    }
+  }
+);
+
+// 2. Xác thực và Đổi mật khẩu (Gửi OTP + Pass mới)
+export const verifyAndChangePassword = createAsyncThunk(
+  "auth/verifyAndChangePassword",
+  async ({ otp, newPassword }, thunkAPI) => {
+    try {
+      const response = await axiosInstance.post("/api/auth/change-password/verify", { otp, newPassword });
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "Lỗi hệ thống");
+    }
+  }
+);
+
+// 1. Gửi yêu cầu quên mật khẩu (Gửi Email -> Nhận OTP)
+export const forgotPasswordRequest = createAsyncThunk(
+  "auth/forgotPasswordRequest",
+  async (email, thunkAPI) => {
+    try {
+      // API: /auth/forgot-password (Public)
+      const response = await axiosInstance.post("/api/auth/forgot-password", { email });
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "Lỗi hệ thống");
+    }
+  }
+);
+
+// 2. Đặt lại mật khẩu (Gửi OTP + Pass mới)
+export const resetPasswordExecute = createAsyncThunk(
+  "auth/resetPasswordExecute",
+  async ({ email, otp, newPassword }, thunkAPI) => {
+    try {
+      // API: /auth/reset-password (Public)
+      const response = await axiosInstance.post("/api/auth/reset-password", { 
+        email, otp, newPassword 
+      });
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "Lỗi hệ thống");
+    }
+  }
+);
+
 // Đăng xuất (xoá cookie + refresh token)
 export const logoutUser = createAsyncThunk(
   "auth/logoutUser",

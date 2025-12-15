@@ -7,10 +7,9 @@ import BudgetByCategory from "../components/BudgetPageComponent/BudgetByCategory
 import BudgetModal from "../components/BudgetPageComponent/BudgetModal";
 import BudgetPageLoading from "../components/Loading/BudgetLoading/BudgetPageLoading";
 import { useTranslation } from "react-i18next";
-import { getCurrencySymbol } from "../utils/currencies";
 import toast from "react-hot-toast";
 import { useBudgetCalculations } from "../hooks/useBudgetCalculations";
-import { categoryList } from "../utils/categoryList";
+import { categoryList } from "../constant/categoryList";
 import { Plus, Trash2, Calendar, Edit } from "lucide-react";
 import { TfiWallet } from "react-icons/tfi";
 import ConfirmModal from "../components/ConfirmModal";
@@ -57,13 +56,11 @@ const BudgetPage = () => {
       ).unwrap();
 
       // Thành công: Thông báo & Đóng modal
-      toast.success(t("deleteBudgetSuccess") || "Xóa ngân sách thành công!");
+      toast.success(t("deleteBudgetSuccess"));
       setShowDeleteConfirm(false);
     } catch (error) {
       // Thất bại: Thông báo lỗi (Không đóng modal để user biết)
-      toast.error(
-        error?.message || t("deleteBudgetError") || "Gặp lỗi khi xóa!"
-      );
+      toast.error(error?.message || t("smthIsWrong"));
     } finally {
       // Tắt loading
       setIsDeleting(false);
@@ -81,7 +78,7 @@ const BudgetPage = () => {
   } = useBudgetCalculations(budget);
 
   const monthValues = Array.from({ length: 12 }, (_, i) => ({
-    title: i + 1,
+    title: t(`months.${i + 1}`),
     value: i + 1,
   }));
   const years = Array.from({ length: 6 }, (_, i) => 2020 + i);
@@ -97,7 +94,10 @@ const BudgetPage = () => {
             {t("budget")}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Quản lý chi tiêu tháng {selectedMonth}/{selectedYear}
+            {t("manageMonthlyBudget", {
+              month: selectedMonth,
+              year: selectedYear,
+            })}
           </p>
         </div>
 
@@ -112,7 +112,7 @@ const BudgetPage = () => {
             >
               {monthValues.map((m) => (
                 <option key={m.value} value={m.value}>
-                  Tháng {m.title}
+                  {m.title}
                 </option>
               ))}
             </select>
@@ -169,7 +169,7 @@ const BudgetPage = () => {
       </div>
 
       {/* --- 2. SUMMARY CARD (Thẻ Tổng quan Hiện đại) --- */}
-      {budget.month ? (
+      {budget.originalAmount !== 0 ? (
         <div
           className="
             relative overflow-hidden 
@@ -240,12 +240,12 @@ const BudgetPage = () => {
       ) : (
         // Empty State
         <div className="bg-white dark:bg-[#2E2E33] p-8 rounded-2xl border border-dashed border-gray-300 text-center mb-8">
-          <p className="text-gray-500">Chưa có ngân sách cho tháng này.</p>
+          <p className="text-gray-500">{t("no_budget_this_month")}</p>
           <button
             onClick={() => setIsFormOpen(true)}
             className="mt-3 text-indigo-600 font-medium hover:underline"
           >
-            Tạo ngay
+            {t("create_now")}
           </button>
         </div>
       )}
@@ -253,11 +253,11 @@ const BudgetPage = () => {
       {/* --- 3. DANH SÁCH CHI TIẾT (Grid Layout) --- */}
       <div>
         <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4">
-          Chi tiết theo Danh mục
+          {t("budget_by_category")}
         </h2>
         <BudgetByCategory
           categoryList={categoryList}
-          categoryStats={categoryStats} // Dữ liệu sạch từ Hook
+          categoryStats={categoryStats}
           currency={displayCurrency}
         />
       </div>
@@ -271,8 +271,8 @@ const BudgetPage = () => {
           monthValues={monthValues}
           years={years}
           setIsFormOpen={setIsFormOpen}
-          currentBudget={budget} // Truyền budget hiện tại xuống để fill form
-          onClose={() => fetchBudget()} // Reload sau khi đóng
+          currentBudget={budget}
+          onClose={() => fetchBudget()}
         />
       )}
 
@@ -283,17 +283,14 @@ const BudgetPage = () => {
         onConfirm={handleConfirmDelete}
         isLoading={isDeleting} // Truyền state loading vào đây
         // Cấu hình nội dung hiển thị
-        title={t("deleteBudgetTitle") || "Xóa ngân sách?"}
-        message={
-          t("deleteBudgetMessage", {
-            month: selectedMonth,
-            year: selectedYear,
-          }) ||
-          `Bạn có chắc chắn muốn xóa toàn bộ ngân sách tháng ${selectedMonth}/${selectedYear} không? Dữ liệu này không thể khôi phục.`
-        }
+        title={t("deleteBudgetTitle")}
+        message={t("deleteBudgetMessage", {
+          month: selectedMonth,
+          year: selectedYear,
+        })}
         variant="danger" // Màu đỏ
-        confirmText={t("delete") || "Xóa bỏ"}
-        cancelText={t("cancel") || "Hủy"}
+        confirmText={t("delete")}
+        cancelText={t("cancel")}
       />
     </section>
   );

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useDispatch } from "react-redux";
 import InputField from "./InputField"; // Giả sử InputField của bạn chấp nhận props className hoặc style
 import TextAreaField from "./TextAreaField";
-import { currencyMap } from "../../utils/currencies";
+import { currencyMap } from "../../constant/currencies";
 import toast from "react-hot-toast";
 import { createGoal, updateGoal } from "../../features/goalSlice";
 import dayjs from "dayjs";
@@ -95,11 +95,12 @@ const GoalModal = ({ goal, onClose, t }) => {
     toast
       .promise(actionPromise, {
         loading: goal
-          ? "Đang cập nhật mục tiêu..."
-          : "Đang tạo mục tiêu mới...",
+          ? t("goalPage.toast.updatingGoal")
+          : t("goalPage.toast.creating"),
+
         success: goal
-          ? "Cập nhật mục tiêu thành công!"
-          : "Đã tạo mục tiêu thành công!",
+          ? t("goalPage.toast.updateSuccess")
+          : t("goalPage.toast.createSuccess"),
         error: (err) => err?.message || "Lỗi khi lưu mục tiêu.",
       })
       .then(() => {

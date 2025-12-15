@@ -1,73 +1,119 @@
-import React, { useState, useEffect, useCallback } from "react";
-// Giả sử bạn dùng axiosInstance đã cấu hình
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axiosInstance from "../../api/axiosInstance";
 import toast from "react-hot-toast";
-import { FaEdit, FaTrash, FaCalculator, FaTimes } from "react-icons/fa";
+import {
+  FaEdit,
+  FaTrash,
+  FaCalculator,
+  FaFilter,
+  FaSearch,
+  FaHashtag,
+} from "react-icons/fa";
+import { IoCloseCircle } from "react-icons/io5";
 import { formatCurrency } from "../../utils/formatCurrency";
-import formatDateToString from "../../utils/formatDateToString";
-import { merge } from "lodash";
+import { debounce } from "lodash";
 import ConfirmModal from "../../components/ConfirmModal";
 import EditGoalModal from "../../components/AdminGoalComponent/EditGoalModal";
+import Pagination from "../../components/Pagination";
 
-// Component Progress Bar
+// --- COMPONENTS ---
 const ProgressBar = ({ current, target }) => {
   const percentage = Math.min(Math.max((current / target) * 100, 0), 100);
   return (
-    <div className="w-full bg-gray-200 rounded-full h-2.5">
+    <div className="w-full bg-gray-200 rounded-full h-2">
       <div
-        className="bg-blue-600 h-2.5 rounded-full"
+        className="bg-blue-500 h-2 rounded-full transition-all duration-500"
         style={{ width: `${percentage}%` }}
       ></div>
     </div>
   );
 };
 
-// --- Component Trang Chính ---
 const AdminGoalPage = () => {
+  // --- STATE ---
   const [goals, setGoals] = useState([]);
-  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // State cho Modal Edit
+  // Filter State
+  const [page, setPage] = useState(1);
+  const [searchName, setSearchName] = useState("");
+  const [searchUserId, setSearchUserId] = useState("");
+  const [status, setStatus] = useState("");
+
+  // Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
 
-  // 👉 STATE CHO CONFIRM MODAL (MỚI)
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
     type: null, // 'delete' | 'recalculate'
-    data: null, // goal object
+    data: null,
   });
-  const [isProcessing, setIsProcessing] = useState(false); // Loading state cho API action
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Hàm gọi API
-  const fetchGoals = useCallback(async (currentPage) => {
+  // --- 1. API CALL ---
+  const fetchGoals = useCallback(async (pageNum, sName, sUid, sStatus) => {
     setLoading(true);
     try {
       const res = await axiosInstance.get("/api/admin/goals", {
-        params: { page: currentPage, limit: 10 },
+        params: {
+          page: pageNum,
+          limit: 10,
+          name: sName, // Backend cần hỗ trợ lọc theo tên goal
+          userId: sUid, // Backend cần hỗ trợ lọc theo User ID
+          status: sStatus, // Backend cần hỗ trợ lọc status
+        },
       });
-      setGoals(res.data.goals);
-      setTotalPages(res.data.pages);
-      setPage(res.data.page);
+      setGoals(res.data.goals || []);
+      setTotalPages(res.data.pages || 0);
+      setPage(res.data.page || 1);
     } catch (err) {
-      toast.error("Không thể tải danh sách mục tiêu!");
+      // toast.error("Không thể tải danh sách mục tiêu!");
+      // Comment lại để tránh spam toast khi gõ search liên tục
+      console.error(err);
+      setGoals([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchGoals(page);
-  }, [page, fetchGoals]);
+  // --- 2. DEBOUNCE SEARCH ---
+  const debouncedFetch = useMemo(() => {
+    return debounce((pageNum, sName, sUid, sStat) => {
+      fetchGoals(pageNum, sName, sUid, sStat);
+    }, 500);
+  }, [fetchGoals]);
 
-  // --- Các Hàm Helper Update State Local ---
+  useEffect(() => {
+    return () => debouncedFetch.cancel();
+  }, [debouncedFetch]);
+
+  // --- 3. EFFECTS ---
+
+  // Khi Search Text thay đổi (Name hoặc ID)
+  useEffect(() => {
+    debouncedFetch(page, searchName, searchUserId, status);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchName, searchUserId]);
+
+  // Khi Page hoặc Status thay đổi (Gọi ngay)
+  useEffect(() => {
+    fetchGoals(page, searchName, searchUserId, status);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, status]);
+
+  // --- HANDLERS ---
+  const handleFilterChange = (setter, value) => {
+    setter(value);
+    setPage(1);
+  };
+
   const updateGoalInList = (updatedGoal) => {
     setGoals((prev) =>
       prev.map((g) => {
         if (g._id !== updatedGoal._id) return g;
-        // Merge data mới vào cũ để tránh mất thông tin populate (user)
         return { ...g, ...updatedGoal, userId: g.userId };
       })
     );
@@ -77,56 +123,45 @@ const AdminGoalPage = () => {
     setGoals((prev) => prev.filter((g) => g._id !== goalId));
   };
 
-  // --- Handlers Mở Modal ---
   const handleEditClick = (goal) => {
     setSelectedGoal(goal);
     setIsEditModalOpen(true);
   };
 
   const handleDeleteClick = (goal) => {
-    // Mở ConfirmModal thay vì toast custom
     setConfirmConfig({ isOpen: true, type: "delete", data: goal });
   };
 
   const handleRecalculateClick = (goal) => {
-    // Mở ConfirmModal cho tính toán (để tránh click nhầm)
     setConfirmConfig({ isOpen: true, type: "recalculate", data: goal });
   };
 
-  // --- 🔥 HÀM XỬ LÝ LOGIC CHUNG CHO CONFIRM MODAL ---
   const handleConfirmAction = async (reason) => {
     const { type, data } = confirmConfig;
     if (!data) return;
 
-    setIsProcessing(true); // Bật loading spinner
-
+    setIsProcessing(true);
     try {
       if (type === "delete") {
-        // Gọi API Xóa
         await axiosInstance.delete(`/api/admin/goals/${data._id}`);
         removeGoalFromList(data._id);
         toast.success("Đã xóa mục tiêu thành công!");
       } else if (type === "recalculate") {
-        // Gọi API Tính toán lại
         const res = await axiosInstance.post(
           `/api/admin/goals/${data._id}/recalculate`
         );
-        // Giả sử API trả về { goal: ... }
         updateGoalInList(res.data.goal || res.data);
         toast.success("Đã tính toán lại tiến độ!");
       }
-
-      // Đóng modal sau khi xong
       setConfirmConfig({ isOpen: false, type: null, data: null });
     } catch (error) {
-      console.error(error);
       toast.error(error.response?.data?.message || "Có lỗi xảy ra!");
     } finally {
-      setIsProcessing(false); // Tắt loading spinner
+      setIsProcessing(false);
     }
   };
 
-  // --- Cấu hình nội dung Modal ---
+  // --- UI HELPERS ---
   const getConfirmModalProps = () => {
     const { type, data } = confirmConfig;
     if (!data) return {};
@@ -136,17 +171,17 @@ const AdminGoalPage = () => {
         title: "Xóa Mục Tiêu?",
         message: `Bạn có chắc chắn muốn xóa mục tiêu "${data.name}" của user ${
           data.userId?.name || "này"
-        }? Hành động này không thể hoàn tác.`,
+        }?`,
         variant: "danger",
         confirmText: "Xóa bỏ",
-        requireReason: true, // Admin xóa cần lý do (tuỳ chọn)
+        requireReason: true,
       };
     }
     if (type === "recalculate") {
       return {
         title: "Tính toán lại tiến độ?",
         message: `Hệ thống sẽ quét lại toàn bộ giao dịch để cập nhật số tiền hiện tại cho mục tiêu "${data.name}".`,
-        variant: "info", // Hoặc warning
+        variant: "info",
         confirmText: "Tính toán",
         requireReason: false,
       };
@@ -160,154 +195,262 @@ const AdminGoalPage = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">
-        Quản lý Mục tiêu
-      </h1>
-
-      {loading ? (
-        <div className="flex justify-center p-10">
-          <span className="loading-spinner">Loading...</span>
-        </div>
-      ) : (
-        <div className="bg-white shadow-md rounded-lg overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Người dùng
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tên mục tiêu
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tiến độ
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Trạng thái
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Hạn chót
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Hành động
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {goals.map((goal) => (
-                <tr key={goal._id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {goal.userId?.name || "Unknown"}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {goal.userId?.email}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {goal.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap min-w-[200px]">
-                    <div className="text-sm text-gray-900 mb-1">
-                      {formatCurrency(goal.currentBaseAmount)} /{" "}
-                      {formatCurrency(goal.targetBaseAmount)}
-                    </div>
-                    <ProgressBar
-                      current={goal.currentBaseAmount}
-                      target={goal.targetBaseAmount}
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${
-                          goal.status === "completed"
-                            ? "bg-green-100 text-green-800"
-                            : goal.status === "failed"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                    >
-                      {goal.status || "in_progress"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(goal.targetDate || goal.deadline)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button
-                      onClick={() => handleRecalculateClick(goal)}
-                      className="text-green-600 hover:text-green-900 p-2 hover:bg-green-50 rounded-full transition-colors"
-                      title="Tính toán lại"
-                    >
-                      <FaCalculator />
-                    </button>
-                    <button
-                      onClick={() => handleEditClick(goal)}
-                      className="text-indigo-600 hover:text-indigo-900 p-2 hover:bg-indigo-50 rounded-full transition-colors"
-                      title="Sửa"
-                    >
-                      <FaEdit />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(goal)}
-                      className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-full transition-colors"
-                      title="Xóa"
-                    >
-                      <FaTrash />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Pagination (Giữ nguyên logic cũ) */}
-      <div className="flex justify-between items-center mt-4">
-        <button
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page <= 1 || loading}
-          className="px-4 py-2 border rounded disabled:opacity-50"
-        >
-          Trang trước
-        </button>
-        <span>
-          Trang {page} / {totalPages}
-        </span>
-        <button
-          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          disabled={page >= totalPages || loading}
-          className="px-4 py-2 border rounded disabled:opacity-50"
-        >
-          Trang sau
-        </button>
+    <div className="p-4 sm:p-6 bg-blue-50/50 min-h-screen">
+      <div className="sm:hidden text-center text-gray-500 mt-10 px-4">
+        Vui lòng sử dụng máy tính để quản lý mục tiêu tốt nhất.
       </div>
 
-      {/* --- MODAL EDIT (Form riêng) --- */}
-      {isEditModalOpen && selectedGoal && (
-        <EditGoalModal
-          goal={selectedGoal}
-          onClose={() => setIsEditModalOpen(false)}
-          onSave={updateGoalInList}
-        />
-      )}
+      <div className="hidden sm:block">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">
+          Quản lý Mục tiêu
+        </h1>
 
-      {/* --- 🔥 MODAL CONFIRM (Xóa & Recalculate) --- */}
-      {confirmConfig.isOpen && (
-        <ConfirmModal
-          isOpen={confirmConfig.isOpen}
-          onClose={() => {
-            if (!isProcessing)
-              setConfirmConfig({ ...confirmConfig, isOpen: false });
-          }}
-          onConfirm={handleConfirmAction} // Gọi hàm xử lý chung
-          isLoading={isProcessing} // State loading
-          {...getConfirmModalProps()} // Spread props (Title, Message, Variant)
-        />
-      )}
+        {/* --- MODERN FILTER BAR --- */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 animate-fadeIn">
+          <div className="flex items-center gap-2 mb-3 text-gray-500 text-sm font-medium">
+            <FaFilter className="text-blue-500" />
+            <span>Bộ lọc tìm kiếm</span>
+          </div>
+
+          <div className="flex flex-col xl:flex-row gap-4 justify-between">
+            {/* 1. INPUT TÌM ID & NAME */}
+            <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
+              {/* User ID */}
+              <div className="relative w-full md:w-48 group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaHashtag className="text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Tìm User ID..."
+                  className="block w-full pl-9 pr-8 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-mono"
+                  value={searchUserId}
+                  onChange={(e) =>
+                    handleFilterChange(setSearchUserId, e.target.value)
+                  }
+                />
+                {searchUserId && (
+                  <button
+                    onClick={() => handleFilterChange(setSearchUserId, "")}
+                    className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+                  >
+                    <IoCloseCircle size={16} />
+                  </button>
+                )}
+              </div>
+
+              {/* Goal Name */}
+              <div className="relative w-full md:w-80 group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaSearch className="text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Tìm tên mục tiêu..."
+                  className="block w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                  value={searchName}
+                  onChange={(e) =>
+                    handleFilterChange(setSearchName, e.target.value)
+                  }
+                />
+                {searchName && (
+                  <button
+                    onClick={() => handleFilterChange(setSearchName, "")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+                  >
+                    <IoCloseCircle size={18} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 2. SELECT STATUS */}
+            <div className="flex flex-1 w-full md:w-auto gap-3 xl:justify-end">
+              <div className="relative min-w-[180px]">
+                <select
+                  value={status}
+                  onChange={(e) =>
+                    handleFilterChange(setStatus, e.target.value)
+                  }
+                  className="appearance-none w-full pl-4 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-blue-500 hover:border-blue-400 cursor-pointer"
+                >
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="in_progress">Đang thực hiện</option>
+                  <option value="completed">Đã hoàn thành</option>
+                  <option value="failed">Thất bại</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                  <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+                    <path
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                      fillRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* --- DATA TABLE --- */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm text-left">
+              <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase font-semibold text-xs">
+                <tr>
+                  <th className="p-4">Người dùng</th>
+                  <th className="p-4">Tên mục tiêu</th>
+                  <th className="p-4">Tiến độ</th>
+                  <th className="p-4">Trạng thái</th>
+                  <th className="p-4">Hạn chót</th>
+                  <th className="p-4 text-center">Hành động</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="p-8 text-center text-gray-500">
+                      Đang tải dữ liệu...
+                    </td>
+                  </tr>
+                ) : goals.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="p-8 text-center text-gray-500">
+                      Không tìm thấy mục tiêu nào.
+                    </td>
+                  </tr>
+                ) : (
+                  goals.map((goal) => (
+                    <tr
+                      key={goal._id}
+                      className="hover:bg-blue-50/50 transition-colors group"
+                    >
+                      <td className="p-4">
+                        <div className="font-medium text-gray-900">
+                          {goal.userId?.name || "Unknown"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {goal.userId?.email}
+                        </div>
+                        <div
+                          className="mt-1 inline-block text-[10px] font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-400 cursor-pointer hover:text-blue-500"
+                          onClick={() => {
+                            navigator.clipboard.writeText(goal.userId?._id);
+                            toast.success("Copied User ID");
+                          }}
+                          title={goal.userId?._id}
+                        >
+                          {goal.userId?._id?.slice(-6)}
+                        </div>
+                      </td>
+                      <td
+                        className="p-4 font-semibold text-gray-800 max-w-[200px] truncate"
+                        title={goal.name}
+                      >
+                        {goal.name}
+                      </td>
+                      <td className="p-4 min-w-[180px]">
+                        <div className="flex justify-between text-xs mb-1.5 font-medium">
+                          <span className="text-blue-700">
+                            {formatCurrency(goal.currentBaseAmount)}
+                          </span>
+                          <span className="text-gray-500">
+                            {formatCurrency(goal.targetBaseAmount)}
+                          </span>
+                        </div>
+
+                        <ProgressBar
+                          current={goal.currentBaseAmount}
+                          target={goal.targetBaseAmount}
+                        />
+                      </td>
+                      <td className="p-4">
+                        <span
+                          className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
+                            goal.status === "completed"
+                              ? "bg-green-100 text-green-700 border-green-200"
+                              : goal.status === "failed"
+                              ? "bg-red-100 text-red-700 border-red-200"
+                              : "bg-yellow-100 text-yellow-700 border-yellow-200"
+                          }`}
+                        >
+                          {goal.status === "in_progress"
+                            ? "Đang chạy"
+                            : goal.status === "completed"
+                            ? "Hoàn thành"
+                            : goal.status === "failed"
+                            ? "Thất bại"
+                            : goal.status}
+                        </span>
+                      </td>
+                      <td className="p-4 text-gray-600 text-xs">
+                        {formatDate(goal.targetDate || goal.deadline)}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleRecalculateClick(goal)}
+                            className="p-1.5 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                            title="Tính toán lại"
+                          >
+                            <FaCalculator size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleEditClick(goal)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                            title="Sửa"
+                          >
+                            <FaEdit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(goal)}
+                            className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                            title="Xóa"
+                          >
+                            <FaTrash size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* --- PAGINATION --- */}
+        <div className="mt-6 flex justify-center">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={(newPage) => setPage(newPage)}
+          />
+        </div>
+
+        {/* --- MODALS --- */}
+        {isEditModalOpen && selectedGoal && (
+          <EditGoalModal
+            goal={selectedGoal}
+            onClose={() => setIsEditModalOpen(false)}
+            onSave={updateGoalInList}
+          />
+        )}
+
+        {confirmConfig.isOpen && (
+          <ConfirmModal
+            isOpen={confirmConfig.isOpen}
+            onClose={() =>
+              !isProcessing &&
+              setConfirmConfig({ ...confirmConfig, isOpen: false })
+            }
+            onConfirm={handleConfirmAction}
+            isLoading={isProcessing}
+            {...getConfirmModalProps()}
+          />
+        )}
+      </div>
     </div>
   );
 };

@@ -7,7 +7,9 @@ const BACK_END_URL = import.meta.env.VITE_BACK_END_URL;
 
 const initialState = {
     loading: false,
+    recurringLoading: false,
     transactions: [],
+    recurringTransactions: [],
     total: 0,
     page: 1,
     totalPages: 1,
@@ -34,7 +36,7 @@ export const adminGetTransactions = createAsyncThunk('admin/transaction/getTrans
         const { type = '', category = '', keyword = '', startDate = '', endDate = '', page = 1} = filter;
 
         const res = await axiosInstance.get(
-            `/api/admin/transactions?type=${type}&category=${category}&keyword=${keyword}&startDate=${startDate}&endDate=${endDate}&page=${page}`, 
+            `/api/admin/transactions?&type=${type}&category=${category}&keyword=${keyword}&startDate=${startDate}&endDate=${endDate}&page=${page}`, 
         );
         return res.data;
     } catch (error) {
@@ -66,8 +68,8 @@ export const createTransaction = createAsyncThunk(
         `/api/transaction`,
         formData,
       );
-
-      return res.data.transaction;
+      console.log(res.data);
+      return res.data.firstTransaction;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
     }
@@ -89,6 +91,34 @@ export const updateTransaction = createAsyncThunk(
     }
   }
 );
+
+export const getRecurringTransactions = createAsyncThunk(
+  "transaction/getRecurringTransactions",
+  async (_, thunkAPI) => {
+    try {
+      // Gọi API bạn vừa viết ở Bước 1
+      const res = await axiosInstance.get("/api/transaction/recurring"); 
+      return res.data; // Trả về mảng
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message);
+    }
+  }
+);
+
+export const cancelRecurringTransaction = createAsyncThunk(
+    "transaction/cancelRecurring",
+    async ({id, deleteAll}, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.delete(
+        `/api/transaction/recurring/${id}?deleteAll=${deleteAll}`,
+      );
+      console.log(res.data);
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    } 
+    }
+)
 
 export const adminUpdateTransaction = createAsyncThunk(
     'admin/transaction/adminUpdateTransaction', async ({ id, fields }, {rejectWithValue }) => {
@@ -290,6 +320,34 @@ const transactionSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload;
             })  
+            .addCase(getRecurringTransactions.pending, (state) => {
+                state.recurringLoading = true;
+            })
+            .addCase(getRecurringTransactions.fulfilled, (state, action) => {
+                state.recurringLoading = false;
+                state.recurringTransactions = action.payload; // Lưu vào mảng riêng
+            })
+            .addCase(getRecurringTransactions.rejected, (state) => {
+                state.recurringLoading = false;
+            })
+            
+            .addCase(cancelRecurringTransaction.fulfilled, (state, action) => {
+                // 1. Lấy ID từ payload (Backend trả về { message, recurringId })
+                const { recurringId } = action.payload; 
+
+                // 2. Kiểm tra xem state có dữ liệu không để tránh crash
+                if (state.recurringTransactions && state.recurringTransactions.data) {
+                    
+                    // 3. Xóa key tương ứng khỏi object data
+                    // Vì data là object { "uuid": [...] }, ta dùng delete
+                    delete state.recurringTransactions.data[recurringId];
+
+                    // 4. (Tùy chọn) Cập nhật số lượng nhóm
+                    if (state.recurringTransactions.totalGroups > 0) {
+                        state.recurringTransactions.totalGroups -= 1;
+                    }
+                }
+            });
     }
 })
 

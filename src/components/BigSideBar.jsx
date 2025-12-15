@@ -42,7 +42,7 @@ const BigSideBar = () => {
         { icon: <FaWallet />, label: t("budget"), path: "/admin/budgets" },
         { icon: <LuGoal />, label: t("financialGoal"), path: "/admin/goals" },
         { icon: <RxActivityLog />, label: t("logs"), path: "/admin/logs" },
-        { icon: <MdSettings />, label: t("setting"), path: "/settings" },
+        { icon: <MdSettings />, label: t("setting"), path: "/admin/settings" },
       ]);
     } else {
       setNavArr([

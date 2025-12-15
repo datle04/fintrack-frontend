@@ -24,10 +24,10 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
 
-  // Auto-focus vào input khi mở chat
+  // Auto-focus: Chỉ focus khi isOpen chuyển sang true
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      setTimeout(() => inputRef.current.focus(), 100);
+      setTimeout(() => inputRef.current.focus(), 300); // Tăng delay chút để đợi slide xong
     }
   }, [isOpen]);
 
@@ -55,7 +55,7 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
         message: currentInput,
       });
 
-      console.log(res.data);
+      console.log("API RESPONSE: ", res.data);
 
       // 3. Nhận kết quả từ Backend (bao gồm reply, intent, data)
       const botResponse = res.data.result;
@@ -65,9 +65,9 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
         ...prev,
         {
           role: "model",
-          reply: botResponse.reply,
-          intent: res.data.intent, // Lưu intent để render widget
-          data: botResponse.data, // Lưu data để render widget
+          reply: botResponse?.reply,
+          intent: res?.data?.intent, // Lưu intent để render widget
+          data: botResponse?.data, // Lưu data để render widget
         },
       ]);
     } catch (error) {
@@ -102,15 +102,22 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
     [t]
   );
 
-  if (!isOpen) return null;
-
   return (
     <div
       className={`
-        fixed bottom-0 right-0 z-100 w-full h-full sm:h-[600px] sm:max-h-[85vh] sm:w-[380px] lg:w-[480px] sm:bottom-2 sm:right-2 
-        bg-white rounded-t-xl sm:rounded-l shadow-2xl flex flex-col 
-        animate-fadeIn
+        fixed bottom-0 right-0 z-[100] 
+        w-full h-full sm:h-[600px] sm:max-h-[85vh] sm:w-[380px] lg:w-[480px] 
+        sm:bottom-4 sm:right-4 
+        bg-white rounded-t-xl sm:rounded-2xl shadow-2xl flex flex-col 
         dark:bg-[#2E2E33] dark:border dark:border-slate-700
+        
+        /* --- PHẦN THAY ĐỔI QUAN TRỌNG --- */
+        transition-all duration-300 ease-in-out transform origin-bottom-right
+        ${
+          isOpen
+            ? "translate-x-0 opacity-100 pointer-events-auto scale-100"
+            : "translate-x-[110%] opacity-0 pointer-events-none scale-95"
+        }
       `}
     >
       {/* Header */}
@@ -134,14 +141,24 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 space-y-3 sm:space-y-4"
       >
-        {messages.map((msg, index) => (
-          <ChatBubble
-            key={index}
-            message={msg}
-            isBot={msg.role === "model"}
-            isTyping={false}
-          />
-        ))}
+        {messages.map((msg, index) => {
+          // Logic kiểm tra xem có nên chạy chữ không
+          // 1. Phải là tin nhắn của Bot
+          // 2. Phải là tin nhắn cuối cùng trong danh sách
+          // 3. (Optional) Không phải là tin nhắn chào mừng ban đầu (nếu muốn chào mừng hiện luôn)
+          const isLastMessage = index === messages.length - 1;
+          const shouldAnimate = isLastMessage && msg.role === "model";
+
+          return (
+            <ChatBubble
+              key={index}
+              message={msg}
+              isBot={msg.role === "model"}
+              isTyping={false}
+              shouldAnimate={shouldAnimate}
+            />
+          );
+        })}
         {loading && (
           <ChatBubble
             message={{ reply: "Đang nghĩ...", role: "model" }}

@@ -21,7 +21,7 @@ import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import toast from "react-hot-toast";
 import { formatCurrency } from "../utils/formatCurrency";
 import dayjs from "dayjs";
-import { currencyMap } from "../utils/currencies";
+import { currencyMap } from "../constant/currencies";
 import TransactionModal from "../components/TransactionModal";
 import GoalCard from "../components/GoalPageComponent/GoalCard";
 import GoalModal from "../components/GoalPageComponent/GoalModal";
@@ -54,9 +54,9 @@ const GoalPage = () => {
 
   const handleDelete = (id) => {
     toast.promise(dispatch(deleteGoal(id)).unwrap(), {
-      loading: "Đang xóa mục tiêu...",
-      success: "Đã xóa mục tiêu thành công!",
-      error: "Lỗi khi xóa mục tiêu.",
+      loading: t("goalPage.deletingGoal"),
+      success: t("goalPage.deleteSuccess"),
+      error: t("goalPage.deleteError"),
     });
   };
 
@@ -69,11 +69,11 @@ const GoalPage = () => {
         })
       ).unwrap(),
       {
-        loading: "Đang cập nhật...",
+        loading: t("goalPage.toast.updating"),
         success: goal.isCompleted
-          ? "Đã đặt lại trạng thái Đang tiến hành!"
-          : "Chúc mừng! Mục tiêu đã hoàn thành!",
-        error: "Lỗi khi cập nhật.",
+          ? t("goalPage.toast.resetStatus")
+          : t("goalPage.toast.completed"),
+        error: t("goalPage.toast.updateError"),
       }
     );
   };
@@ -113,9 +113,7 @@ const GoalPage = () => {
             <div className="text-center p-10 bg-white rounded-lg shadow dark:bg-[#2E2E33] dark:text-white/83">
               <Target size={40} className="mx-auto mb-3 text-indigo-400" />
               <p className="text-lg">
-                {t("noData")}.{" "}
-                {t("pleaseSetGoal") ||
-                  "Hãy thiết lập mục tiêu đầu tiên của bạn!"}
+                {t("goalPage.noData")}.{t("goalPage.pleaseSetGoal")}
               </p>
             </div>
           )}

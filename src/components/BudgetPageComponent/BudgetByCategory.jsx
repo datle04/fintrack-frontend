@@ -3,7 +3,7 @@ import React from "react";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { IoWarningOutline } from "react-icons/io5";
 import { useTranslation } from "react-i18next";
-import { getCurrencySymbol } from "../../utils/currencies";
+import { getCurrencySymbol } from "../../constant/currencies";
 
 const BudgetByCategory = ({ categoryList, categoryStats, currency }) => {
   const { t, i18n } = useTranslation();

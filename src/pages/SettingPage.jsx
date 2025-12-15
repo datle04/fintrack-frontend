@@ -10,13 +10,20 @@ import {
   FaPalette,
 } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
-import { getUserInfo, logoutUser, updateUser } from "../features/authSlice";
+import {
+  getUserInfo,
+  logoutUser,
+  requestChangePassword,
+  updateUser,
+  verifyAndChangePassword,
+} from "../features/authSlice";
 import toast from "react-hot-toast";
 import { useTheme } from "../context/ThemeContext";
 import { useTranslation } from "react-i18next";
 import EditableField from "../components/EditableField";
-import { currencyMap } from "../utils/currencies";
+import { currencyMap } from "../constant/currencies";
 import SettingPageLoading from "../components/Loading/SettingLoading/SettingPageLoading";
+import ChangePasswordSection from "../components/ChangePasswordSection";
 
 const SettingPage = () => {
   const dispatch = useDispatch();
@@ -128,9 +135,9 @@ const SettingPage = () => {
   const handleLogout = async () => {
     try {
       await toast.promise(dispatch(logoutUser()).unwrap(), {
-        loading: "Đang đăng xuất...",
-        success: "Đã đăng xuất! 👋",
-        error: (err) => err?.message || "Đăng xuất thất bại!",
+        loading: t("settingPage.toast.logoutLoading"),
+        success: t("settingPage.toast.logoutSuccess"),
+        error: (err) => err?.message || t("settingPage.toast.logoutError"),
       });
       navigate("/login");
     } catch (err) {
@@ -145,6 +152,43 @@ const SettingPage = () => {
       { id: "interface", label: t("interface"), icon: <FaPalette /> },
     ],
     [t]
+  );
+
+  const renderSecurityTab = () => (
+    <div className="bg-white dark:bg-[#2E2E33] rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-slate-700 animate-fadeIn">
+      <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6 pb-4 border-b border-gray-100 dark:border-slate-700">
+        {t("security")}
+      </h3>
+
+      <div className="space-y-6 max-w-lg">
+        {/* EMAIL */}
+        <div>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+            {t("email")}
+          </label>
+          <input
+            type="email"
+            value={user?.email || ""}
+            readOnly
+            className="w-full px-4 py-2.5 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 cursor-not-allowed"
+          />
+        </div>
+
+        {/* PASSWORD SECTION (Dùng component tái sử dụng) */}
+        <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
+          <ChangePasswordSection logoutOnSuccess={true} />
+        </div>
+
+        <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
+          <button
+            onClick={handleLogout}
+            className="px-6 py-2.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl font-medium transition-colors w-full sm:w-auto"
+          >
+            {t("logout")}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 
   const renderContent = () => {
@@ -234,53 +278,7 @@ const SettingPage = () => {
         );
 
       case "security":
-        return (
-          <div className="bg-white dark:bg-[#2E2E33] rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-slate-700 animate-fadeIn">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6 pb-4 border-b border-gray-100 dark:border-slate-700">
-              Tài khoản & Bảo mật
-            </h3>
-            <div className="space-y-6 max-w-lg">
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  {t("email")}
-                </label>
-                <input
-                  type="email"
-                  value={user?.email || ""} // FIX 2: An toàn tuyệt đối
-                  readOnly
-                  className="w-full px-4 py-2.5 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 cursor-not-allowed"
-                />
-              </div>
-
-              <div className="relative">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  {t("password")}
-                </label>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value="123456"
-                  readOnly
-                  className="w-full px-4 py-2.5 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 cursor-not-allowed pr-10"
-                />
-                <button
-                  className="absolute right-3 top-[34px] text-gray-500 hover:text-indigo-600"
-                  onClick={() => setShowPassword((s) => !s)}
-                >
-                  {showPassword ? <FaEyeSlash /> : <FaEye />}
-                </button>
-              </div>
-
-              <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
-                <button
-                  onClick={handleLogout}
-                  className="px-6 py-2.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl font-medium transition-colors w-full sm:w-auto"
-                >
-                  {t("logout")}
-                </button>
-              </div>
-            </div>
-          </div>
-        );
+        return renderSecurityTab();
 
       case "interface":
         return (

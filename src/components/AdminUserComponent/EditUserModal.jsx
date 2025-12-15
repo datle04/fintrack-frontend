@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { currencyMap } from "../../utils/currencies";
+import { currencyMap } from "../../constant/currencies";
 
 const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
   const [formData, setFormData] = useState({

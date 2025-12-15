@@ -1,22 +1,23 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Eye, EyeOff, Mail, User, Lock, ArrowRight } from "lucide-react";
-import phoneImg from "../assets/img/phoneImg.png"; // Đảm bảo đường dẫn ảnh đúng
-import LogoF from "../assets/img/logo.webp"; // Đảm bảo đường dẫn logo đúng
+import phoneImg from "../assets/img/phoneImg.png";
+import LogoF from "../assets/img/logo.webp";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser, registerUser, clearError } from "../features/authSlice";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import { useLoading } from "../context/LoadingContext";
 import InputField from "../components/LoginPageComponent/InputField";
+import { useTranslation } from "react-i18next"; // 1. Import hook
 
 export default function LoginPage() {
+  const { t } = useTranslation(); // 2. Khởi tạo hook
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const { setIsAppLoading } = useLoading();
 
   const [isRegister, setIsRegister] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   // Form State
   const [email, setEmail] = useState("");
@@ -33,14 +34,18 @@ export default function LoginPage() {
     const action = dispatch(payload).unwrap();
 
     toast.promise(action, {
-      loading: isRegister ? "Đang tạo tài khoản..." : "Đang đăng nhập...",
-      success: isRegister ? "Đăng ký thành công!" : "Đăng nhập thành công!",
+      loading: isRegister
+        ? t("loginPage.toast.registerLoading")
+        : t("loginPage.toast.loginLoading"),
+      success: isRegister
+        ? t("loginPage.toast.registerSuccess")
+        : t("loginPage.toast.loginSuccess"),
       error: (err) => {
         console.log("Lỗi trả về:", err);
         if (typeof err === "object" && err !== null && err.message) {
           return err.message;
         }
-        return err || "Có lỗi xảy ra!";
+        return err || t("loginPage.toast.defaultError");
       },
     });
 
@@ -59,7 +64,7 @@ export default function LoginPage() {
             navigate("/dashboard");
           }
           setIsAppLoading(false);
-        }, 1500); // Giảm thời gian chờ xuống chút cho mượt
+        }, 1500);
       }
 
       // Reset form
@@ -83,12 +88,14 @@ export default function LoginPage() {
             className="h-16 mx-auto mb-4 drop-shadow-sm"
           />
           <h2 className="text-2xl font-bold text-gray-900">
-            {isRegister ? "Tạo tài khoản mới" : "Chào mừng trở lại!"}
+            {isRegister
+              ? t("loginPage.mobile.headerRegister")
+              : t("loginPage.mobile.headerLogin")}
           </h2>
           <p className="text-gray-500 text-sm mt-2">
             {isRegister
-              ? "Bắt đầu quản lý tài chính thông minh ngay hôm nay."
-              : "Đăng nhập để tiếp tục hành trình của bạn."}
+              ? t("loginPage.mobile.subHeaderRegister")
+              : t("loginPage.mobile.subHeaderLogin")}
           </p>
         </div>
 
@@ -96,26 +103,26 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {isRegister && (
             <InputField
-              label="Họ và Tên"
+              label={t("loginPage.form.nameLabel")}
               icon={User}
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="VD: Nguyễn Văn A"
+              placeholder={t("loginPage.form.namePlaceholder")}
             />
           )}
 
           <InputField
-            label="Email"
+            label={t("loginPage.form.emailLabel")}
             icon={Mail}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@example.com"
+            placeholder={t("loginPage.form.emailPlaceholder")}
           />
 
           <InputField
-            label="Mật khẩu"
+            label={t("loginPage.form.passwordLabel")}
             icon={Lock}
             type="password"
             value={password}
@@ -128,19 +135,25 @@ export default function LoginPage() {
             type="submit"
             className="mt-4 w-full py-3.5 cursor-pointer bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-xl font-semibold shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2"
           >
-            {isRegister ? "Đăng ký ngay" : "Đăng nhập"}
+            {isRegister
+              ? t("loginPage.button.register")
+              : t("loginPage.button.login")}
             <ArrowRight size={18} />
           </button>
         </form>
 
         {/* Footer Mobile */}
         <p className="mt-8 text-center text-sm text-gray-600">
-          {isRegister ? "Đã có tài khoản?" : "Chưa có tài khoản?"}
+          {isRegister
+            ? t("loginPage.footer.hasAccount")
+            : t("loginPage.footer.noAccount")}
           <button
             onClick={() => setIsRegister(!isRegister)}
             className="ml-2 font-semibold text-indigo-600 cursor-pointer hover:text-indigo-700 hover:underline transition-colors"
           >
-            {isRegister ? "Đăng nhập" : "Đăng ký ngay"}
+            {isRegister
+              ? t("loginPage.footer.loginLink")
+              : t("loginPage.footer.registerLink")}
           </button>
         </p>
       </div>
@@ -157,12 +170,14 @@ export default function LoginPage() {
           {/* Text Heading */}
           <div className="mb-10">
             <h1 className="text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">
-              {isRegister ? "Tạo tài khoản" : "Chào mừng trở lại"}
+              {isRegister
+                ? t("loginPage.desktop.headerRegister")
+                : t("loginPage.desktop.headerLogin")}
             </h1>
             <p className="text-gray-500 text-lg">
               {isRegister
-                ? "Nhập thông tin của bạn để bắt đầu miễn phí."
-                : "Vui lòng nhập thông tin đăng nhập của bạn."}
+                ? t("loginPage.desktop.subHeaderRegister")
+                : t("loginPage.desktop.subHeaderLogin")}
             </p>
           </div>
 
@@ -170,41 +185,41 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             {isRegister && (
               <InputField
-                label="Họ và Tên"
+                label={t("loginPage.form.nameLabel")}
                 icon={User}
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="VD: Nguyễn Văn A"
+                placeholder={t("loginPage.form.namePlaceholder")}
               />
             )}
 
             <InputField
-              label="Email"
+              label={t("loginPage.form.emailLabel")}
               icon={Mail}
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@example.com"
+              placeholder={t("loginPage.form.emailPlaceholder")}
             />
 
             <div className="space-y-2">
               <InputField
-                label="Mật khẩu"
+                label={t("loginPage.form.passwordLabel")}
                 icon={Lock}
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Nhập mật khẩu của bạn"
+                placeholder={t("loginPage.form.passwordPlaceholderDesktop")}
                 isPassword
               />
               {!isRegister && (
                 <div className="flex justify-end">
                   <a
-                    href="#"
-                    className="text-sm text-indigo-600 font-medium hover:underline"
+                    onClick={() => navigate("/forgot-password")}
+                    className="text-sm text-indigo-600 font-medium cursor-pointer hover:underline"
                   >
-                    Quên mật khẩu?
+                    {t("loginPage.link.forgotPassword")}
                   </a>
                 </div>
               )}
@@ -214,18 +229,24 @@ export default function LoginPage() {
               type="submit"
               className="mt-4 w-full py-4 bg-indigo-600 cursor-pointer hover:bg-indigo-700 hover:-translate-y-0.5 active:translate-y-0 text-white rounded-xl font-bold text-lg shadow-xl shadow-indigo-200 transition-all duration-200 flex items-center justify-center gap-2"
             >
-              {isRegister ? "Đăng ký tài khoản" : "Đăng nhập"}
+              {isRegister
+                ? t("loginPage.button.registerLong")
+                : t("loginPage.button.login")}
             </button>
           </form>
 
           {/* Desktop Footer */}
           <p className="mt-8 text-center text-gray-600">
-            {isRegister ? "Bạn đã là thành viên?" : "Bạn mới sử dụng FinTrack?"}
+            {isRegister
+              ? t("loginPage.desktop.footerHasAccount")
+              : t("loginPage.desktop.footerNoAccount")}
             <button
               onClick={() => setIsRegister(!isRegister)}
               className="ml-2 font-bold text-indigo-600 cursor-pointer hover:text-indigo-800 hover:underline transition-colors"
             >
-              {isRegister ? "Đăng nhập ngay" : "Tạo tài khoản"}
+              {isRegister
+                ? t("loginPage.desktop.footerLoginLink")
+                : t("loginPage.desktop.footerRegisterLink")}
             </button>
           </p>
         </div>
@@ -247,7 +268,7 @@ export default function LoginPage() {
 
           {/* Main Content Container */}
           <div className="relative z-10 flex flex-col items-center">
-            {/* Floating Glass Cards (Trang trí) */}
+            {/* Floating Glass Cards */}
             <div
               className="absolute -left-20 top-20 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 shadow-2xl animate-bounce"
               style={{ animationDuration: "3s" }}
@@ -258,7 +279,7 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <p className="text-indigo-100 text-xs font-medium">
-                    Thu nhập
+                    {t("loginPage.visuals.income")}
                   </p>
                   <p className="text-white font-bold">+ 25.000.000đ</p>
                 </div>
@@ -275,7 +296,7 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <p className="text-indigo-100 text-xs font-medium">
-                    Chi tiêu
+                    {t("loginPage.visuals.expense")}
                   </p>
                   <p className="text-white font-bold">- 500.000đ</p>
                 </div>
@@ -292,11 +313,10 @@ export default function LoginPage() {
             {/* Text Slogan */}
             <div className="mt-12 text-center max-w-md">
               <h2 className="text-3xl font-bold text-white mb-4">
-                Quản lý tài chính thông minh
+                {t("loginPage.visuals.sloganTitle")}
               </h2>
               <p className="text-indigo-100 text-lg leading-relaxed">
-                Theo dõi thu chi, lập ngân sách và đạt được mục tiêu tài chính
-                của bạn dễ dàng hơn bao giờ hết.
+                {t("loginPage.visuals.sloganDesc")}
               </p>
             </div>
           </div>

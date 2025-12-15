@@ -4,7 +4,7 @@ import { addBudget } from "../../features/budgetSlice";
 import toast from "react-hot-toast";
 import axios from "axios";
 import { useTranslation, Trans } from "react-i18next";
-import { currencyMap } from "../../utils/currencies";
+import { currencyMap } from "../../constant/currencies";
 
 const BudgetModal = ({
   categoryList,
@@ -208,7 +208,7 @@ const BudgetModal = ({
         })
       ).unwrap();
 
-      toast.success("Đã lưu ngân sách!");
+      toast.success(t("budgetPage.success.add"));
       setIsFormOpen(false);
       onClose?.();
     } catch (err) {

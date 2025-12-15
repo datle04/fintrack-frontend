@@ -17,10 +17,10 @@ export const adminGetUsers = createAsyncThunk(
   "admin/user/adminGetUsers",
   async (filter, { rejectWithValue }) => {
 
-    const { name, email, role, isBanned, limit = 20, page = 1} = filter;
+    const { id, name, email, role, isBanned, limit = 20, page = 1} = filter;
 
     try {
-      const res = await axiosInstance.get(`/api/admin/users/?name=${name}&email=${email}&role=${role}&isBanned=${isBanned}&limit=${limit}&page=${page}`);
+      const res = await axiosInstance.get(`/api/admin/users/?id=${id}&name=${name}&email=${email}&role=${role}&isBanned=${isBanned}&limit=${limit}&page=${page}`);
       return res.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
