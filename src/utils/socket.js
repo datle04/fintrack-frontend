@@ -39,7 +39,7 @@ export const connectSocket = (userId) => {
   console.log(`🔌 [Socket] Creating NEW connection for User: ${userId}`);
   
   socket = io(BACK_END_URL, {
-    transports: ["websocket"], // Chỉ dùng websocket để ổn định
+    transports: ["polling","websocket"], // Chỉ dùng websocket để ổn định
     withCredentials: true,
     query: { userId: userId },
     reconnection: true,        // Cho phép tự kết nối lại
