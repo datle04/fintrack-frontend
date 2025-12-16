@@ -49,8 +49,6 @@ function App() {
     }
   }, [i18n]);
 
-  getSocket().on("test_event", (data) => console.log("TEST OK:", data));
-
   return (
     <>
       {isAppLoading && <FullScreenLottie />}
