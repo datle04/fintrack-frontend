@@ -219,7 +219,7 @@ const transactionSlice = createSlice({
                 state.error = null;
             })
            .addCase(createTransaction.fulfilled, (state, action) => {
-                console.log(action.payload);
+                console.log("[logloglogloglog]",action.payload);
                 const newTx = action.payload.transaction;
                 const txs = state.transactions;
 
