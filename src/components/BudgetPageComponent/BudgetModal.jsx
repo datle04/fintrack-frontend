@@ -45,22 +45,34 @@ const BudgetModal = ({
     setIsFormOpen(false);
   };
 
-  // Thay thế useEffect cũ bằng cái này:
+  // Tìm đoạn useEffect load data
   useEffect(() => {
-    // Kiểm tra xem có phải đang mở đúng tháng/năm của budget hiện tại không
     const isMatchingDate =
       currentBudget.month === Number(selectedMonth) &&
       currentBudget.year === Number(selectedYear);
 
-    if (isMatchingDate && currentBudget.totalBudget > 0) {
+    if (
+      isMatchingDate &&
+      (currentBudget.originalAmount > 0 || currentBudget.totalAmount > 0)
+    ) {
       setFormData({
         month: selectedMonth,
         year: selectedYear,
-        totalAmount: currentBudget.originalAmount, // Số gốc (Ngoại tệ hoặc VND)
-        currency: currentBudget.currency,
-        categories: currentBudget.categoryStats.map((c) => ({
+
+        // Backend trả về originalAmount (tiền gốc), map vào totalAmount của Form
+        totalAmount: currentBudget.originalAmount || currentBudget.totalAmount,
+
+        // Backend trả về originalCurrency, map vào currency của Form
+        currency:
+          currentBudget.originalCurrency ||
+          currentBudget.currency ||
+          defaultCurrency,
+
+        // Map danh sách categories
+        categories: (currentBudget.categories || []).map((c) => ({
           name: c.category,
-          amount: c.originalBudgetedAmount,
+          // Backend lưu 'originalAmount', map về 'amount' của Form
+          amount: c.originalAmount || c.amount,
         })),
       });
     } else {
@@ -69,9 +81,10 @@ const BudgetModal = ({
         ...prev,
         totalAmount: "",
         categories: [],
+        currency: defaultCurrency, // Reset về tiền tệ mặc định của user
       }));
     }
-  }, [selectedMonth, selectedYear, currentBudget]);
+  }, [selectedMonth, selectedYear, currentBudget, defaultCurrency]);
 
   useEffect(() => {
     // Bỏ qua lần render đầu tiên (khi form mới mở)
@@ -192,30 +205,37 @@ const BudgetModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const transformed = formData.categories.map((cat) => ({
+
+    // 1. Map Categories: Đổi tên 'name' -> 'category' và 'amount' -> 'originalAmount'
+    const mappedCategories = formData.categories.map((cat) => ({
       category: cat.name,
-      amount: cat.amount,
+      originalAmount: Number(cat.amount), // ✅ Backend yêu cầu 'originalAmount'
+      // ❌ Không gửi field 'amount' nữa để tránh lỗi "is not allowed"
     }));
 
+    // 2. Chuẩn bị Payload khớp 100% với Joi Schema
+    const payload = {
+      month: Number(formData.month),
+      year: Number(formData.year),
+
+      // ✅ Đổi 'totalAmount' -> 'originalAmount'
+      originalAmount: Number(formData.totalAmount),
+
+      // ✅ Đổi 'currency' -> 'originalCurrency'
+      originalCurrency: formData.currency,
+
+      categories: mappedCategories,
+    };
+
     try {
-      await dispatch(
-        addBudget({
-          month: Number(formData.month),
-          year: Number(formData.year),
-          totalAmount: Number(formData.totalAmount),
-          currency: formData.currency,
-          categories: transformed,
-        })
-      ).unwrap();
+      // Gửi payload đã chuẩn hóa
+      await dispatch(addBudget(payload)).unwrap();
 
       toast.success(t("budgetPage.success.add"));
       setIsFormOpen(false);
       onClose?.();
     } catch (err) {
-      // --- SỬA LỖI CHÍNH ---
-      // Hiển thị thông báo lỗi thật từ backend/slice
-      toast.error(err.message || "Đã xảy ra lỗi");
-      // --- KẾT THÚC SỬA LỖI CHÍNH ---
+      toast.error(err || "Đã xảy ra lỗi");
     }
   };
 

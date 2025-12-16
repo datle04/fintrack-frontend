@@ -18,27 +18,19 @@ const initialState = {
     error: null,
 }
 
-export const addBudget = createAsyncThunk('budget/addBudget', async ({ month, year, totalAmount, currency, categories}, { rejectWithValue }) => {
+export const addBudget = createAsyncThunk(
+  'budget/addBudget', 
+  async (payload, { rejectWithValue }) => {
     try {
-        // const { month, year, amount, categories } = fields;
-
-        const res = await axiosInstance.post(
-            `/api/budget`,
-            {
-                month,
-                year,
-                totalAmount,
-                currency,
-                categories
-            },
-        )
-
-        return res.data;
+      // payload lúc này sẽ là: { month, year, originalAmount, originalCurrency, categories }
+      const res = await axiosInstance.post(`/api/budget`, payload);
+      return res.data;
     } catch (error) {
-        console.log(error);
-        return rejectWithValue(error.response?.data?.message || error.message);
+      console.log(error);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
-})
+  }
+);
 
 export const getBudget = createAsyncThunk('budget/getBudget', async (fields, { rejectWithValue }) => {
     try {
