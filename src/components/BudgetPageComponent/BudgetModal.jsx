@@ -72,7 +72,7 @@ const BudgetModal = ({
         categories: (currentBudget.categoryStats || []).map((c) => ({
           name: c.category,
           // Backend lưu 'originalAmount', map về 'amount' của Form
-          amount: c.originalAmount || c.amount,
+          amount: c.originalBudgetedAmount || c.amount,
         })),
       });
     } else {
