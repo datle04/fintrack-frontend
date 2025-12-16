@@ -218,27 +218,25 @@ const transactionSlice = createSlice({
                 state.loading = true;
                 state.error = null;
             })
-           .addCase(createTransaction.fulfilled, (state, action) => {
-                const newTx = action.payload.transaction;
-                const txs = state.transactions;
+.addCase(createTransaction.fulfilled, (state, action) => {
+    const newTx = action.payload.transaction;
+    
+    state.loading = false;
 
-                state.loading = false;
+    // 1. Thêm giao dịch mới vào mảng
+    state.transactions.push(newTx);
 
-                if (!txs.length) return;
+    // 2. Sắp xếp lại toàn bộ mảng: Ngày MỚI NHẤT (lớn hơn) lên ĐẦU
+    state.transactions.sort((a, b) => {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
 
-                const newDate = new Date(newTx.date).getTime();
-                const firstDate = new Date(txs[0].date).getTime();
-                const lastDate = new Date(txs[txs.length - 1].date).getTime();
-
-                if (newDate > firstDate) {
-                    txs.unshift(newTx);
-                    if (txs.length > 10) txs.pop(); 
-                }
-                else if (newDate <= firstDate && newDate >= lastDate) {
-                    state.shouldRefetch = true;
-                }
-                // Nếu không liên quan gì tới range hiện tại -> bỏ qua
-            })
+    // 3. Giới hạn độ dài danh sách (để khớp với logic phân trang cũ của bạn)
+    // Ví dụ: Chỉ giữ lại 10 giao dịch mới nhất trên UI
+    if (state.transactions.length > 10) {
+        state.transactions.length = 10; // Tự động cắt bỏ các phần tử thừa phía sau (cũ nhất)
+    }
+})
             .addCase(createTransaction.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
