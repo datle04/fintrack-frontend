@@ -97,12 +97,6 @@ const AdminBudgetPage = () => {
     setPage(1);
   };
 
-  const handleEdit = (budget) => {
-    setSelectedBudget(budget);
-    dispatch(getBudgetById(budget._id));
-    setIsModalOpen(true);
-  };
-
   const handleDelete = (budget) => {
     setSelectedBudget(budget);
     setIsDeleteModalOpen(true);
@@ -292,13 +286,6 @@ const AdminBudgetPage = () => {
                       <td className="p-4">
                         <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={() => handleEdit(budget)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                            title="Sửa"
-                          >
-                            <FaEdit size={16} />
-                          </button>
-                          <button
                             onClick={() => handleDelete(budget)}
                             className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
                             title="Xóa"
@@ -329,17 +316,6 @@ const AdminBudgetPage = () => {
             onPageChange={(newPage) => setPage(newPage)}
           />
         </div>
-
-        {/* --- MODALS --- */}
-        {isModalOpen && selectedBudget && (
-          <EditBudgetModal
-            budget={selectedBudget}
-            onClose={() => {
-              setIsModalOpen(false);
-              setSelectedBudget(null);
-            }}
-          />
-        )}
 
         {isDeleteModalOpen && selectedBudget && (
           <ConfirmModal
