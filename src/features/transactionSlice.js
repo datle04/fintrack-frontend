@@ -69,7 +69,7 @@ export const createTransaction = createAsyncThunk(
         formData,
       );
       console.log(res.data);
-      return res.data.firstTransaction;
+      return res.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
     }
@@ -219,7 +219,6 @@ const transactionSlice = createSlice({
                 state.error = null;
             })
            .addCase(createTransaction.fulfilled, (state, action) => {
-                console.log("[logloglogloglog]",action.payload);
                 const newTx = action.payload.transaction;
                 const txs = state.transactions;
 
