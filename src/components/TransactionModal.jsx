@@ -276,10 +276,17 @@ const TransactionModal = ({
 
       if (formData.goal) formPayload.append("goalId", formData.goal);
 
+      // Trong handleSubmit
+      console.log("Check Images:", formData.receiptImages);
+
       // Ảnh (Chỉ có upload mới, không có existing)
       (formData.receiptImages || []).forEach((file) => {
         if (file instanceof File) formPayload.append("receiptImages", file);
       });
+    }
+
+    for (var pair of formPayload.entries()) {
+      console.log(pair[0] + ", " + pair[1]);
     }
 
     // =========================================================
