@@ -35,16 +35,27 @@ export const connectSocket = (userId) => {
     }
   }
 
-  // 2. Tạo kết nối mới (Nếu chưa có hoặc đã reset)
-  console.log(`🔌 [Socket] Creating NEW connection for User: ${userId}`);
+  // 2. Tạo kết nối mới
+console.log(`🔌 [Socket] Creating NEW connection for User: ${userId}`);
+
+socket = io(BACK_END_URL, {
+  // ⚠️ QUAN TRỌNG: Chỉ dùng websocket để tránh lỗi 400/Session unknown trên Render
+  transports: ["websocket"], 
   
-  socket = io(BACK_END_URL, {
-    transports: ["websocket"], // Chỉ dùng websocket để ổn định
-    withCredentials: true,
-    query: { userId: userId },
-    reconnection: true,        // Cho phép tự kết nối lại
-    upgrade: false,
-  });
+  // ⚠️ QUAN TRỌNG: Tắt upgrade để không bao giờ fallback về polling
+  upgrade: false,
+
+  withCredentials: true,
+  
+  // 👉 ĐỔI MỚI: Dùng auth thay vì query (An toàn và chuẩn hơn)
+  auth: {
+    userId: userId 
+  },
+  
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 3000,
+});
 
   // 3. Setup Listeners cơ bản (Chỉ setup 1 lần khi tạo mới)
   socket.on("connect", () => {
