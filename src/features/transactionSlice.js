@@ -67,6 +67,11 @@ export const createTransaction = createAsyncThunk(
       const res = await axiosInstance.post(
         `/api/transaction`,
         formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data", 
+          },
+        }
       );
       console.log(res.data);
       return res.data;
@@ -83,6 +88,14 @@ export const updateTransaction = createAsyncThunk(
       const res = await axiosInstance.patch(
         `/api/transaction/${id}`,
         fields, 
+        {
+          headers: {
+            // Quan trọng: Set content type là multipart/form-data
+            // Tuy nhiên, tốt nhất là ĐỪNG SET GÌ CẢ nếu dùng FormData thuần, 
+            // nhưng với Axios Instance đã config sẵn JSON, ta cần ghi đè:
+            "Content-Type": "multipart/form-data", 
+          },
+        }
       );
 
       return res.data;
