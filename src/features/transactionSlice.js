@@ -80,7 +80,7 @@ export const updateTransaction = createAsyncThunk(
   'transaction/updateTransaction',
   async ({ id, fields }, { rejectWithValue }) => { 
     try {
-      const res = await axiosInstance.put(
+      const res = await axiosInstance.patch(
         `/api/transaction/${id}`,
         fields, 
       );
