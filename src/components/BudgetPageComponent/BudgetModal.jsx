@@ -69,7 +69,7 @@ const BudgetModal = ({
           defaultCurrency,
 
         // Map danh sách categories
-        categories: (currentBudget.categories || []).map((c) => ({
+        categories: (currentBudget.categoryStats || []).map((c) => ({
           name: c.category,
           // Backend lưu 'originalAmount', map về 'amount' của Form
           amount: c.originalAmount || c.amount,
