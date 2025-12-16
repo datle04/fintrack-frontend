@@ -39,10 +39,11 @@ export const connectSocket = (userId) => {
   console.log(`🔌 [Socket] Creating NEW connection for User: ${userId}`);
   
   socket = io(BACK_END_URL, {
-    transports: ["polling","websocket"], // Chỉ dùng websocket để ổn định
+    transports: ["websocket"], // Chỉ dùng websocket để ổn định
     withCredentials: true,
     query: { userId: userId },
     reconnection: true,        // Cho phép tự kết nối lại
+    upgrade: false,
   });
 
   // 3. Setup Listeners cơ bản (Chỉ setup 1 lần khi tạo mới)
