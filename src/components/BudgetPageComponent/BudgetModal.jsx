@@ -222,7 +222,7 @@ const BudgetModal = ({
       originalAmount: Number(formData.totalAmount),
 
       // ✅ Đổi 'currency' -> 'originalCurrency'
-      currency: formData.currency,
+      originalCurrency: formData.currency,
 
       categories: mappedCategories,
     };
