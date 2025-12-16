@@ -218,25 +218,25 @@ const transactionSlice = createSlice({
                 state.loading = true;
                 state.error = null;
             })
-.addCase(createTransaction.fulfilled, (state, action) => {
-    const newTx = action.payload.transaction;
-    
-    state.loading = false;
+            .addCase(createTransaction.fulfilled, (state, action) => {
+                const newTx = action.payload.transaction;
+                
+                state.loading = false;
 
-    // 1. Thêm giao dịch mới vào mảng
-    state.transactions.push(newTx);
+                // 1. Thêm giao dịch mới vào mảng
+                state.transactions.push(newTx);
 
-    // 2. Sắp xếp lại toàn bộ mảng: Ngày MỚI NHẤT (lớn hơn) lên ĐẦU
-    state.transactions.sort((a, b) => {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
+                // 2. Sắp xếp lại toàn bộ mảng: Ngày MỚI NHẤT (lớn hơn) lên ĐẦU
+                state.transactions.sort((a, b) => {
+                    return new Date(b.date).getTime() - new Date(a.date).getTime();
+                });
 
-    // 3. Giới hạn độ dài danh sách (để khớp với logic phân trang cũ của bạn)
-    // Ví dụ: Chỉ giữ lại 10 giao dịch mới nhất trên UI
-    if (state.transactions.length > 10) {
-        state.transactions.length = 10; // Tự động cắt bỏ các phần tử thừa phía sau (cũ nhất)
-    }
-})
+                // 3. Giới hạn độ dài danh sách (để khớp với logic phân trang cũ của bạn)
+                // Ví dụ: Chỉ giữ lại 10 giao dịch mới nhất trên UI
+                if (state.transactions.length > 10) {
+                    state.transactions.length = 10; // Tự động cắt bỏ các phần tử thừa phía sau (cũ nhất)
+                }
+            })
             .addCase(createTransaction.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
