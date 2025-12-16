@@ -136,9 +136,14 @@ export const cancelRecurringTransaction = createAsyncThunk(
 export const adminUpdateTransaction = createAsyncThunk(
     'admin/transaction/adminUpdateTransaction', async ({ id, fields }, {rejectWithValue }) => {
     try {
-        const res = await axiosInstance.put(
+        const res = await axiosInstance.patch(
             `/api/admin/transactions/${id}`,
             fields, 
+            {
+                headers: {
+                    "Content-Type": "multipart/form-data", 
+                },
+            }
         );
 
         return res.data;

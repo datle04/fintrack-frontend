@@ -40,10 +40,11 @@ const TransactionModal = ({
   };
 
   const user = useSelector((state) => state.auth.user);
-  const token = useSelector((state) => state.auth.token);
   const goals = useSelector((state) => state.goals.goals);
   const { t, i18n } = useTranslation();
   const dispatch = useDispatch();
+
+  const isAdminEditing = user?.role === "admin" && !!transaction;
 
   const [formData, setFormData] = useState(initialState);
   const [existingImages, setExistingImages] = useState([]);
@@ -195,56 +196,96 @@ const TransactionModal = ({
     let hasChanges = false; // Cờ kiểm tra xem có gì thay đổi không
 
     // =========================================================
-    // TRƯỜNG HỢP 1: CẬP NHẬT (UPDATE) - Logic Thông Minh
+    // TRƯỜNG HỢP 1: CẬP NHẬT (UPDATE)
     // =========================================================
     if (transaction) {
-      // A. Tìm các trường thay đổi (Text/Number/Boolean)
-      const dirtyFields = getDirtyValues(transaction, formData);
+      // 🚨 LOGIC RIÊNG CHO ADMIN
+      if (user.role === "admin") {
+        // --- 1. Kiểm tra Reason (Bắt buộc) ---
+        if (!formData.reason?.trim()) {
+          toast.error("Admin bắt buộc phải nhập lý do chỉnh sửa!");
+          return;
+        }
+        formPayload.append("reason", formData.reason);
 
-      // B. Kiểm tra logic Ảnh (Phức tạp hơn text)
-      // - Có file mới upload không?
-      const newFiles = (formData.receiptImages || []).filter(
-        (f) => f instanceof File
-      );
-      const hasNewFiles = newFiles.length > 0;
+        // --- 2. Kiểm tra Note ---
+        if (formData.note !== transaction.note) {
+          formPayload.append("note", formData.note);
+          hasChanges = true;
+        }
 
-      // - Có xóa ảnh cũ không? (So sánh độ dài mảng ảnh cũ hiện tại vs ban đầu)
-      const originalImagesCount = (transaction.receiptImage || []).length;
-      const currentExistingImagesCount = existingImages.length;
-      const hasDeletedImages =
-        originalImagesCount !== currentExistingImagesCount;
+        // --- 3. Kiểm tra Ảnh ---
+        const newFiles = (formData.receiptImages || []).filter(
+          (f) => f instanceof File
+        );
+        const hasNewFiles = newFiles.length > 0;
+        const hasDeletedImages =
+          (transaction.receiptImage || []).length !== existingImages.length;
 
-      // C. Nếu KHÔNG có gì thay đổi -> Dừng luôn, không gọi API
-      if (
-        Object.keys(dirtyFields).length === 0 &&
-        !hasNewFiles &&
-        !hasDeletedImages
-      ) {
-        toast.info("Bạn chưa thay đổi thông tin nào!");
-        onClose();
-        return;
+        if (hasNewFiles || hasDeletedImages) {
+          hasChanges = true;
+          newFiles.forEach((file) => formPayload.append("receiptImages", file));
+          existingImages.forEach((url) =>
+            formPayload.append("existingImages", url)
+          );
+        }
+
+        if (!hasChanges) {
+          toast.info("Admin chỉ được phép sửa Ghi chú hoặc Ảnh chứng từ.");
+          return; // Dừng ngay
+        }
       }
 
-      hasChanges = true;
+      // 🚨 LOGIC CHO USER THƯỜNG (Dùng else để Admin không lọt vào đây)
+      else {
+        // A. Tìm các trường thay đổi
+        const dirtyFields = getDirtyValues(transaction, formData);
 
-      // D. Đóng gói các trường thay đổi vào FormData
-      Object.keys(dirtyFields).forEach((key) => {
-        let value = dirtyFields[key];
-        // Convert Boolean sang String cho FormData
-        if (typeof value === "boolean") value = String(value);
-        formPayload.append(key, value);
-      });
-
-      // E. Đóng gói Ảnh cho Update
-      // - File mới:
-      newFiles.forEach((file) => formPayload.append("receiptImages", file)); // Key phải khớp với upload.array('receiptImages') ở BE
-
-      // - Ảnh cũ muốn giữ lại (Backend cần cái này để merge):
-      // Chỉ gửi khi có sự thay đổi về ảnh (thêm hoặc xóa) để tối ưu
-      if (hasNewFiles || hasDeletedImages) {
-        existingImages.forEach((url) =>
-          formPayload.append("existingImages", url)
+        // B. Logic Ảnh
+        const newFiles = (formData.receiptImages || []).filter(
+          (f) => f instanceof File
         );
+        const hasNewFiles = newFiles.length > 0;
+        const originalImagesCount = (transaction.receiptImage || []).length;
+        const currentExistingImagesCount = existingImages.length;
+        const hasDeletedImages =
+          originalImagesCount !== currentExistingImagesCount;
+
+        // C. Kiểm tra có thay đổi không
+        if (
+          Object.keys(dirtyFields).length === 0 &&
+          !hasNewFiles &&
+          !hasDeletedImages
+        ) {
+          toast.info("Bạn chưa thay đổi thông tin nào!");
+          onClose();
+          return;
+        }
+
+        hasChanges = true;
+
+        // D. Append các trường thay đổi
+        Object.keys(dirtyFields).forEach((key) => {
+          // ⛔️ Loại bỏ reason và ảnh ra khỏi vòng lặp này (để xử lý riêng hoặc không gửi)
+          if (
+            key === "reason" ||
+            key === "receiptImages" ||
+            key === "existingImages"
+          )
+            return;
+
+          let value = dirtyFields[key];
+          if (typeof value === "boolean") value = String(value);
+          formPayload.append(key, value);
+        });
+
+        // E. Append Ảnh
+        if (hasNewFiles || hasDeletedImages) {
+          newFiles.forEach((file) => formPayload.append("receiptImages", file));
+          existingImages.forEach((url) =>
+            formPayload.append("existingImages", url)
+          );
+        }
       }
     }
 
@@ -332,10 +373,13 @@ const TransactionModal = ({
             <select
               name="type"
               value={formData.type}
+              disabled={isAdminEditing}
               onChange={handleChange}
               className={`w-full border px-3 py-2 rounded dark:focus:outline-slate-700 ${
-                goalType ? "pointer-events-none opacity-70" : ""
-              }`}
+                isAdminEditing
+                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                  : ""
+              } ${goalType ? "pointer-events-none opacity-70" : ""}`}
             >
               <option value="income" className="dark:bg-[#2E2E33]">
                 {t("income")}
@@ -356,11 +400,14 @@ const TransactionModal = ({
                 type="number"
                 name="amount"
                 value={formData.amount}
+                disabled={isAdminEditing}
                 onChange={handleChange}
                 // 5️⃣ UI hiển thị lỗi (Border đỏ)
                 className={`w-full border px-3 py-2 rounded ${
-                  errors.amount ? "border-red-500 focus:ring-red-200" : ""
-                }`}
+                  isAdminEditing
+                    ? "bg-gray-100 cursor-not-allowed opacity-60"
+                    : ""
+                } ${errors.amount ? "border-red-500 focus:ring-red-200" : ""}`}
               />
               {/* 6️⃣ UI hiển thị text lỗi */}
               {errors.amount && (
@@ -375,8 +422,13 @@ const TransactionModal = ({
               <select
                 name="currency"
                 value={formData.currency}
+                disabled={isAdminEditing}
                 onChange={handleChange}
-                className="w-full border px-3 py-2 rounded outline-none dark:focus:outline-slate-700 dark:bg-[#2E2E33]"
+                className={`w-full border px-3 py-2 rounded outline-none dark:focus:outline-slate-700 dark:bg-[#2E2E33] ${
+                  isAdminEditing
+                    ? "bg-gray-100 cursor-not-allowed opacity-60"
+                    : ""
+                }`}
               >
                 {[...currencyMap].map(([code, label]) => (
                   <option key={code} value={code} className="dark:bg-[#2E2E33]">
@@ -407,10 +459,15 @@ const TransactionModal = ({
             <select
               name="category"
               value={formData.category}
+              disabled={isAdminEditing}
               onChange={handleChange}
               className={`w-full border px-3 py-2 rounded dark:focus:outline-slate-700 ${
-                goalCategory ? "pointer-events-none opacity-70" : ""
-              } ${errors.category ? "border-red-500" : ""}`}
+                isAdminEditing
+                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                  : ""
+              } ${goalCategory ? "pointer-events-none opacity-70" : ""} ${
+                errors.category ? "border-red-500" : ""
+              }`}
             >
               <option value="">-- {t("selectCategory")} --</option>
               {Array.isArray(categoryList) &&
@@ -438,8 +495,13 @@ const TransactionModal = ({
               <select
                 name="goal"
                 value={formData.goal}
+                disabled={isAdminEditing}
                 onChange={handleChange}
                 className={`w-full border px-3 py-2 rounded dark:focus:outline-slate-700 ${
+                  isAdminEditing
+                    ? "bg-gray-100 cursor-not-allowed opacity-60"
+                    : ""
+                } ${
                   goalId && !formData.goal
                     ? ""
                     : goalId
@@ -475,10 +537,13 @@ const TransactionModal = ({
                 type="date"
                 name="date"
                 value={formData.date}
+                disabled={isAdminEditing}
                 onChange={handleChange}
                 className={`w-full border px-3 py-2 rounded dark:bg-[#2E2E33] ${
-                  errors.date ? "border-red-500" : ""
-                }`}
+                  isAdminEditing
+                    ? "bg-gray-100 cursor-not-allowed opacity-60"
+                    : ""
+                } ${errors.date ? "border-red-500" : ""}`}
               />
               {errors.date && (
                 <p className="text-red-500 text-xs mt-1">{errors.date}</p>
@@ -492,10 +557,17 @@ const TransactionModal = ({
               type="checkbox"
               name="isRecurring"
               className="cursor-pointer"
+              disabled={isAdminEditing}
               checked={formData.isRecurring}
               onChange={handleChange}
             />
-            <label className="text-sm cursor-pointer">
+            <label
+              className={`text-sm ${
+                isAdminEditing
+                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                  : "cursor-pointer"
+              }`}
+            >
               {t("recurringTransaction")}
             </label>
           </div>
@@ -510,13 +582,16 @@ const TransactionModal = ({
               <input
                 type="number"
                 name="recurringDay"
+                disabled={isAdminEditing}
                 min={1}
                 max={31}
                 value={formData.recurringDay ?? ""}
                 onChange={handleChange}
-                className={`w-full border px-3 py-2 rounded ${
-                  errors.recurringDay ? "border-red-500" : ""
-                }`}
+                className={`w-full border px-3 py-2 rounded  ${
+                  isAdminEditing
+                    ? "bg-gray-100 cursor-not-allowed opacity-60"
+                    : ""
+                }  ${errors.recurringDay ? "border-red-500" : ""}`}
               />
               {errors.recurringDay && (
                 <p className="text-red-500 text-xs mt-1">
