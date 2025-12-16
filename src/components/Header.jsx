@@ -92,6 +92,8 @@ const Header = () => {
     const socket = connectSocket(user.id);
     console.log("CLIENT SOCKET ID:", socket.id);
 
+    socket.on("test_event", (data) => console.log("TEST OK:", data));
+
     // 2. Lắng nghe sự kiện 'new_notification'
     // Lưu ý: Dùng .off trước để tránh đăng ký trùng lặp khi re-render
     socket.off("new_notification").on("new_notification", (newNoti) => {
