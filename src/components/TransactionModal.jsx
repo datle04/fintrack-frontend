@@ -182,7 +182,7 @@ const TransactionModal = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 4️⃣ Gọi validate trước khi submit
+    // 1️⃣ VALIDATE (Giữ nguyên)
     if (!validateForm()) {
       toast.error(
         t("validate.checkForm") || "Vui lòng kiểm tra lại thông tin!"
@@ -191,55 +191,111 @@ const TransactionModal = ({
     }
 
     const formPayload = new FormData();
-    formPayload.append("type", formData.type);
-    formPayload.append("amount", String(formData.amount));
-    formPayload.append("currency", formData.currency);
-    formPayload.append("category", formData.category);
-    formPayload.append("note", formData.note || "");
+    let hasChanges = false; // Cờ kiểm tra xem có gì thay đổi không
 
-    // 2️⃣ XỬ LÝ LOGIC DATE CHO RECURRING
-    // - Nếu có formData.date (User chọn) -> Gửi đi bình thường.
-    // - Nếu là Recurring mà KHÔNG chọn date -> Mặc định lấy ngày hiện tại (Start Date = Today).
-    // - Nếu là giao dịch thường mà không có date -> Đã bị chặn ở validate rồi.
+    // =========================================================
+    // TRƯỜNG HỢP 1: CẬP NHẬT (UPDATE) - Logic Thông Minh
+    // =========================================================
+    if (transaction) {
+      // A. Tìm các trường thay đổi (Text/Number/Boolean)
+      const dirtyFields = getDirtyValues(transaction, formData);
 
-    if (formData.date) {
-      formPayload.append("date", formData.date);
-    } else if (formData.isRecurring) {
-      // Fallback: Nếu không chọn ngày bắt đầu, mặc định là ngay bây giờ
-      formPayload.append("date", new Date().toISOString());
+      // B. Kiểm tra logic Ảnh (Phức tạp hơn text)
+      // - Có file mới upload không?
+      const newFiles = (formData.receiptImages || []).filter(
+        (f) => f instanceof File
+      );
+      const hasNewFiles = newFiles.length > 0;
+
+      // - Có xóa ảnh cũ không? (So sánh độ dài mảng ảnh cũ hiện tại vs ban đầu)
+      const originalImagesCount = (transaction.receiptImage || []).length;
+      const currentExistingImagesCount = existingImages.length;
+      const hasDeletedImages =
+        originalImagesCount !== currentExistingImagesCount;
+
+      // C. Nếu KHÔNG có gì thay đổi -> Dừng luôn, không gọi API
+      if (
+        Object.keys(dirtyFields).length === 0 &&
+        !hasNewFiles &&
+        !hasDeletedImages
+      ) {
+        toast.info("Bạn chưa thay đổi thông tin nào!");
+        onClose();
+        return;
+      }
+
+      hasChanges = true;
+
+      // D. Đóng gói các trường thay đổi vào FormData
+      Object.keys(dirtyFields).forEach((key) => {
+        let value = dirtyFields[key];
+        // Convert Boolean sang String cho FormData
+        if (typeof value === "boolean") value = String(value);
+        formPayload.append(key, value);
+      });
+
+      // E. Đóng gói Ảnh cho Update
+      // - File mới:
+      newFiles.forEach((file) => formPayload.append("receiptImages", file)); // Key phải khớp với upload.array('receiptImages') ở BE
+
+      // - Ảnh cũ muốn giữ lại (Backend cần cái này để merge):
+      // Chỉ gửi khi có sự thay đổi về ảnh (thêm hoặc xóa) để tối ưu
+      if (hasNewFiles || hasDeletedImages) {
+        existingImages.forEach((url) =>
+          formPayload.append("existingImages", url)
+        );
+      }
     }
 
-    // 3️⃣ Xử lý các trường Recurring
-    // Chuyển boolean sang string "true"/"false" cho FormData
-    formPayload.append("isRecurring", formData.isRecurring ? "true" : "false");
+    // =========================================================
+    // TRƯỜNG HỢP 2: TẠO MỚI (CREATE) - Logic Gửi Hết
+    // =========================================================
+    else {
+      hasChanges = true; // Tạo mới luôn là có thay đổi
 
-    if (formData.isRecurring) {
-      // Mặc định ngày 1 nếu không nhập
-      formPayload.append("recurringDay", formData.recurringDay || "1");
-      // Nếu có logic ngày kết thúc (recurringEndDate), append tại đây
+      // Append các trường cơ bản
+      formPayload.append("type", formData.type);
+      formPayload.append("amount", String(formData.amount));
+      formPayload.append("currency", formData.currency);
+      formPayload.append("category", formData.category);
+      formPayload.append("note", formData.note || "");
+
+      // Logic Date mặc định
+      if (formData.date) {
+        formPayload.append("date", formData.date);
+      } else if (formData.isRecurring) {
+        formPayload.append("date", new Date().toISOString());
+      }
+
+      // Recurring
+      formPayload.append("isRecurring", String(formData.isRecurring));
+      if (formData.isRecurring) {
+        formPayload.append("recurringDay", formData.recurringDay || "1");
+      }
+
+      if (formData.goal) formPayload.append("goalId", formData.goal);
+
+      // Ảnh (Chỉ có upload mới, không có existing)
+      (formData.receiptImages || []).forEach((file) => {
+        if (file instanceof File) formPayload.append("receiptImages", file);
+      });
     }
 
-    if (formData.reason) formPayload.append("reason", formData.reason);
-    if (formData.goal) formPayload.append("goalId", formData.goal);
-    (formData.receiptImages || []).forEach((file) => {
-      if (file instanceof File) formPayload.append("receiptImages", file);
-    });
-
-    existingImages.forEach((url) => formPayload.append("existingImages", url));
+    // =========================================================
+    // GỌI API (ACTION)
+    // =========================================================
+    if (!hasChanges) return; // Chặn lần cuối cho chắc
 
     const actionPromise = (async () => {
       if (transaction) {
-        if (user.role === "admin") {
-          await dispatch(
-            adminUpdateTransaction({ id: transaction._id, fields: formPayload })
-          ).unwrap();
-        } else {
-          await dispatch(
-            updateTransaction({ id: transaction._id, fields: formPayload })
-          ).unwrap();
-        }
-        // dispatch(getNotifications());
+        // UPDATE (PATCH)
+        const action =
+          user.role === "admin" ? adminUpdateTransaction : updateTransaction;
+        await dispatch(
+          action({ id: transaction._id, fields: formPayload })
+        ).unwrap();
       } else {
+        // CREATE (POST)
         await dispatch(createTransaction(formPayload)).unwrap();
       }
 
@@ -247,16 +303,12 @@ const TransactionModal = ({
     })();
 
     toast.promise(actionPromise, {
-      loading: transaction
-        ? "Đang cập nhật giao dịch..."
-        : "Đang tạo giao dịch...",
-      success: transaction
-        ? "Cập nhật giao dịch thành công!"
-        : "Tạo giao dịch thành công!",
+      loading: transaction ? "Đang cập nhật..." : "Đang tạo...",
+      success: transaction ? "Cập nhật thành công!" : "Tạo thành công!",
       error: (err) => err?.message || "Đã xảy ra lỗi!",
     });
 
-    actionPromise.then(() => onClose()).catch(() => {}); // Catch lỗi để không crash app, toast đã handle hiển thị lỗi
+    actionPromise.then(() => onClose()).catch((err) => console.error(err));
   };
 
   return (

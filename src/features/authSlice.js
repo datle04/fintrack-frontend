@@ -66,7 +66,7 @@ export const updateUser = createAsyncThunk(
   "auth/updateProfile",
   async (formData, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.put("/api/user/profile", formData, {
+      const res = await axiosInstance.patch("/api/user/profile", formData, {
         headers: {
           "Content-Type": "multipart/form-data", 
         },

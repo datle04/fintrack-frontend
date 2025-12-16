@@ -42,7 +42,7 @@ export const updateGoal = createAsyncThunk(
     "goal/updateGoal",
     async ({ id, formData }, { rejectWithValue }) => {
         try {
-            const res = await axiosInstance.put(`/api/goals/${id}`, formData);
+            const res = await axiosInstance.patch(`/api/goals/${id}`, formData);
             return res.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || error.message);
