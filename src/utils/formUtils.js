@@ -37,11 +37,22 @@ export const getDirtyValues = (initialValues, formValues) => {
       return;
     }
 
-    // 4. So sánh giá trị cơ bản (String, Number, Boolean)
-    // Dùng != thay vì !== để '100' (string) vẫn bằng 100 (number) nếu muốn
-    // Nhưng tốt nhất nên dùng !== và đảm bảo type chuẩn
+    // Xử lý riêng cho trường hợp Số vs Chuỗi số (VD: amount, targetOriginalAmount)
+    // Nếu cả 2 đều quy đổi được ra số và bằng nhau -> Coi như không đổi
+    if (
+        typeof original === 'number' && 
+        typeof current === 'string' && 
+        !isNaN(Number(current))
+    ) {
+        if (original === Number(current)) return; // Bỏ qua, coi như giống nhau
+    }
+
+    // So sánh giá trị cơ bản
     if (original !== current) {
-      // Logic riêng cho số: rỗng và 0 có thể coi là khác nhau
+      // Logic chặn chuỗi rỗng và null (tùy chọn)
+      // Nếu dữ liệu cũ là null/undefined và mới là "" -> Coi như giống nhau
+      if ((original === null || original === undefined) && current === "") return;
+      
       changes[key] = current;
     }
   });

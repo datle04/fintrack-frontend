@@ -6,88 +6,139 @@ import { currencyMap } from "../../constant/currencies";
 import toast from "react-hot-toast";
 import { createGoal, updateGoal } from "../../features/goalSlice";
 import dayjs from "dayjs";
+import { getDirtyValues } from "../../utils/formUtils";
 
 // --- Goal Modal Component ---
 const GoalModal = ({ goal, onClose, t }) => {
   const dispatch = useDispatch();
-
-  // 1. State lưu lỗi
   const [errors, setErrors] = useState({});
 
+  // 1️⃣ THÊM STATE LƯU GIÁ TRỊ GỐC
+  const [initialValues, setInitialValues] = useState(null);
+
+  // State Form (Khởi tạo rỗng trước, sẽ được useEffect điền dữ liệu)
   const [formData, setFormData] = useState({
-    name: goal?.name || "",
-    targetCurrency: goal?.targetCurrency || "VND",
-    targetOriginalAmount: goal?.targetOriginalAmount || "",
-    targetDate: goal?.targetDate
-      ? dayjs(goal.targetDate).format("YYYY-MM-DD")
-      : "",
-    description: goal?.description || "",
+    name: "",
+    targetCurrency: "VND",
+    targetOriginalAmount: "",
+    targetDate: "",
+    description: "",
   });
 
-  const handleChange = (e) => {
-    const { name, value, type } = e.target;
+  // 2️⃣ USE EFFECT: Chuẩn hóa dữ liệu đầu vào
+  // Logic này quan trọng để getDirtyValues hoạt động đúng (đặc biệt là Date)
+  useEffect(() => {
+    if (goal) {
+      const initData = {
+        name: goal.name,
+        targetCurrency: goal.targetCurrency || "VND",
+        // Đảm bảo là số hoặc chuỗi số để so sánh
+        targetOriginalAmount: goal.targetOriginalAmount,
+        // Format ngày tháng về YYYY-MM-DD để khớp với input type="date"
+        targetDate: goal.targetDate
+          ? dayjs(goal.targetDate).format("YYYY-MM-DD")
+          : "",
+        description: goal.description || "",
+      };
 
-    // 2. Xóa lỗi khi người dùng bắt đầu nhập lại
+      setInitialValues(initData);
+      setFormData(initData);
+    } else {
+      // Logic cho trường hợp Thêm mới (Reset form)
+      setFormData({
+        name: "",
+        targetCurrency: "VND",
+        targetOriginalAmount: "",
+        targetDate: "",
+        description: "",
+      });
+      setInitialValues(null);
+    }
+  }, [goal]);
+
+  const handleChange = (e) => {
+    // ... Giữ nguyên code cũ
+    const { name, value, type } = e.target;
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
     }
-
     setFormData((prev) => ({
       ...prev,
       [name]: type === "number" ? Number(value) : value,
     }));
   };
 
-  // 3. Hàm Validate
   const validateForm = () => {
+    // ... Giữ nguyên code cũ
+    // Logic validate vẫn phải check trên formData hiện tại
     const newErrors = {};
     const now = dayjs();
 
-    // Validate Tên
-    if (!formData.name.trim()) {
-      newErrors.name =
-        t("validate.nameRequired") || "Vui lòng nhập tên mục tiêu";
-    }
+    if (!formData.name.trim()) newErrors.name = t("validate.nameRequired");
 
-    // Validate Số tiền
     if (
       !formData.targetOriginalAmount ||
       Number(formData.targetOriginalAmount) <= 0
     ) {
-      newErrors.targetOriginalAmount =
-        t("validate.amountPositive") || "Số tiền phải lớn hơn 0";
+      newErrors.targetOriginalAmount = t("validate.amountPositive");
     }
 
-    // Validate Ngày tháng
     if (!formData.targetDate) {
-      newErrors.targetDate = t("validate.dateRequired") || "Vui lòng chọn ngày";
+      newErrors.targetDate = t("validate.dateRequired");
     } else {
       const selectedDate = dayjs(formData.targetDate);
-      // Ngày mục tiêu phải là tương lai (lớn hơn ngày hiện tại)
       if (selectedDate.isBefore(now, "day")) {
-        newErrors.targetDate =
-          t("validate.futureDate") || "Ngày mục tiêu phải ở trong tương lai";
+        newErrors.targetDate = t("validate.futureDate");
       }
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0; // Trả về true nếu không có lỗi
+    return Object.keys(newErrors).length === 0;
   };
 
+  // 3️⃣ CẬP NHẬT HANDLESUBMIT
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // 4. Gọi validate trước khi submit
-    if (!validateForm()) {
-      // toast.error("Vui lòng kiểm tra lại thông tin!");
-      return;
+    // Bước 1: Validate form hiện tại (Bắt buộc cho cả Thêm và Sửa)
+    if (!validateForm()) return;
+
+    let payload;
+
+    // =================================================
+    // TRƯỜNG HỢP SỬA (UPDATE) - Dùng Diffing
+    // =================================================
+    if (goal) {
+      // Lấy ra các trường thay đổi
+      const dirtyFields = getDirtyValues(initialValues, formData);
+
+      // Nếu không có gì thay đổi -> Thông báo và đóng
+      if (Object.keys(dirtyFields).length === 0) {
+        toast.info(t("info.noChanges") || "Bạn chưa thay đổi thông tin nào!");
+        onClose();
+        return;
+      }
+
+      // Chuẩn bị payload chỉ chứa các trường thay đổi
+      payload = { ...dirtyFields };
+
+      // Quan trọng: Nếu targetOriginalAmount có thay đổi, đảm bảo nó là Number
+      if (payload.targetOriginalAmount !== undefined) {
+        payload.targetOriginalAmount = Number(payload.targetOriginalAmount);
+      }
     }
 
-    const payload = {
-      ...formData,
-      targetOriginalAmount: Number(formData.targetOriginalAmount),
-    };
+    // =================================================
+    // TRƯỜNG HỢP THÊM (CREATE) - Gửi hết
+    // =================================================
+    else {
+      payload = {
+        ...formData,
+        targetOriginalAmount: Number(formData.targetOriginalAmount),
+      };
+    }
 
+    // Gọi API
     const actionPromise = goal
       ? dispatch(updateGoal({ id: goal._id, formData: payload })).unwrap()
       : dispatch(createGoal(payload)).unwrap();
@@ -97,7 +148,6 @@ const GoalModal = ({ goal, onClose, t }) => {
         loading: goal
           ? t("goalPage.toast.updatingGoal")
           : t("goalPage.toast.creating"),
-
         success: goal
           ? t("goalPage.toast.updateSuccess")
           : t("goalPage.toast.createSuccess"),
