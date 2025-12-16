@@ -44,7 +44,7 @@ function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
-    if (user.role === "admin") {
+    if (user?.role === "admin") {
       i18n.changeLanguage("vi");
     }
   }, [i18n]);
