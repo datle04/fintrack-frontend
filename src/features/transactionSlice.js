@@ -220,6 +220,7 @@ const transactionSlice = createSlice({
             })
             .addCase(createTransaction.fulfilled, (state, action) => {
                 const newTx = action.payload.transaction;
+                const txs = state.transactions;
                 
                 state.loading = false;
 
