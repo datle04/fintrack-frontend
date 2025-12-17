@@ -38,6 +38,8 @@ const GoalCard = ({
 
   // Logic hiển thị
   const isCompleted = status === "completed";
+  const isFailed = status === "failed";
+
   const daysRemaining = savingsPlan?.daysRemaining || 0;
   // Quá hạn khi: chưa xong VÀ ngày còn lại <= 0
   const isOverdue = daysRemaining <= 0 && !isCompleted;
