@@ -1,31 +1,34 @@
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { Shield, User, Lock, Save, X, AlertCircle } from "lucide-react"; // Thêm icon cho đẹp
 import { currencyMap } from "../../constant/currencies";
 
 const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
+  // State chỉ lưu những gì được phép sửa
   const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    role: user?.role || "user",
-    dob: user?.dob || "",
-    address: user?.address || "",
-    phone: user?.phone || "",
-    currency: user?.currency || "VND",
+    role: "user",
     reason: "",
   });
 
+  // State lưu thông tin hiển thị (Read-only)
+  const [displayData, setDisplayData] = useState({});
+
   useEffect(() => {
     if (user) {
-      setFormData({
-        id: user._id || "",
+      // 1. Set dữ liệu để hiển thị (Snapshot)
+      setDisplayData({
         name: user.name || "",
         email: user.email || "",
-        role: user.role || "user",
-        dob: user.dob || "",
+        dob: user.dob ? new Date(user.dob).toISOString().split("T")[0] : "",
         address: user.address || "",
         phone: user.phone || "",
         currency: user.currency || "VND",
-        reason: "",
+      });
+
+      // 2. Set dữ liệu để chỉnh sửa
+      setFormData({
+        role: user.role || "user",
+        reason: "", // Luôn reset lý do
       });
     }
   }, [user]);
@@ -36,151 +39,184 @@ const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
   };
 
   const handleSubmit = () => {
-    onSave(formData);
+    // 1. Validate Role (Không cho phép đổi role nếu chưa chọn)
+    if (!formData.role) return;
+
+    // 2. Validate Reason (Bắt buộc)
+    if (!formData.reason.trim()) {
+      toast.error("Vui lòng nhập lý do thay đổi quyền hạn!");
+      return;
+    }
+
+    // 3. Gọi hàm save (Chỉ gửi role và reason)
+    onSave({
+      ...formData,
+      id: user._id, // Gửi kèm ID để parent component xử lý
+    });
   };
 
   if (!isOpen) return null;
 
+  // Class chung cho input bị disabled
+  const disabledInputClass =
+    "w-full border border-gray-200 bg-gray-100 text-gray-500 rounded-lg px-3 py-2.5 text-sm cursor-not-allowed focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400";
+
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-[2px] flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl w-full max-w-md shadow-lg">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Chỉnh sửa người dùng</h2>
-          <button onClick={onClose} className="text-gray-600 hover:text-black">
-            &times;
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div className="bg-white dark:bg-[#1E1E24] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700 flex flex-col max-h-[90vh]">
+        {/* HEADER */}
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-white/5">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400">
+              <Shield size={20} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-800 dark:text-white">
+                Quản lý Quyền hạn
+              </h2>
+              <p className="text-xs text-gray-500">ID: {user?._id}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+          >
+            <X size={24} />
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block mb-1 text-sm font-medium text-gray-700">
-              Tên
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              placeholder="Nhập tên người dùng..."
-            />
+        {/* BODY (Scrollable) */}
+        <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
+          {/* 🔴 SECTION 1: THÔNG TIN CÁ NHÂN (READ-ONLY) */}
+          <div className="space-y-4 opacity-75">
+            <div className="flex items-center gap-2 mb-2">
+              <User size={16} className="text-gray-400" />
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                Thông tin cá nhân (Chỉ xem)
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-1 text-xs font-medium text-gray-500">
+                  Tên hiển thị
+                </label>
+                <input
+                  type="text"
+                  value={displayData.name}
+                  disabled
+                  className={disabledInputClass}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-xs font-medium text-gray-500">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={displayData.email}
+                  disabled
+                  className={disabledInputClass}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-xs font-medium text-gray-500">
+                  SĐT
+                </label>
+                <input
+                  type="text"
+                  value={displayData.phone}
+                  disabled
+                  className={disabledInputClass}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-xs font-medium text-gray-500">
+                  Ngày sinh
+                </label>
+                <input
+                  type="date"
+                  value={displayData.dob}
+                  disabled
+                  className={disabledInputClass}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block mb-1 text-xs font-medium text-gray-500">
+                Địa chỉ
+              </label>
+              <input
+                type="text"
+                value={displayData.address}
+                disabled
+                className={disabledInputClass}
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block mb-1 text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              placeholder="Nhập email..."
-            />
-          </div>
+          <hr className="border-gray-100 dark:border-gray-700" />
 
-          <div>
-            <label className="block mb-1 text-sm font-medium text-gray-700">
-              Ngày sinh
-            </label>
-            <input
-              type="date"
-              name="dob"
-              value={formData.dob}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              placeholder="Nhập ngày sinh..."
-            />
-          </div>
+          {/* 🟢 SECTION 2: PHÂN QUYỀN (EDITABLE) */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Lock size={16} className="text-indigo-500" />
+              <h3 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                Cài đặt Quyền & Bảo mật
+              </h3>
+            </div>
 
-          <div>
-            <label className="block mb-1 text-sm font-medium text-gray-700">
-              SĐT
-            </label>
-            <input
-              type="text"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              placeholder="Nhập SĐT..."
-            />
-          </div>
+            {/* Role Select */}
+            <div className="p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
+              <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Vai trò hệ thống
+              </label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="w-full border-2 border-indigo-200 dark:border-indigo-700 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-[#2a2a30] text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all cursor-pointer"
+              >
+                <option value="user">User (Người dùng thường)</option>
+                <option value="admin">Admin (Quản trị viên)</option>
+              </select>
+              <p className="mt-2 text-xs text-indigo-600/80 flex items-start gap-1">
+                <AlertCircle size={12} className="mt-0.5" />
+                Thay đổi vai trò sẽ cấp hoặc thu hồi quyền truy cập vào trang
+                quản trị.
+              </p>
+            </div>
 
-          <div>
-            <label className="block mb-1 text-sm font-medium text-gray-700">
-              Địa chỉ
-            </label>
-            <input
-              type="text"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              placeholder="Nhập địa chỉ..."
-            />
-          </div>
-
-          <div>
-            <label className="block mb-1 text-sm font-medium text-gray-700">
-              Vai trò
-            </label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-            >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block mb-1 text-sm font-medium text-gray-700">
-              Đơn vị tiền tệ
-            </label>
-            <select
-              name="currency"
-              value={formData.currency}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-            >
-              {[...currencyMap].map(([code, label]) => (
-                <option key={code} value={code} className="dark:bg-[#2E2E33]">
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block mb-1 text-sm font-medium text-gray-700">
-              Lý do
-            </label>
-            <input
-              type="text"
-              name="reason"
-              value={formData.reason}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              placeholder="Nhập lý do cho các thay đổi..."
-            />
+            {/* Reason Input */}
+            <div>
+              <label className="block mb-1.5 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Lý do thay đổi <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                name="reason"
+                rows="3"
+                value={formData.reason}
+                onChange={handleChange}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all resize-none bg-white dark:bg-[#2a2a30] dark:text-white"
+                placeholder="Nhập lý do chi tiết cho việc thay đổi quyền hạn này..."
+              />
+            </div>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 mt-6">
+        {/* FOOTER */}
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-white/5">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm"
+            className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium text-sm transition-colors dark:bg-transparent dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/5"
           >
-            Hủy
+            Hủy bỏ
           </button>
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+            className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium text-sm shadow-lg shadow-indigo-500/30 flex items-center gap-2 transition-transform active:scale-95"
           >
+            <Save size={18} />
             Lưu thay đổi
           </button>
         </div>

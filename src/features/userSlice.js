@@ -39,7 +39,7 @@ export const adminDeleteUser = createAsyncThunk("admin/user/adminDeleteUser", as
 
 export const adminUpdateUser = createAsyncThunk("admin/user/adminUpdateUser", async ({id, formData}, { rejectWithValue }) => {
   try {
-      const res = await axiosInstance.put(`/api/admin/users/${id}`, formData);
+      const res = await axiosInstance.patch(`/api/admin/users/${id}`, formData);
       return res.data;
   } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
