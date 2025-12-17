@@ -6,6 +6,9 @@ import {
   CheckCircle,
   Target,
   HandHeart,
+  Clock,
+  XCircle,
+  RotateCcw,
 } from "lucide-react";
 import InfoItem from "./InfoItem";
 import SavingsRec from "./SavingsRec";
@@ -16,72 +19,101 @@ import TransactionModal from "../TransactionModal";
 // --- Goal Card Component ---
 const GoalCard = ({
   goal,
-  onEdit,
-  onDelete,
   onComplete,
+  onDelete,
+  onEdit,
+  onContribute,
   t,
   i18n,
-  onContribute,
-  //   isTransactionModalOpen,
-  //   setIsTransactionModalOpen,
 }) => {
-  const progressPercent = goal.progressPercent || 0;
-  const remainingAmount = goal.displayRemainingAmount || 0; // Lấy từ Backend
-  const { savingsPlan } = goal; // <-- Lấy kế hoạch tiết kiệm
+  // 2. Config màu sắc/icon cho Badge
+  const getStatusConfig = (status) => {
+    switch (status) {
+      case "completed":
+        return {
+          // Green
+          color:
+            "text-green-700 bg-green-100 border border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+          icon: <CheckCircle size={12} strokeWidth={2.5} />,
+          label: t("completed") || "Hoàn thành",
+          borderColor: "border-green-500",
+          barColor: "bg-green-500",
+        };
+      case "failed":
+        return {
+          // Red
+          color:
+            "text-red-700 bg-red-100 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+          icon: <XCircle size={12} strokeWidth={2.5} />,
+          label: t("failed") || "Thất bại",
+          borderColor: "border-red-500",
+          barColor: "bg-red-500",
+        };
+      default: // in_progress
+        return {
+          // Blue/Indigo
+          color:
+            "text-blue-700 bg-blue-100 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+          icon: <Clock size={12} strokeWidth={2.5} />,
+          label: t("inProgress") || "Đang thực hiện",
+          borderColor: "border-indigo-500",
+          barColor: "bg-indigo-500",
+        };
+    }
+  };
 
-  const isCompleted = goal.isCompleted || progressPercent >= 100;
-  const daysRemaining = savingsPlan?.daysRemaining || 0; // Lấy từ Backend
-  const isOverdue = daysRemaining < 0 && !isCompleted;
+  const statusConfig = getStatusConfig(status || "in_progress");
 
-  let progressColor = "#6c2bd9";
-  if (progressPercent >= 100) progressColor = "#10b981";
-  else if (isOverdue) progressColor = "#ef4444";
-
+  // Style cho progress bar
   const progressStyle = buildStyles({
-    pathColor: progressColor,
-    trailColor: "#e6e6fa",
-    textColor: progressColor,
-    strokeLinecap: "round",
+    pathColor:
+      status === "completed"
+        ? "#22c55e"
+        : status === "failed"
+        ? "#ef4444"
+        : "#6366f1",
+    textColor:
+      status === "completed"
+        ? "#22c55e"
+        : status === "failed"
+        ? "#ef4444"
+        : "#6366f1",
+    trailColor: "#e5e7eb",
+    textSize: "24px",
   });
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg border border-slate-200 dark:bg-[#2E2E33] dark:text-white/83 dark:border-slate-700 relative">
-      <div
-        className={`absolute top-0 left-0 right-0 h-1 rounded-t-xl ${
-          isCompleted
-            ? "bg-green-500"
-            : isOverdue
-            ? "bg-red-500"
-            : "bg-indigo-500"
-        }`}
-      />
-
+    <div
+      className={`relative p-5 rounded-2xl bg-white dark:bg-[#2E2E33] shadow-sm hover:shadow-md transition-shadow border-l-4 ${statusConfig.borderColor}`}
+    >
+      {/* HEADER */}
       <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="text-xl font-bold dark:text-white/90 truncate max-w-[200px]">
-            {goal.name}
-          </h3>
-          <p
-            className={`text-sm font-medium mt-1 ${
-              isCompleted
-                ? "text-green-600"
-                : isOverdue
-                ? "text-red-600"
-                : "text-indigo-600"
-            }`}
+        <div className="flex-1 pr-2">
+          {/* Tên Mục Tiêu */}
+          <h3
+            className="text-xl font-bold text-gray-800 dark:text-white/90 truncate"
+            title={name}
           >
-            <span className="mr-1">•</span>
-            {isCompleted
-              ? t("completed")
-              : isOverdue
-              ? t("overdue") || "Quá hạn"
-              : t("inProgress")}
-          </p>
+            {name}
+          </h3>
+
+          {/* 🔥 VỊ TRÍ ĐẶT BADGE Ở ĐÂY 🔥 */}
+          {/* Thay thế thẻ <p> cũ bằng thẻ <span> badge này */}
+          <div className="mt-2 flex items-center">
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold shadow-sm ${statusConfig.color}`}
+            >
+              {statusConfig.icon}
+              {statusConfig.label}
+            </span>
+          </div>
         </div>
-        <div className="w-16 h-16 ml-4">
+
+        {/* Circular Progress */}
+        <div className="w-14 h-14 flex-shrink-0">
           <CircularProgressbar
             value={progressPercent}
-            text={`${progressPercent.toFixed(0)}%`}
+            text={`${Math.round(progressPercent)}%`}
             styles={progressStyle}
           />
         </div>
@@ -167,40 +199,52 @@ const GoalCard = ({
         </div>
       )}
 
-      <div className="flex justify-end gap-3 mt-6 border-t pt-4 dark:border-slate-700">
-        <button
-          onClick={onContribute}
-          title={t("contribute")}
-          className={`p-1 rounded-full transition-all cursor-pointer text-red-500 hover:bg-red-100`}
-        >
-          <HandHeart size={25} />
-        </button>
+      {/* FOOTER ACTIONS */}
+      <div className="flex justify-end gap-2 mt-6 border-t pt-4 dark:border-slate-700">
+        {/* Nút Đóng góp (Chỉ hiện khi đang in_progress) */}
+        {status === "in_progress" && (
+          <button
+            onClick={onContribute}
+            title={t("contribute")}
+            className="p-2 rounded-lg text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-400 transition-colors"
+          >
+            <HandHeart size={18} />
+          </button>
+        )}
+
+        {/* Nút Hoàn thành / Mở lại (Cập nhật Icon) */}
         <button
           onClick={onComplete}
           title={
-            isCompleted ? "Đánh dấu đang tiến hành" : "Đánh dấu hoàn thành"
+            status === "completed" ? "Mở lại mục tiêu" : "Đánh dấu hoàn thành"
           }
-          className={`p-2 rounded-full transition-colors cursor-pointer ${
-            isCompleted
-              ? "text-gray-500 hover:bg-gray-100"
-              : "text-green-500 hover:bg-green-100"
+          className={`p-2 rounded-lg transition-colors ${
+            status === "completed"
+              ? "text-yellow-600 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400"
+              : "text-green-600 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
           }`}
         >
-          <CheckCircle size={20} />
+          {status === "completed" ? (
+            <RotateCcw size={18} />
+          ) : (
+            <CheckCircle size={18} />
+          )}
         </button>
+
+        {/* Nút Sửa */}
         <button
           onClick={onEdit}
-          title="Chỉnh sửa mục tiêu"
-          className="p-2 text-blue-500 rounded-full cursor-pointer hover:bg-blue-100 transition-colors"
+          className="p-2 rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 transition-colors"
         >
-          <Edit size={20} />
+          <Edit size={18} />
         </button>
+
+        {/* Nút Xóa */}
         <button
           onClick={onDelete}
-          title="Xóa mục tiêu"
-          className="p-2 text-red-500 rounded-full cursor-pointer hover:bg-red-100 transition-colors"
+          className="p-2 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 transition-colors"
         >
-          <Trash2 size={20} />
+          <Trash2 size={18} />
         </button>
       </div>
     </div>

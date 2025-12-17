@@ -3,25 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import {
-  getGoals,
-  createGoal,
-  updateGoal,
-  deleteGoal,
-} from "../features/goalSlice";
-import {
-  Plus,
-  Edit,
-  Trash2,
-  CheckCircle,
-  Target,
-  HandHeart,
-} from "lucide-react";
-import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
+import { getGoals, updateGoal, deleteGoal } from "../features/goalSlice";
+import { Plus, Target } from "lucide-react";
 import toast from "react-hot-toast";
-import { formatCurrency } from "../utils/formatCurrency";
-import dayjs from "dayjs";
-import { currencyMap } from "../constant/currencies";
 import TransactionModal from "../components/TransactionModal";
 import GoalCard from "../components/GoalPageComponent/GoalCard";
 import GoalModal from "../components/GoalPageComponent/GoalModal";
@@ -48,6 +32,14 @@ const GoalPage = () => {
   };
 
   const handleOpenContributeModal = (goal) => {
+    // Chỉ cho phép đóng góp nếu goal đang "in_progress"
+    if (goal.status !== "in_progress") {
+      toast.error(
+        t("goalPage.cannotContribute") ||
+          "Chỉ có thể thêm giao dịch cho mục tiêu đang tiến hành"
+      );
+      return;
+    }
     setSelectedGoalForContribute(goal);
     setIsTransactionModalOpen(true);
   };
@@ -60,19 +52,29 @@ const GoalPage = () => {
     });
   };
 
+  // 🔥 CẬP NHẬT LOGIC CHECK HOÀN THÀNH
   const handleMarkCompleted = (goal) => {
+    // Logic mới:
+    // - Nếu đang 'completed' -> Chuyển về 'in_progress' (Mở lại)
+    // - Nếu đang 'in_progress' hoặc 'failed' -> Chuyển thành 'completed'
+    const newStatus = goal.status === "completed" ? "in_progress" : "completed";
+
+    // Tin nhắn hiển thị tùy theo trạng thái mới
+    const successMsg =
+      newStatus === "completed"
+        ? t("goalPage.toast.completed")
+        : t("goalPage.toast.resetStatus"); // "Đã mở lại mục tiêu"
+
     toast.promise(
       dispatch(
         updateGoal({
           id: goal._id,
-          formData: { isCompleted: !goal.isCompleted },
+          formData: { status: newStatus }, // 👇 Gửi status thay vì isCompleted
         })
       ).unwrap(),
       {
         loading: t("goalPage.toast.updating"),
-        success: goal.isCompleted
-          ? t("goalPage.toast.resetStatus")
-          : t("goalPage.toast.completed"),
+        success: successMsg,
         error: t("goalPage.toast.updateError"),
       }
     );
@@ -80,17 +82,24 @@ const GoalPage = () => {
 
   return (
     <div className="p-4 sm:p-6 bg-[#f5f6fa] min-h-screen dark:bg-[#35363A]">
-           {/* 👉 THAY THẾ LOGIC LOADING TẠI ĐÂY */}
       {loading && <GoalPageLoading />}
       {!loading && (
         <>
-          <header className="flex justify-end items-center mb-6">
+          <header className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-2xl font-bold dark:text-white">
+                {t("goals")}
+              </h1>
+              <p className="text-gray-500 text-sm dark:text-gray-400">
+                {goals.length} {t("goals").toLowerCase()}
+              </p>
+            </div>
             <button
               onClick={() => handleOpenModal()}
               className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-lg shadow cursor-pointer hover:bg-indigo-600 transition-colors"
             >
               <Plus size={20} />
-              {t("add")}
+              <span className="hidden sm:inline">{t("add")}</span>
             </button>
           </header>
 
@@ -113,12 +122,14 @@ const GoalPage = () => {
             <div className="text-center p-10 bg-white rounded-lg shadow dark:bg-[#2E2E33] dark:text-white/83">
               <Target size={40} className="mx-auto mb-3 text-indigo-400" />
               <p className="text-lg">
-                {t("goalPage.noData")}.{t("goalPage.pleaseSetGoal")}
+                {t("goalPage.noData")}. {t("goalPage.pleaseSetGoal")}
               </p>
             </div>
           )}
         </>
       )}
+
+      {/* Modal Sửa/Tạo Goal */}
       {isModalOpen && (
         <GoalModal
           goal={selectedGoalForEdit}
@@ -126,12 +137,14 @@ const GoalPage = () => {
           t={t}
         />
       )}
+
+      {/* Modal Thêm giao dịch (Đóng góp) */}
       {isTransactionModalOpen && (
         <TransactionModal
           visible={isTransactionModalOpen}
           onClose={() => setIsTransactionModalOpen(false)}
           goalId={selectedGoalForContribute?._id}
-          goalType={"expense"}
+          goalType={"expense"} // Hoặc income tùy logic của bạn (thường saving là chuyển tiền vào -> expense)
           goalCategory={"saving"}
         />
       )}
