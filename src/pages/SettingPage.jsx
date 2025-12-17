@@ -24,6 +24,7 @@ import EditableField from "../components/EditableField";
 import { currencyMap } from "../constant/currencies";
 import SettingPageLoading from "../components/Loading/SettingLoading/SettingPageLoading";
 import ChangePasswordSection from "../components/ChangePasswordSection";
+import { getDirtyValues } from "../utils/formUtils";
 
 const SettingPage = () => {
   const dispatch = useDispatch();
@@ -101,28 +102,40 @@ const SettingPage = () => {
   }, [user, dispatch]);
 
   const handleSaveProfile = () => {
-    if (!isDirty) return;
+    // 1. Lấy danh sách các trường thay đổi
+    const dirtyFields = getDirtyValues(initialProfile.current, profile);
+
+    // 2. Kiểm tra xem có avatar mới không
+    const hasAvatarChange = !!avatarFile;
+
+    // 3. Nếu không có trường text nào đổi VÀ không có avatar mới -> Return
+    if (Object.keys(dirtyFields).length === 0 && !hasAvatarChange) {
+      return;
+    }
 
     const formData = new FormData();
-    formData.append("name", profile.name || ""); // FIX 2: Luôn có fallback chuỗi rỗng
-    formData.append("phone", profile.phone || "");
-    formData.append("currency", profile.currency || "VND");
-    formData.append("dob", profile.dob || "");
-    formData.append("address", profile.address || "");
 
-    if (avatarFile) {
+    // 4. Chỉ append những trường ĐÃ THAY ĐỔI vào formData
+    Object.keys(dirtyFields).forEach((key) => {
+      formData.append(key, dirtyFields[key]);
+    });
+
+    // 5. Append Avatar (nếu có)
+    if (hasAvatarChange) {
       formData.append("avatar", avatarFile);
     }
 
+    // 6. Gọi API
     const promise = dispatch(updateUser(formData)).unwrap();
 
     toast
       .promise(promise, {
         loading: t("saving"),
         success: (data) => {
-          // FIX 3: Chỉ clear file, không setProfile thủ công ở đây
-          // vì useEffect ở trên sẽ tự chạy khi Redux update state
+          // Reset file avatar sau khi upload thành công
           setAvatarFile(null);
+          // Lưu ý: Không cần update initialProfile thủ công ở đây
+          // vì useEffect([user]) sẽ tự động làm việc đó khi Redux state cập nhật
           return <b>{t("saveSuccess")}</b>;
         },
         error: (err) => <b>{`${t("saveError")}: ${err?.message || "Lỗi"}`}</b>,
