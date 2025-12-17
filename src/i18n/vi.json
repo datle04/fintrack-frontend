@@ -326,6 +326,7 @@
   "stop": "Dừng",
   "history": "Lịch sử",
   "continue": "Tiếp tục",
+  "failed": "Thất bại",
   "recurring": "Định kỳ",
   "deleteAll": "Xóa tất cả",
   "month": "Tháng {{number}}",

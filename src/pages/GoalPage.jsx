@@ -88,10 +88,10 @@ const GoalPage = () => {
           <header className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold dark:text-white">
-                {t("goal")}
+                {t("financialGoal")}
               </h1>
               <p className="text-gray-500 text-sm dark:text-gray-400">
-                {goals.length} {t("goal").toLowerCase()}
+                {goals.length} {t("financialGoal").toLowerCase()}
               </p>
             </div>
             <button

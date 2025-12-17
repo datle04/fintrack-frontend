@@ -327,6 +327,7 @@
   "stop": "Stop",
   "history": "History",
   "continue": "Continue",
+  "failed": "Failed",
   "recurring": "Recurring",
   "month": "Month {{number}}",
   "months": {
