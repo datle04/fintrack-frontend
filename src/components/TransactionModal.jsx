@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   adminUpdateTransaction,
@@ -7,12 +7,22 @@ import {
 } from "../features/transactionSlice";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { getNotifications } from "../features/notificationSlice";
-import { debounce } from "lodash";
 import { currencyMap } from "../constant/currencies";
 import { categoryList } from "../constant/categoryList";
 import { getGoals } from "../features/goalSlice";
 import { getDirtyValues } from "../utils/formUtils";
+import {
+  X,
+  Wallet,
+  Calendar,
+  FileText,
+  Image as ImageIcon,
+  Repeat,
+  ShieldAlert,
+  Save,
+  Trash2,
+  Lock,
+} from "lucide-react"; // Thêm icons
 
 const now = new Date();
 
@@ -24,7 +34,7 @@ const TransactionModal = ({
   goalCategory,
   goalId,
 }) => {
-  // Initial State
+  // --- LOGIC GIỮ NGUYÊN ---
   const initialState = {
     type: goalType ? goalType : "income",
     amount: "",
@@ -41,16 +51,15 @@ const TransactionModal = ({
 
   const user = useSelector((state) => state.auth.user);
   const goals = useSelector((state) => state.goals.goals);
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation(); // Bỏ i18n nếu không dùng trực tiếp
   const dispatch = useDispatch();
 
   const isAdminEditing = user?.role === "admin" && !!transaction;
 
   const [formData, setFormData] = useState(initialState);
   const [existingImages, setExistingImages] = useState([]);
-
-  // 1️⃣ State lưu lỗi validation
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false); // Thêm state loading cho UI
 
   useEffect(() => {
     if (transaction) {
@@ -66,18 +75,16 @@ const TransactionModal = ({
       setFormData(initialState);
       setExistingImages([]);
     }
-    setErrors({}); // Reset lỗi khi mở modal
+    setErrors({});
   }, [transaction]);
 
   useEffect(() => {
     dispatch(getGoals());
   }, []);
 
-  // Change handler
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
 
-    // 2️⃣ Xóa lỗi của trường đang nhập khi người dùng thay đổi giá trị
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
     }
@@ -86,7 +93,6 @@ const TransactionModal = ({
       setFormData((prev) => ({ ...prev, [name]: checked }));
     } else if (type === "file") {
       const selectedFiles = Array.from(files);
-      // Validate file size/type nếu cần (Ví dụ < 5MB)
       const validFiles = selectedFiles.filter((file) => {
         if (file.size > 5 * 1024 * 1024) {
           toast.error(`File ${file.name} quá lớn (Max 5MB)`);
@@ -128,50 +134,41 @@ const TransactionModal = ({
     }));
   };
 
-  // 3️⃣ Hàm Validation
   const validateForm = () => {
     const newErrors = {};
-
-    // 1. Validate Amount (Thêm check isNaN)
     const amountNum = Number(formData.amount);
+
     if (!formData.amount) {
       newErrors.amount =
         t("validate.amountRequired") || "Vui lòng nhập số tiền";
     } else if (isNaN(amountNum) || amountNum <= 0) {
-      // Check thêm isNaN để chặn nhập chữ
       newErrors.amount =
         t("validate.amountPositive") || "Số tiền phải là số lớn hơn 0";
     }
 
-    // 2. Validate Category
     if (!formData.category) {
       newErrors.category =
         t("validate.categoryRequired") || "Vui lòng chọn danh mục";
     }
 
-    // 3. Validate Goal
     if (formData.category === "saving" && !formData.goal) {
       newErrors.goal =
         t("validate.goalRequired") || "Vui lòng chọn mục tiêu tiết kiệm";
     }
 
-    // 4. Validate Recurring Logic
     if (formData.isRecurring) {
       const day = Number(formData.recurringDay);
-      // Thêm Number.isInteger để chặn số lẻ (ví dụ 5.5)
       if (!day || isNaN(day) || day < 1 || day > 31 || !Number.isInteger(day)) {
         newErrors.recurringDay =
           t("validate.invalidDay") ||
           "Ngày định kỳ phải là số nguyên từ 1 đến 31";
       }
     } else {
-      // Chỉ bắt buộc Date nếu KHÔNG phải là recurring
       if (!formData.date) {
         newErrors.date = t("validate.dateRequired") || "Vui lòng chọn ngày";
       }
     }
 
-    // 5. Validate Admin Reason
     if (user.role === "admin" && !formData.reason?.trim()) {
       newErrors.reason =
         t("validate.reasonRequired") || "Vui lòng nhập lý do chỉnh sửa";
@@ -183,8 +180,6 @@ const TransactionModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // 1️⃣ VALIDATE (Giữ nguyên)
     if (!validateForm()) {
       toast.error(
         t("validate.checkForm") || "Vui lòng kiểm tra lại thông tin!"
@@ -193,28 +188,22 @@ const TransactionModal = ({
     }
 
     const formPayload = new FormData();
-    let hasChanges = false; // Cờ kiểm tra xem có gì thay đổi không
+    let hasChanges = false;
 
-    // =========================================================
-    // TRƯỜNG HỢP 1: CẬP NHẬT (UPDATE)
-    // =========================================================
     if (transaction) {
-      // 🚨 LOGIC RIÊNG CHO ADMIN
+      // ADMIN LOGIC
       if (user.role === "admin") {
-        // --- 1. Kiểm tra Reason (Bắt buộc) ---
         if (!formData.reason?.trim()) {
           toast.error("Admin bắt buộc phải nhập lý do chỉnh sửa!");
           return;
         }
         formPayload.append("reason", formData.reason);
 
-        // --- 2. Kiểm tra Note ---
         if (formData.note !== transaction.note) {
           formPayload.append("note", formData.note);
           hasChanges = true;
         }
 
-        // --- 3. Kiểm tra Ảnh ---
         const newFiles = (formData.receiptImages || []).filter(
           (f) => f instanceof File
         );
@@ -232,16 +221,12 @@ const TransactionModal = ({
 
         if (!hasChanges) {
           toast.info("Admin chỉ được phép sửa Ghi chú hoặc Ảnh chứng từ.");
-          return; // Dừng ngay
+          return;
         }
       }
-
-      // 🚨 LOGIC CHO USER THƯỜNG (Dùng else để Admin không lọt vào đây)
+      // USER LOGIC
       else {
-        // A. Tìm các trường thay đổi
         const dirtyFields = getDirtyValues(transaction, formData);
-
-        // B. Logic Ảnh
         const newFiles = (formData.receiptImages || []).filter(
           (f) => f instanceof File
         );
@@ -251,7 +236,6 @@ const TransactionModal = ({
         const hasDeletedImages =
           originalImagesCount !== currentExistingImagesCount;
 
-        // C. Kiểm tra có thay đổi không
         if (
           Object.keys(dirtyFields).length === 0 &&
           !hasNewFiles &&
@@ -263,23 +247,18 @@ const TransactionModal = ({
         }
 
         hasChanges = true;
-
-        // D. Append các trường thay đổi
         Object.keys(dirtyFields).forEach((key) => {
-          // ⛔️ Loại bỏ reason và ảnh ra khỏi vòng lặp này (để xử lý riêng hoặc không gửi)
           if (
             key === "reason" ||
             key === "receiptImages" ||
             key === "existingImages"
           )
             return;
-
           let value = dirtyFields[key];
           if (typeof value === "boolean") value = String(value);
           formPayload.append(key, value);
         });
 
-        // E. Append Ảnh
         if (hasNewFiles || hasDeletedImages) {
           newFiles.forEach((file) => formPayload.append("receiptImages", file));
           existingImages.forEach((url) =>
@@ -287,68 +266,53 @@ const TransactionModal = ({
           );
         }
       }
-    }
-
-    // =========================================================
-    // TRƯỜNG HỢP 2: TẠO MỚI (CREATE) - Logic Gửi Hết
-    // =========================================================
-    else {
-      hasChanges = true; // Tạo mới luôn là có thay đổi
-
-      // Append các trường cơ bản
+    } else {
+      // CREATE LOGIC
+      hasChanges = true;
       formPayload.append("type", formData.type);
       formPayload.append("amount", String(formData.amount));
       formPayload.append("currency", formData.currency);
       formPayload.append("category", formData.category);
       formPayload.append("note", formData.note || "");
 
-      // Logic Date mặc định
       if (formData.date) {
         formPayload.append("date", formData.date);
       } else if (formData.isRecurring) {
         formPayload.append("date", new Date().toISOString());
       }
 
-      // Recurring
       formPayload.append("isRecurring", String(formData.isRecurring));
       if (formData.isRecurring) {
         formPayload.append("recurringDay", formData.recurringDay || "1");
       }
-
       if (formData.goal) formPayload.append("goalId", formData.goal);
 
-      // Trong handleSubmit
-      console.log("Check Images:", formData.receiptImages);
-
-      // Ảnh (Chỉ có upload mới, không có existing)
       (formData.receiptImages || []).forEach((file) => {
         if (file instanceof File) formPayload.append("receiptImages", file);
       });
     }
 
-    for (var pair of formPayload.entries()) {
-      console.log(pair[0] + ", " + pair[1]);
-    }
+    if (!hasChanges) return;
 
-    // =========================================================
-    // GỌI API (ACTION)
-    // =========================================================
-    if (!hasChanges) return; // Chặn lần cuối cho chắc
-
+    setIsLoading(true);
     const actionPromise = (async () => {
-      if (transaction) {
-        // UPDATE (PATCH)
-        const action =
-          user.role === "admin" ? adminUpdateTransaction : updateTransaction;
-        await dispatch(
-          action({ id: transaction._id, fields: formPayload })
-        ).unwrap();
-      } else {
-        // CREATE (POST)
-        await dispatch(createTransaction(formPayload)).unwrap();
+      try {
+        if (transaction) {
+          const action =
+            user.role === "admin" ? adminUpdateTransaction : updateTransaction;
+          await dispatch(
+            action({ id: transaction._id, fields: formPayload })
+          ).unwrap();
+        } else {
+          await dispatch(createTransaction(formPayload)).unwrap();
+        }
+        if (formData.goal) dispatch(getGoals());
+        onClose();
+      } catch (err) {
+        throw err;
+      } finally {
+        setIsLoading(false);
       }
-
-      if (formData.goal) dispatch(getGoals());
     })();
 
     toast.promise(actionPromise, {
@@ -356,358 +320,404 @@ const TransactionModal = ({
       success: transaction ? "Cập nhật thành công!" : "Tạo thành công!",
       error: (err) => err?.message || "Đã xảy ra lỗi!",
     });
-
-    actionPromise.then(() => onClose()).catch((err) => console.error(err));
   };
 
+  // --- STYLING HELPERS ---
+  const inputClass = (error, disabled = false) => `
+    w-full px-4 py-2.5 rounded-xl border outline-none transition-all
+    ${
+      error
+        ? "border-red-500 focus:ring-2 focus:ring-red-200 bg-red-50"
+        : "border-gray-200 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 bg-gray-50 dark:bg-[#2a2a30] dark:border-gray-600 dark:text-white"
+    }
+    ${
+      disabled
+        ? "bg-gray-100 text-gray-500 cursor-not-allowed opacity-70 dark:bg-gray-800"
+        : ""
+    }
+  `;
+
+  // --- RENDER ---
+  if (!visible) return null;
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-[2px] bg-black/20">
-      <div className="bg-white p-6 rounded shadow-lg w-[90%] max-w-lg relative z-50 animate-fadeIn dark:bg-[#2E2E33] dark:text-white/83 dark:border dark:border-slate-700 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-semibold mb-4">
-          {transaction ? t("editTransaction") : t("addTransaction")}
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Type Select */}
-          <div>
-            <label className="block text-sm font-medium">{t("type")}</label>
-            <select
-              name="type"
-              value={formData.type}
-              disabled={isAdminEditing}
-              onChange={handleChange}
-              className={`w-full border px-3 py-2 rounded dark:focus:outline-slate-700 ${
-                isAdminEditing
-                  ? "bg-gray-100 cursor-not-allowed opacity-60"
-                  : ""
-              } ${goalType ? "pointer-events-none opacity-70" : ""}`}
-            >
-              <option value="income" className="dark:bg-[#2E2E33]">
-                {t("income")}
-              </option>
-              <option value="expense" className="dark:bg-[#2E2E33]">
-                {t("expense")}
-              </option>
-            </select>
-          </div>
-
-          {/* Amount & Currency */}
-          <div className="flex flex-row gap-4">
-            <div className="flex-1">
-              <label className="block text-sm dark:focus:outline-slate-700">
-                {t("amount")} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                name="amount"
-                value={formData.amount}
-                disabled={isAdminEditing}
-                onChange={handleChange}
-                // 5️⃣ UI hiển thị lỗi (Border đỏ)
-                className={`w-full border px-3 py-2 rounded ${
-                  isAdminEditing
-                    ? "bg-gray-100 cursor-not-allowed opacity-60"
-                    : ""
-                } ${errors.amount ? "border-red-500 focus:ring-red-200" : ""}`}
-              />
-              {/* 6️⃣ UI hiển thị text lỗi */}
-              {errors.amount && (
-                <p className="text-red-500 text-xs mt-1">{errors.amount}</p>
-              )}
-            </div>
-
-            <div className="w-1/3">
-              <label className="block text-sm font-medium">
-                {t("currency")}
-              </label>
-              <select
-                name="currency"
-                value={formData.currency}
-                disabled={isAdminEditing}
-                onChange={handleChange}
-                className={`w-full border px-3 py-2 rounded outline-none dark:focus:outline-slate-700 dark:bg-[#2E2E33] ${
-                  isAdminEditing
-                    ? "bg-gray-100 cursor-not-allowed opacity-60"
-                    : ""
-                }`}
-              >
-                {[...currencyMap].map(([code, label]) => (
-                  <option key={code} value={code} className="dark:bg-[#2E2E33]">
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Note */}
-          <div>
-            <label className="block text-sm font-medium">{t("note")}</label>
-            <textarea
-              name="note"
-              value={formData.note}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded"
-              rows="2"
-            ></textarea>
-          </div>
-
-          {/* Category */}
-          <div className="flex flex-col gap-2">
-            <label className="block text-sm font-medium">
-              {t("categoriesLabel")} <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="category"
-              value={formData.category}
-              disabled={isAdminEditing}
-              onChange={handleChange}
-              className={`w-full border px-3 py-2 rounded dark:focus:outline-slate-700 ${
-                isAdminEditing
-                  ? "bg-gray-100 cursor-not-allowed opacity-60"
-                  : ""
-              } ${goalCategory ? "pointer-events-none opacity-70" : ""} ${
-                errors.category ? "border-red-500" : ""
+    <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-black/40 p-4 animate-fadeIn">
+      <div className="bg-white dark:bg-[#1E1E24] rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-gray-100 dark:border-gray-700">
+        {/* HEADER */}
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-white/5">
+          <div className="flex items-center gap-3">
+            <div
+              className={`p-2 rounded-lg ${
+                transaction
+                  ? "bg-blue-100 text-blue-600"
+                  : "bg-green-100 text-green-600"
               }`}
             >
-              <option value="">-- {t("selectCategory")} --</option>
-              {Array.isArray(categoryList) &&
-                categoryList.map((item) => (
-                  <option
-                    key={item.key}
-                    value={item.key}
-                    className="dark:bg-[#2E2E33] dark:text-white/83"
-                  >
-                    {t(`categories.${item.key}`)} {item.icon}
-                  </option>
-                ))}
-            </select>
-            {errors.category && (
-              <p className="text-red-500 text-xs">{errors.category}</p>
-            )}
+              <Wallet size={20} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-800 dark:text-white">
+                {transaction ? t("editTransaction") : t("addTransaction")}
+              </h2>
+              {isAdminEditing && (
+                <span className="text-xs font-medium text-orange-500 flex items-center gap-1">
+                  <ShieldAlert size={12} /> Chế độ Admin
+                </span>
+              )}
+            </div>
           </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+          >
+            <X size={20} className="text-gray-500 dark:text-gray-400" />
+          </button>
+        </div>
 
-          {/* Goal Selection (If saving) */}
-          {formData.category === "saving" && (
-            <div className="flex flex-col gap-2">
-              <label className="block text-sm font-medium">
-                {t("financialGoal")} <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="goal"
-                value={formData.goal}
-                disabled={isAdminEditing}
-                onChange={handleChange}
-                className={`w-full border px-3 py-2 rounded dark:focus:outline-slate-700 ${
-                  isAdminEditing
-                    ? "bg-gray-100 cursor-not-allowed opacity-60"
-                    : ""
-                } ${
-                  goalId && !formData.goal
-                    ? ""
-                    : goalId
-                    ? "pointer-events-none opacity-70"
-                    : ""
-                } ${errors.goal ? "border-red-500" : ""}`}
-              >
-                <option value="">-- {t("selectGoal")} --</option>
-                {Array.isArray(goals) &&
-                  goals.map((item) => (
-                    <option
-                      key={item._id}
-                      value={item._id}
-                      className="dark:bg-[#2E2E33] dark:text-white/83"
+        {/* BODY */}
+        <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
+          <form id="transaction-form" onSubmit={handleSubmit}>
+            {/* 1. SỐ TIỀN & LOẠI */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2 flex gap-4">
+                {/* Type Select */}
+                <div className="w-1/3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    {t("type")}
+                  </label>
+                  <div className="relative">
+                    <select
+                      name="type"
+                      value={formData.type}
+                      onChange={handleChange}
+                      disabled={isAdminEditing || goalType}
+                      className={inputClass(null, isAdminEditing || goalType)}
                     >
-                      {item.name}
-                    </option>
-                  ))}
-              </select>
-              {errors.goal && (
-                <p className="text-red-500 text-xs">{errors.goal}</p>
+                      <option value="income">{t("income")}</option>
+                      <option value="expense">{t("expense")}</option>
+                    </select>
+                    {isAdminEditing && (
+                      <Lock
+                        className="absolute right-8 top-3 text-gray-400"
+                        size={14}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Amount & Currency */}
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    {t("amount")} <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      name="amount"
+                      value={formData.amount}
+                      onChange={handleChange}
+                      disabled={isAdminEditing}
+                      placeholder="0"
+                      className={`${inputClass(
+                        errors.amount,
+                        isAdminEditing
+                      )} font-bold text-lg`}
+                    />
+                    <select
+                      name="currency"
+                      value={formData.currency}
+                      onChange={handleChange}
+                      disabled={isAdminEditing}
+                      className={`w-24 rounded-xl border border-gray-200 bg-gray-50 dark:bg-[#2a2a30] dark:border-gray-600 dark:text-white px-2 py-2.5 outline-none ${
+                        isAdminEditing ? "opacity-70 cursor-not-allowed" : ""
+                      }`}
+                    >
+                      {[...currencyMap].map(([code]) => (
+                        <option key={code} value={code}>
+                          {code}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {errors.amount && (
+                    <p className="text-red-500 text-xs mt-1">{errors.amount}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 2. DANH MỤC & MỤC TIÊU */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  {t("categoriesLabel")} <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleChange}
+                    disabled={isAdminEditing || goalCategory}
+                    className={inputClass(
+                      errors.category,
+                      isAdminEditing || goalCategory
+                    )}
+                  >
+                    <option value="">-- {t("selectCategory")} --</option>
+                    {categoryList.map((item) => (
+                      <option key={item.key} value={item.key}>
+                        {item.icon} {t(`categories.${item.key}`)}
+                      </option>
+                    ))}
+                  </select>
+                  {isAdminEditing && (
+                    <Lock
+                      className="absolute right-8 top-3 text-gray-400"
+                      size={14}
+                    />
+                  )}
+                </div>
+                {errors.category && (
+                  <p className="text-red-500 text-xs mt-1">{errors.category}</p>
+                )}
+              </div>
+
+              {/* Goal Select (Conditional) */}
+              {formData.category === "saving" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    {t("financialGoal")} <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="goal"
+                    value={formData.goal}
+                    onChange={handleChange}
+                    disabled={
+                      isAdminEditing ||
+                      (goalId && !formData.goal ? false : !!goalId)
+                    }
+                    className={inputClass(errors.goal, isAdminEditing)}
+                  >
+                    <option value="">-- {t("selectGoal")} --</option>
+                    {goals.map((item) => (
+                      <option key={item._id} value={item._id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.goal && (
+                    <p className="text-red-500 text-xs mt-1">{errors.goal}</p>
+                  )}
+                </div>
               )}
             </div>
-          )}
 
-          {/* Date Selection */}
-          {!formData.isRecurring && (
-            <div>
-              <label className="block text-sm font-medium">
-                {t("date")} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                name="date"
-                value={formData.date}
-                disabled={isAdminEditing}
-                onChange={handleChange}
-                className={`w-full border px-3 py-2 rounded dark:bg-[#2E2E33] ${
-                  isAdminEditing
-                    ? "bg-gray-100 cursor-not-allowed opacity-60"
-                    : ""
-                } ${errors.date ? "border-red-500" : ""}`}
-              />
-              {errors.date && (
-                <p className="text-red-500 text-xs mt-1">{errors.date}</p>
-              )}
+            {/* 3. NGÀY & ĐỊNH KỲ */}
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-gray-700">
+              <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                {!formData.isRecurring ? (
+                  <div className="flex-1 w-full">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      <Calendar size={16} className="text-indigo-500" />{" "}
+                      {t("date")} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="date"
+                      value={formData.date}
+                      onChange={handleChange}
+                      disabled={isAdminEditing}
+                      className={inputClass(errors.date, isAdminEditing)}
+                    />
+                    {errors.date && (
+                      <p className="text-red-500 text-xs mt-1">{errors.date}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex-1 w-full">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      <Repeat size={16} className="text-orange-500" />{" "}
+                      {t("recurringDay")} (1-31){" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="recurringDay"
+                      min={1}
+                      max={31}
+                      value={formData.recurringDay ?? ""}
+                      onChange={handleChange}
+                      disabled={isAdminEditing}
+                      className={inputClass(
+                        errors.recurringDay,
+                        isAdminEditing
+                      )}
+                    />
+                    {errors.recurringDay && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.recurringDay}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Recurring Checkbox */}
+                <div className="flex items-center gap-2 pt-6">
+                  <input
+                    type="checkbox"
+                    name="isRecurring"
+                    id="isRecurring"
+                    checked={formData.isRecurring}
+                    onChange={handleChange}
+                    disabled={isAdminEditing}
+                    className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:cursor-not-allowed"
+                  />
+                  <label
+                    htmlFor="isRecurring"
+                    className={`text-sm font-medium ${
+                      isAdminEditing
+                        ? "text-gray-400"
+                        : "text-gray-700 dark:text-gray-300 cursor-pointer"
+                    }`}
+                  >
+                    {t("recurringTransaction")}
+                  </label>
+                </div>
+              </div>
             </div>
-          )}
 
-          {/* Recurring Checkbox */}
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              name="isRecurring"
-              className="cursor-pointer"
-              disabled={isAdminEditing}
-              checked={formData.isRecurring}
-              onChange={handleChange}
-            />
-            <label
-              className={`text-sm ${
-                isAdminEditing
-                  ? "bg-gray-100 cursor-not-allowed opacity-60"
-                  : "cursor-pointer"
-              }`}
-            >
-              {t("recurringTransaction")}
-            </label>
-          </div>
-
-          {/* Recurring Day */}
-          {formData.isRecurring && (
-            <div>
-              <label className="block text-sm font-medium">
-                {t("recurringDay")} (1-31){" "}
-                <span className="text-red-500">*</span>
+            {/* 4. GHI CHÚ (Admin được sửa) */}
+            <div className="mt-4">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <FileText size={16} /> {t("note")}
               </label>
-              <input
-                type="number"
-                name="recurringDay"
-                disabled={isAdminEditing}
-                min={1}
-                max={31}
-                value={formData.recurringDay ?? ""}
+              <textarea
+                name="note"
+                value={formData.note}
                 onChange={handleChange}
-                className={`w-full border px-3 py-2 rounded  ${
-                  isAdminEditing
-                    ? "bg-gray-100 cursor-not-allowed opacity-60"
-                    : ""
-                }  ${errors.recurringDay ? "border-red-500" : ""}`}
-              />
-              {errors.recurringDay && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.recurringDay}
-                </p>
-              )}
+                rows="2"
+                className={inputClass(null, false)} // Luôn enable
+                placeholder="Thêm ghi chú chi tiết..."
+              ></textarea>
             </div>
-          )}
 
-          {/* Images */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              {t("receipt")}
-            </label>
-            <div className="relative w-full p-4 border-2 border-dashed rounded-lg text-center hover:bg-gray-50 hover:text-indigo-600 cursor-pointer transition dark:hover:bg-[#424249] dark:hover:text-white/87">
-              <label
-                htmlFor="file-upload"
-                className="cursor-pointer block text-gray-600 dark:text-gray-500"
-              >
-                📎 {t("clickToUpload")}
+            {/* 5. HÌNH ẢNH (Admin được sửa) */}
+            <div className="mt-4">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <ImageIcon size={16} /> {t("receipt")}
               </label>
-              <input
-                id="file-upload"
-                type="file"
-                name="receiptImages"
-                multiple
-                onChange={handleChange}
-                className="hidden"
-                accept="image/*" // Chỉ cho phép chọn ảnh
-              />
-            </div>
-            {/* ... Phần hiển thị ảnh giữ nguyên ... */}
-            {existingImages.length > 0 && (
-              <div className="mt-4 grid grid-cols-2 gap-2">
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                {/* Existing Images */}
                 {existingImages.map((url, idx) => (
-                  <div key={`existing-${idx}`} className="relative group">
+                  <div
+                    key={`existing-${idx}`}
+                    className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200"
+                  >
                     <img
                       src={url}
-                      alt={`Receipt ${idx + 1}`}
-                      className="rounded border max-h-32 w-full object-contain"
+                      alt="receipt"
+                      className="w-full h-full object-cover"
                     />
                     <button
                       type="button"
                       onClick={() => handleRemoveExistingImage(idx)}
-                      className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full px-1 opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 bg-red-500/90 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      ✕
+                      <Trash2 size={12} />
                     </button>
                   </div>
                 ))}
-              </div>
-            )}
-            {formData.receiptImages.length > 0 && (
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                {formData.receiptImages.map((file, idx) => {
-                  const objectUrl = URL.createObjectURL(file);
-                  return (
-                    <div key={`new-${idx}`} className="relative group">
-                      <img
-                        src={objectUrl}
-                        alt={file.name}
-                        className="rounded border max-h-32 w-full object-contain"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveNewImage(idx)}
-                        className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full px-1 opacity-100 transition-opacity"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
 
-          {/* Admin Reason */}
-          {user?.role === "admin" && (
-            <div>
-              <label className="block text-sm font-medium">
-                Lý do chỉnh sửa <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                name="reason"
-                value={formData.reason}
-                onChange={handleChange}
-                placeholder="Nhập lý do (bắt buộc cho admin)"
-                className={`w-full border-2 px-3 py-2 rounded outline-none bg-red-50 placeholder-red-400 ${
-                  errors.reason ? "border-red-500" : "border-red-400"
-                }`}
-                rows="2"
-              ></textarea>
-              {errors.reason && (
-                <p className="text-red-500 text-xs mt-1">{errors.reason}</p>
-              )}
+                {/* New Images */}
+                {formData.receiptImages.map((file, idx) => (
+                  <div
+                    key={`new-${idx}`}
+                    className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200"
+                  >
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt="preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveNewImage(idx)}
+                      className="absolute top-1 right-1 bg-red-500/90 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                ))}
+
+                {/* Upload Button */}
+                <label className="flex flex-col items-center justify-center aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer transition-colors">
+                  <ImageIcon className="text-gray-400 mb-1" size={24} />
+                  <span className="text-xs text-gray-500">
+                    {t("clickToUpload")}
+                  </span>
+                  <input
+                    type="file"
+                    name="receiptImages"
+                    multiple
+                    onChange={handleChange}
+                    className="hidden"
+                    accept="image/*"
+                  />
+                </label>
+              </div>
             </div>
-          )}
 
-          {/* Buttons */}
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 cursor-pointer dark:bg-gray-600 dark:hover:bg-gray-700 transition-all"
-            >
-              {t("cancel")}
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 cursor-pointer dark:bg-indigo-600 dark:hover:bg-indigo-700 transition-all"
-            >
-              {transaction ? t("update") : t("add")}
-            </button>
-          </div>
-        </form>
+            {/* 6. ADMIN REASON (Chỉ hiện cho Admin) */}
+            {user?.role === "admin" && (
+              <div className="mt-6 pt-4 border-t border-red-100 dark:border-red-900/30">
+                <label className="flex items-center gap-2 text-sm font-semibold text-red-600 mb-1.5">
+                  <ShieldAlert size={16} /> Lý do chỉnh sửa{" "}
+                  <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="reason"
+                  value={formData.reason}
+                  onChange={handleChange}
+                  placeholder="Nhập lý do chi tiết cho người dùng..."
+                  rows="2"
+                  className={`${inputClass(
+                    errors.reason,
+                    false
+                  )} border-red-200 bg-red-50/50 focus:ring-red-200`}
+                ></textarea>
+                {errors.reason && (
+                  <p className="text-red-500 text-xs mt-1">{errors.reason}</p>
+                )}
+              </div>
+            )}
+          </form>
+        </div>
+
+        {/* FOOTER */}
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-white/5">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isLoading}
+            className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium text-sm transition-colors dark:bg-transparent dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/5"
+          >
+            {t("cancel")}
+          </button>
+          <button
+            type="submit"
+            form="transaction-form"
+            disabled={isLoading}
+            className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium text-sm shadow-lg shadow-indigo-500/30 flex items-center gap-2 transition-transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Save size={18} />
+            )}
+            {transaction ? t("update") : t("add")}
+          </button>
+        </div>
       </div>
     </div>
   );
