@@ -225,17 +225,28 @@ const GoalCard = ({
         {/* Nút Hoàn thành / Mở lại */}
         <button
           onClick={onComplete}
+          // 1. Nếu Failed -> Disable nút này
+          disabled={isFailed}
           title={
-            status === "completed" ? "Mở lại mục tiêu" : "Đánh dấu hoàn thành"
+            isCompleted
+              ? "Mở lại mục tiêu"
+              : isFailed
+              ? "Mục tiêu đã thất bại (Cần gia hạn để tiếp tục)"
+              : "Đánh dấu hoàn thành"
           }
           className={`p-2 rounded-lg transition-colors ${
-            status === "completed"
+            isCompleted
               ? "text-yellow-600 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400"
+              : isFailed
+              ? "text-gray-400 bg-gray-100 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600" // Style cho Failed (Xám & Cấm)
               : "text-green-600 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
           }`}
         >
-          {status === "completed" ? (
+          {isCompleted ? (
             <RotateCcw size={18} />
+          ) : isFailed ? (
+            // Icon khác biệt cho trạng thái Failed (Ví dụ: Biển cấm hoặc Xám)
+            <XCircle size={18} />
           ) : (
             <CheckCircle size={18} />
           )}
