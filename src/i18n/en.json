@@ -202,8 +202,13 @@
       "passwordMinLength": "Password must be at least 6 characters"
     },
     "toast": {
+      "saveSuccess": "Saved Successfully",
+      "saveError": "Error saving profile",
       "otpSentSuccess": "OTP has been sent",
-      "changePasswordSuccess": "Password changed successfully! Please log in again."
+      "changePasswordSuccess": "Password changed successfully! Please log in again.",
+      "logoutLoading": "Logging out",
+      "logoutSuccess": "Logged out successfully 👋",
+      "logoutError": "Log out failed!"
     },
     "description": {
       "otpInfo": "We will send an OTP code to your email for verification."

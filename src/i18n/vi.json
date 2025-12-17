@@ -198,6 +198,8 @@
       "passwordMinLength": "Mật khẩu phải từ 6 ký tự"
     },
     "toast": {
+      "saveSuccess": "Lưu thành công",
+      "saveError": "Có lỗi khi lưu",
       "otpSentSuccess": "Đã gửi mã OTP",
       "changePasswordSuccess": "Đổi mật khẩu thành công! Vui lòng đăng nhập lại.",
       "logoutLoading": "Đang đăng xuất...",
