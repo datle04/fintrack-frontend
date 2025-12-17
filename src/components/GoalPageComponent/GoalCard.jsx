@@ -14,7 +14,6 @@ import InfoItem from "./InfoItem";
 import SavingsRec from "./SavingsRec";
 import { formatCurrency } from "../../utils/formatCurrency";
 import dayjs from "dayjs";
-import TransactionModal from "../TransactionModal";
 
 // --- Goal Card Component ---
 const GoalCard = ({
@@ -79,15 +78,15 @@ const GoalCard = ({
   // Style cho progress bar
   const progressStyle = buildStyles({
     pathColor:
-      status === "completed"
+      goal.status === "completed"
         ? "#22c55e"
-        : status === "failed"
+        : goal.status === "failed"
         ? "#ef4444"
         : "#6366f1",
     textColor:
-      status === "completed"
+      goal.status === "completed"
         ? "#22c55e"
-        : status === "failed"
+        : goal.status === "failed"
         ? "#ef4444"
         : "#6366f1",
     trailColor: "#e5e7eb",
@@ -104,9 +103,9 @@ const GoalCard = ({
           {/* Tên Mục Tiêu */}
           <h3
             className="text-xl font-bold text-gray-800 dark:text-white/90 truncate"
-            title={name}
+            title={goal.name}
           >
-            {name}
+            {goal.name}
           </h3>
 
           {/* 🔥 VỊ TRÍ ĐẶT BADGE Ở ĐÂY 🔥 */}
@@ -214,7 +213,7 @@ const GoalCard = ({
       {/* FOOTER ACTIONS */}
       <div className="flex justify-end gap-2 mt-6 border-t pt-4 dark:border-slate-700">
         {/* Nút Đóng góp (Chỉ hiện khi đang in_progress) */}
-        {status === "in_progress" && (
+        {goal.status === "in_progress" && (
           <button
             onClick={onContribute}
             title={t("contribute")}
@@ -228,15 +227,17 @@ const GoalCard = ({
         <button
           onClick={onComplete}
           title={
-            status === "completed" ? "Mở lại mục tiêu" : "Đánh dấu hoàn thành"
+            goal.status === "completed"
+              ? "Mở lại mục tiêu"
+              : "Đánh dấu hoàn thành"
           }
           className={`p-2 rounded-lg transition-colors ${
-            status === "completed"
+            goal.status === "completed"
               ? "text-yellow-600 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400"
               : "text-green-600 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
           }`}
         >
-          {status === "completed" ? (
+          {goal.status === "completed" ? (
             <RotateCcw size={18} />
           ) : (
             <CheckCircle size={18} />
