@@ -26,6 +26,18 @@ const GoalCard = ({
   t,
   i18n,
 }) => {
+  const progressPercent = goal.progressPercent || 0;
+  const remainingAmount = goal.displayRemainingAmount || 0; // Lấy từ Backend
+  const { savingsPlan } = goal; // <-- Lấy kế hoạch tiết kiệm
+
+  const isCompleted = goal.isCompleted || progressPercent >= 100;
+  const daysRemaining = savingsPlan?.daysRemaining || 0; // Lấy từ Backend
+  const isOverdue = daysRemaining < 0 && !isCompleted;
+
+  let progressColor = "#6c2bd9";
+  if (progressPercent >= 100) progressColor = "#10b981";
+  else if (isOverdue) progressColor = "#ef4444";
+
   // 2. Config màu sắc/icon cho Badge
   const getStatusConfig = (status) => {
     switch (status) {
