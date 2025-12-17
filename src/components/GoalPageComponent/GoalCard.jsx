@@ -1,15 +1,13 @@
 import { buildStyles, CircularProgressbar } from "react-circular-progressbar";
 import {
-  Plus,
   Edit,
   Trash2,
   CheckCircle,
-  Target,
   HandHeart,
   Clock,
   XCircle,
   RotateCcw,
-} from "lucide-react";
+} from "lucide-react"; // Đã bỏ import Plus, Target, TransactionModal vì không dùng
 import InfoItem from "./InfoItem";
 import SavingsRec from "./SavingsRec";
 import { formatCurrency } from "../../utils/formatCurrency";
@@ -25,68 +23,69 @@ const GoalCard = ({
   t,
   i18n,
 }) => {
-  const progressPercent = goal.progressPercent || 0;
-  const remainingAmount = goal.displayRemainingAmount || 0; // Lấy từ Backend
-  const { savingsPlan } = goal; // <-- Lấy kế hoạch tiết kiệm
+  // 1. Destructure các dữ liệu cần thiết từ goal
+  const {
+    status = "in_progress", // Mặc định là in_progress nếu thiếu
+    savingsPlan,
+    progressPercent = 0,
+    displayRemainingAmount = 0,
+    name,
+    targetOriginalAmount,
+    targetCurrency,
+    displayCurrentAmount,
+    targetDate,
+  } = goal;
 
-  const isCompleted = goal.isCompleted || progressPercent >= 100;
-  const daysRemaining = savingsPlan?.daysRemaining || 0; // Lấy từ Backend
-  const isOverdue = daysRemaining < 0 && !isCompleted;
-
-  let progressColor = "#6c2bd9";
-  if (progressPercent >= 100) progressColor = "#10b981";
-  else if (isOverdue) progressColor = "#ef4444";
+  // Logic hiển thị
+  const isCompleted = status === "completed";
+  const daysRemaining = savingsPlan?.daysRemaining || 0;
+  // Quá hạn khi: chưa xong VÀ ngày còn lại <= 0
+  const isOverdue = daysRemaining <= 0 && !isCompleted;
 
   // 2. Config màu sắc/icon cho Badge
-  const getStatusConfig = (status) => {
-    switch (status) {
+  const getStatusConfig = (currentStatus) => {
+    switch (currentStatus) {
       case "completed":
         return {
-          // Green
           color:
             "text-green-700 bg-green-100 border border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
           icon: <CheckCircle size={12} strokeWidth={2.5} />,
           label: t("completed") || "Hoàn thành",
           borderColor: "border-green-500",
-          barColor: "bg-green-500",
         };
       case "failed":
         return {
-          // Red
           color:
             "text-red-700 bg-red-100 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
           icon: <XCircle size={12} strokeWidth={2.5} />,
           label: t("failed") || "Thất bại",
           borderColor: "border-red-500",
-          barColor: "bg-red-500",
         };
       default: // in_progress
         return {
-          // Blue/Indigo
           color:
             "text-blue-700 bg-blue-100 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
           icon: <Clock size={12} strokeWidth={2.5} />,
           label: t("inProgress") || "Đang thực hiện",
           borderColor: "border-indigo-500",
-          barColor: "bg-indigo-500",
         };
     }
   };
 
-  const statusConfig = getStatusConfig(status || "in_progress");
+  const statusConfig = getStatusConfig(status);
 
   // Style cho progress bar
   const progressStyle = buildStyles({
     pathColor:
-      goal.status === "completed"
+      status === "completed"
         ? "#22c55e"
-        : goal.status === "failed"
+        : status === "failed"
         ? "#ef4444"
         : "#6366f1",
     textColor:
-      goal.status === "completed"
+      status === "completed"
         ? "#22c55e"
-        : goal.status === "failed"
+        : status === "failed"
         ? "#ef4444"
         : "#6366f1",
     trailColor: "#e5e7eb",
@@ -103,13 +102,12 @@ const GoalCard = ({
           {/* Tên Mục Tiêu */}
           <h3
             className="text-xl font-bold text-gray-800 dark:text-white/90 truncate"
-            title={goal.name}
+            title={name}
           >
-            {goal.name}
+            {name}
           </h3>
 
-          {/* 🔥 VỊ TRÍ ĐẶT BADGE Ở ĐÂY 🔥 */}
-          {/* Thay thế thẻ <p> cũ bằng thẻ <span> badge này */}
+          {/* BADGE TRẠNG THÁI */}
           <div className="mt-2 flex items-center">
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold shadow-sm ${statusConfig.color}`}
@@ -134,16 +132,16 @@ const GoalCard = ({
         <InfoItem
           label={t("targetAmount")}
           value={`${formatCurrency(
-            goal.targetOriginalAmount,
-            goal.targetCurrency,
+            targetOriginalAmount,
+            targetCurrency,
             i18n.language
           )}`}
         />
         <InfoItem
           label={t("currentAmount")}
           value={`${formatCurrency(
-            goal.displayCurrentAmount,
-            goal.targetCurrency,
+            displayCurrentAmount,
+            targetCurrency,
             i18n.language
           )}`}
           colorClass="text-green-500 dark:text-green-400"
@@ -151,8 +149,8 @@ const GoalCard = ({
         <InfoItem
           label={t("remaining")}
           value={`${formatCurrency(
-            goal.displayRemainingAmount,
-            goal.targetCurrency,
+            displayRemainingAmount,
+            targetCurrency,
             i18n.language
           )}`}
           colorClass="text-red-500 dark:text-red-400"
@@ -174,12 +172,13 @@ const GoalCard = ({
         />
         <InfoItem
           label={t("targetDate")}
-          value={dayjs(goal.targetDate).format("DD/MM/YYYY")}
+          value={dayjs(targetDate).format("DD/MM/YYYY")}
         />
       </div>
 
-      {/* ⚠️ KHU VỰC ĐẶC BIỆT: KẾ HOẠCH TIẾT KIỆM KHUYẾN NGHỊ */}
-      {!isCompleted && remainingAmount > 0 && daysRemaining > 0 && (
+      {/* KẾ HOẠCH TIẾT KIỆM KHUYẾN NGHỊ */}
+      {/* Logic hiển thị: Chưa hoàn thành VÀ còn số tiền phải đóng VÀ chưa quá hạn */}
+      {!isCompleted && displayRemainingAmount > 0 && daysRemaining > 0 && (
         <div className="mt-6 pt-4 border-t border-dashed dark:border-slate-700/50">
           <h4 className="text-md font-bold mb-3 text-indigo-600 dark:text-indigo-400">
             {t("recommendedSavings") || "Gợi ý Tiết kiệm"}
@@ -190,21 +189,21 @@ const GoalCard = ({
               amount={savingsPlan.recommendedDaily}
               t={t}
               i18n={i18n}
-              currency={goal.targetCurrency}
+              currency={targetCurrency}
             />
             <SavingsRec
               period={t("weekly")}
               amount={savingsPlan.recommendedWeekly}
               t={t}
               i18n={i18n}
-              currency={goal.targetCurrency}
+              currency={targetCurrency}
             />
             <SavingsRec
               period={t("monthly")}
               amount={savingsPlan.recommendedMonthly}
               t={t}
               i18n={i18n}
-              currency={goal.targetCurrency}
+              currency={targetCurrency}
             />
           </div>
         </div>
@@ -212,8 +211,8 @@ const GoalCard = ({
 
       {/* FOOTER ACTIONS */}
       <div className="flex justify-end gap-2 mt-6 border-t pt-4 dark:border-slate-700">
-        {/* Nút Đóng góp (Chỉ hiện khi đang in_progress) */}
-        {goal.status === "in_progress" && (
+        {/* Nút Đóng góp: Chỉ hiện khi Đang thực hiện */}
+        {status === "in_progress" && (
           <button
             onClick={onContribute}
             title={t("contribute")}
@@ -223,21 +222,19 @@ const GoalCard = ({
           </button>
         )}
 
-        {/* Nút Hoàn thành / Mở lại (Cập nhật Icon) */}
+        {/* Nút Hoàn thành / Mở lại */}
         <button
           onClick={onComplete}
           title={
-            goal.status === "completed"
-              ? "Mở lại mục tiêu"
-              : "Đánh dấu hoàn thành"
+            status === "completed" ? "Mở lại mục tiêu" : "Đánh dấu hoàn thành"
           }
           className={`p-2 rounded-lg transition-colors ${
-            goal.status === "completed"
+            status === "completed"
               ? "text-yellow-600 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400"
               : "text-green-600 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
           }`}
         >
-          {goal.status === "completed" ? (
+          {status === "completed" ? (
             <RotateCcw size={18} />
           ) : (
             <CheckCircle size={18} />
