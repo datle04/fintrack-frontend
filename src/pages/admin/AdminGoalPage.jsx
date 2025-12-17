@@ -12,6 +12,7 @@ import {
 import { IoCloseCircle } from "react-icons/io5";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { debounce } from "lodash";
+// Import Component
 import ConfirmModal from "../../components/ConfirmModal";
 import EditGoalModal from "../../components/AdminGoalComponent/EditGoalModal";
 import Pagination from "../../components/Pagination";
@@ -22,7 +23,9 @@ const ProgressBar = ({ current, target }) => {
   return (
     <div className="w-full bg-gray-200 rounded-full h-2">
       <div
-        className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+        className={`h-2 rounded-full transition-all duration-500 ${
+          percentage >= 100 ? "bg-green-500" : "bg-blue-500"
+        }`}
         style={{ width: `${percentage}%` }}
       ></div>
     </div>
@@ -45,6 +48,7 @@ const AdminGoalPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
 
+  // Confirm Modal State
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
     type: null, // 'delete' | 'recalculate'
@@ -60,17 +64,15 @@ const AdminGoalPage = () => {
         params: {
           page: pageNum,
           limit: 10,
-          name: sName, // Backend cần hỗ trợ lọc theo tên goal
-          userId: sUid, // Backend cần hỗ trợ lọc theo User ID
-          status: sStatus, // Backend cần hỗ trợ lọc status
+          name: sName,
+          userId: sUid,
+          status: sStatus,
         },
       });
       setGoals(res.data.goals || []);
       setTotalPages(res.data.pages || 0);
       setPage(res.data.page || 1);
     } catch (err) {
-      // toast.error("Không thể tải danh sách mục tiêu!");
-      // Comment lại để tránh spam toast khi gõ search liên tục
       console.error(err);
       setGoals([]);
     } finally {
@@ -90,14 +92,11 @@ const AdminGoalPage = () => {
   }, [debouncedFetch]);
 
   // --- 3. EFFECTS ---
-
-  // Khi Search Text thay đổi (Name hoặc ID)
   useEffect(() => {
     debouncedFetch(page, searchName, searchUserId, status);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchName, searchUserId]);
 
-  // Khi Page hoặc Status thay đổi (Gọi ngay)
   useEffect(() => {
     fetchGoals(page, searchName, searchUserId, status);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -114,7 +113,7 @@ const AdminGoalPage = () => {
     setGoals((prev) =>
       prev.map((g) => {
         if (g._id !== updatedGoal._id) return g;
-        return { ...g, ...updatedGoal, userId: g.userId };
+        return { ...g, ...updatedGoal, userId: g.userId }; // Giữ nguyên object userId cũ để tránh lỗi UI
       })
     );
   };
@@ -136,6 +135,7 @@ const AdminGoalPage = () => {
     setConfirmConfig({ isOpen: true, type: "recalculate", data: goal });
   };
 
+  // 🔥 UPDATE: Hàm xử lý confirm nhận thêm tham số 'reason' từ Modal
   const handleConfirmAction = async (reason) => {
     const { type, data } = confirmConfig;
     if (!data) return;
@@ -143,7 +143,10 @@ const AdminGoalPage = () => {
     setIsProcessing(true);
     try {
       if (type === "delete") {
-        await axiosInstance.delete(`/api/admin/goals/${data._id}`);
+        // Gửi reason lên server khi xóa (Admin audit log)
+        await axiosInstance.delete(`/api/admin/goals/${data._id}`, {
+          data: { reason },
+        });
         removeGoalFromList(data._id);
         toast.success("Đã xóa mục tiêu thành công!");
       } else if (type === "recalculate") {
@@ -153,6 +156,7 @@ const AdminGoalPage = () => {
         updateGoalInList(res.data.goal || res.data);
         toast.success("Đã tính toán lại tiến độ!");
       }
+      // Đóng modal sau khi thành công
       setConfirmConfig({ isOpen: false, type: null, data: null });
     } catch (error) {
       toast.error(error.response?.data?.message || "Có lỗi xảy ra!");
@@ -161,7 +165,7 @@ const AdminGoalPage = () => {
     }
   };
 
-  // --- UI HELPERS ---
+  // 🔥 UPDATE: Cấu hình Props cho Modal mới
   const getConfirmModalProps = () => {
     const { type, data } = confirmConfig;
     if (!data) return {};
@@ -169,21 +173,19 @@ const AdminGoalPage = () => {
     if (type === "delete") {
       return {
         title: "Xóa Mục Tiêu?",
-        message: `Bạn có chắc chắn muốn xóa mục tiêu "${data.name}" của user ${
-          data.userId?.name || "này"
-        }?`,
-        variant: "danger",
-        confirmText: "Xóa bỏ",
-        requireReason: true,
+        message: `Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa mục tiêu "${data.name}" của user này không?`,
+        variant: "danger", // Icon thùng rác đỏ
+        confirmText: "Xóa ngay",
+        requireReason: true, // Bắt buộc nhập lý do
       };
     }
     if (type === "recalculate") {
       return {
         title: "Tính toán lại tiến độ?",
-        message: `Hệ thống sẽ quét lại toàn bộ giao dịch để cập nhật số tiền hiện tại cho mục tiêu "${data.name}".`,
-        variant: "info",
+        message: `Hệ thống sẽ quét lại toàn bộ lịch sử giao dịch để cập nhật số tiền hiện tại cho mục tiêu "${data.name}".`,
+        variant: "info", // Icon info xanh dương
         confirmText: "Tính toán",
-        requireReason: false,
+        requireReason: false, // Không cần lý do
       };
     }
     return {};
@@ -196,6 +198,7 @@ const AdminGoalPage = () => {
 
   return (
     <div className="p-4 sm:p-6 bg-blue-50/50 min-h-screen">
+      {/* Mobile Warning */}
       <div className="sm:hidden text-center text-gray-500 mt-10 px-4">
         Vui lòng sử dụng máy tính để quản lý mục tiêu tốt nhất.
       </div>
@@ -205,7 +208,7 @@ const AdminGoalPage = () => {
           Quản lý Mục tiêu
         </h1>
 
-        {/* --- MODERN FILTER BAR --- */}
+        {/* --- FILTER BAR --- */}
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 animate-fadeIn">
           <div className="flex items-center gap-2 mb-3 text-gray-500 text-sm font-medium">
             <FaFilter className="text-blue-500" />
@@ -213,7 +216,7 @@ const AdminGoalPage = () => {
           </div>
 
           <div className="flex flex-col xl:flex-row gap-4 justify-between">
-            {/* 1. INPUT TÌM ID & NAME */}
+            {/* Search Inputs */}
             <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
               {/* User ID */}
               <div className="relative w-full md:w-48 group">
@@ -264,7 +267,7 @@ const AdminGoalPage = () => {
               </div>
             </div>
 
-            {/* 2. SELECT STATUS */}
+            {/* Status Select */}
             <div className="flex flex-1 w-full md:w-auto gap-3 xl:justify-end">
               <div className="relative min-w-[180px]">
                 <select
@@ -359,7 +362,6 @@ const AdminGoalPage = () => {
                             {formatCurrency(goal.targetBaseAmount)}
                           </span>
                         </div>
-
                         <ProgressBar
                           current={goal.currentBaseAmount}
                           target={goal.targetBaseAmount}
@@ -372,7 +374,7 @@ const AdminGoalPage = () => {
                               ? "bg-green-100 text-green-700 border-green-200"
                               : goal.status === "failed"
                               ? "bg-red-100 text-red-700 border-red-200"
-                              : "bg-yellow-100 text-yellow-700 border-yellow-200"
+                              : "bg-blue-100 text-blue-700 border-blue-200"
                           }`}
                         >
                           {goal.status === "in_progress"
@@ -438,18 +440,17 @@ const AdminGoalPage = () => {
           />
         )}
 
-        {confirmConfig.isOpen && (
-          <ConfirmModal
-            isOpen={confirmConfig.isOpen}
-            onClose={() =>
-              !isProcessing &&
-              setConfirmConfig({ ...confirmConfig, isOpen: false })
-            }
-            onConfirm={handleConfirmAction}
-            isLoading={isProcessing}
-            {...getConfirmModalProps()}
-          />
-        )}
+        {/* 🔥 Tích hợp ConfirmModal Mới */}
+        <ConfirmModal
+          isOpen={confirmConfig.isOpen}
+          onClose={() =>
+            !isProcessing &&
+            setConfirmConfig({ ...confirmConfig, isOpen: false })
+          }
+          onConfirm={handleConfirmAction} // Hàm xử lý nhận reason
+          isLoading={isProcessing}
+          {...getConfirmModalProps()} // Spread các props cấu hình (title, variant, requireReason...)
+        />
       </div>
     </div>
   );
