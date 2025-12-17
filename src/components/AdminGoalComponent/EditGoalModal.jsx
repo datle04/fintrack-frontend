@@ -82,6 +82,8 @@ const EditGoalModal = ({ goal, onClose, onSave }) => {
 
     setIsLoading(true);
 
+    console.log(payload);
+
     try {
       const res = await axiosInstance.patch(
         `/api/admin/goals/${goal._id}`,
