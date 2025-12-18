@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, isAnyOf } from "@reduxjs/toolkit";
 import axiosInstance from "../api/axiosInstance";
+import axios from "axios";
 
 const initialState = {
   user: JSON.parse(localStorage.getItem("user")) || null,
@@ -83,8 +84,20 @@ export const refreshAuthToken = createAsyncThunk(
   "auth/refreshToken",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.post("/api/auth/refresh");
-      return res.data; // Có thể trả user hoặc status
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"; 
+
+      const res = await axios.post(
+        `${API_URL}/api/auth/refresh`, 
+        {}, 
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      
+      return res.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
     }
@@ -237,30 +250,6 @@ extraReducers: (builder) => {
       state.loading = false;
       state.error = action.payload;
     });
-
-  // --- REFRESH TOKEN --- //
-  // builder
-  //   .addCase(refreshAuthToken.pending, (state) => {
-  //     state.loading = true;
-  //   })
-  //   .addCase(refreshAuthToken.fulfilled, (state, action) => {
-  //     const { refreshToken } = action.payload || {};
-  //     if (refreshToken) {
-  //       state.refreshToken = refreshToken;
-  //       localStorage.setItem("refreshToken", refreshToken);
-  //     }
-  //     state.loading = false;
-  //     state.error = null;
-  //   })
-  //   .addCase(refreshAuthToken.rejected, (state, action) => {
-  //     console.error("❌ Refresh token failed:", action.payload);
-  //     state.loading = false;
-  //     state.user = null;
-  //     state.refreshToken = null;
-  //     state.error = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
-  //     localStorage.removeItem("user");
-  //     localStorage.removeItem("refreshToken");
-  //   });
 
   // --- LOGOUT --- //
   builder
