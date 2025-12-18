@@ -485,6 +485,7 @@ const AdminTransaction = () => {
                         <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={(e) => {
+                              e.stopPropagation();
                               handleEdit(tx);
                             }}
                             className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
@@ -519,12 +520,12 @@ const AdminTransaction = () => {
 
         {isEditOpen && selectedTransaction && (
           <TransactionModal
+            visible={isEditOpen}
             categoryList={CATEGORY_LIST}
             onClose={() => setIsEditOpen(false)}
             transaction={selectedTransaction}
           />
         )}
-
         {isConfirmModalOpen && selectedTransaction && (
           <ConfirmModal
             isOpen={isConfirmModalOpen}
