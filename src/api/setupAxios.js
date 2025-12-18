@@ -48,7 +48,4 @@ export const setupAxiosInterceptors = (store, axiosInstance) => {
       return Promise.reject(error);
     }
   );
-
-  // ❌ Không cần interceptor cho token header nữa,
-  // vì cookie đã tự kèm trong request.
 };

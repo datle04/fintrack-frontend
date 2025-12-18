@@ -1,22 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import {
-  FaUser,
-  FaCamera,
-  FaEye,
-  FaEyeSlash,
-  FaUserCircle,
-  FaShieldAlt,
-  FaPalette,
-} from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { FaCamera, FaUserCircle, FaShieldAlt, FaPalette } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  getUserInfo,
-  logoutUser,
-  requestChangePassword,
-  updateUser,
-  verifyAndChangePassword,
-} from "../features/authSlice";
+import { getUserInfo, logoutUser, updateUser } from "../features/authSlice";
 import toast from "react-hot-toast";
 import { useTheme } from "../context/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -29,7 +15,6 @@ import { getDirtyValues } from "../utils/formUtils";
 const SettingPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  // Lấy thêm loading từ redux để xử lý UI
   const { user, loading } = useSelector((state) => state.auth);
   const { theme, toggleTheme } = useTheme();
   const { t, i18n } = useTranslation();
@@ -39,24 +24,53 @@ const SettingPage = () => {
     localStorage.getItem("lang") || "vi"
   );
 
-  // Khởi tạo state profile an toàn với fallback rỗng
   const [profile, setProfile] = useState({
-    name: user?.name || "",
-    phone: user?.phone || "",
-    currency: user?.currency || "VND",
-    dob: user?.dob || "",
-    address: user?.address || "",
+    name: "",
+    phone: "",
+    currency: "VND",
+    dob: "",
+    address: "",
   });
 
   const initialProfile = useRef(profile);
   const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(null); // Tách biệt preview
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const fileInputRef = useRef(null);
-  const [showPassword, setShowPassword] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Kiểm tra thay đổi (Is Dirty)
+  // --- 1. CLEANUP MEMORY LEAK (AVATAR) ---
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
+
+  // Đồng bộ User từ Redux vào State
+  useEffect(() => {
+    if (user) {
+      const newProfileState = {
+        name: user.name || "",
+        phone: user.phone || "",
+        currency: user.currency || "VND",
+        dob: user.dob ? new Date(user.dob).toISOString().split("T")[0] : "", // Format lại date cho input type="date"
+        address: user.address || "",
+      };
+      setProfile(newProfileState);
+      initialProfile.current = newProfileState;
+      setAvatarPreview(null);
+    } else {
+      dispatch(getUserInfo());
+    }
+  }, [user, dispatch]);
+
+  useEffect(() => {
+    i18n.changeLanguage(language);
+    localStorage.setItem("lang", language);
+  }, [language, i18n]);
+
   const isDirty = useMemo(() => {
     return (
       JSON.stringify(profile) !== JSON.stringify(initialProfile.current) ||
@@ -64,131 +78,88 @@ const SettingPage = () => {
     );
   }, [profile, avatarFile]);
 
-  // --- FIX 1: ĐỒNG BỘ USER VÀO PROFILE KHI REDUX CẬP NHẬT ---
-  // Điều này giúp form luôn tươi mới sau khi lưu xong mà không cần set thủ công
-  useEffect(() => {
-    if (user) {
-      const newProfileState = {
-        name: user.name || "",
-        phone: user.phone || "",
-        currency: user.currency || "VND",
-        dob: user.dob || "",
-        address: user.address || "",
-      };
-      setProfile(newProfileState);
-      initialProfile.current = newProfileState;
-
-      // Reset avatar preview về null để dùng avatarUrl từ user
-      setAvatarPreview(null);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    i18n.changeLanguage(language);
-    localStorage.setItem("lang", language);
-  }, [language, i18n]);
-
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate ảnh (Option)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Ảnh đại diện không được quá 5MB");
+        return;
+      }
       setAvatarFile(file);
       setAvatarPreview(URL.createObjectURL(file));
     }
+    // --- 2. RESET INPUT VALUE ĐỂ CHỌN LẠI ĐƯỢC ẢNH CŨ ---
+    e.target.value = null;
   };
 
-  useEffect(() => {
-    if (!user) {
-      dispatch(getUserInfo());
-    }
-  }, [user, dispatch]);
+  const validateUserProfile = (currentProfile) => {
+    const newErrors = {};
+    const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/g;
 
-  const validateUserProfile = (profile, t) => {
-    const errors = {};
-    const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/g; // Regex số điện thoại VN
-
-    // 1. Validate Tên (Bắt buộc)
-    if (!profile.name || !profile.name.trim()) {
-      errors.name = t("validate.nameRequired") || "Tên không được để trống";
-    } else if (profile.name.length < 2) {
-      errors.name =
+    if (!currentProfile.name || !currentProfile.name.trim()) {
+      newErrors.name = t("validate.nameRequired") || "Tên không được để trống";
+    } else if (currentProfile.name.length < 2) {
+      newErrors.name =
         t("validate.nameMinLength") || "Tên phải có ít nhất 2 ký tự";
     }
 
-    // 2. Validate Số điện thoại (Nếu có nhập thì phải đúng định dạng)
-    if (profile.phone && !phoneRegex.test(profile.phone)) {
-      errors.phone = t("validate.phoneInvalid") || "Số điện thoại không hợp lệ";
+    if (currentProfile.phone && !phoneRegex.test(currentProfile.phone)) {
+      newErrors.phone =
+        t("validate.phoneInvalid") || "Số điện thoại không hợp lệ";
     }
 
-    // 3. Validate Ngày sinh (Không được chọn tương lai)
-    if (profile.dob) {
-      const selectedDate = new Date(profile.dob);
+    if (currentProfile.dob) {
+      const selectedDate = new Date(currentProfile.dob);
       const today = new Date();
       if (selectedDate > today) {
-        errors.dob =
+        newErrors.dob =
           t("validate.dobFuture") || "Ngày sinh không được ở tương lai";
       }
     }
-
-    return errors;
+    return newErrors;
   };
 
   const handleSaveProfile = () => {
     setErrors({});
+    const newErrors = validateUserProfile(profile);
 
-    // 2️⃣ GỌI HÀM VALIDATE TRƯỚC KHI XỬ LÝ LOGIC
-    const newErrors = validateUserProfile(profile, t);
-
-    // Nếu có lỗi -> Set state lỗi và dừng lại (không gọi API)
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      // Có thể toast thông báo chung nếu muốn
       toast.error(t("validate.checkForm") || "Vui lòng kiểm tra lại thông tin");
       return;
     }
 
     if (!isDirty) return;
 
-    // 1. Lấy danh sách các trường thay đổi
     const dirtyFields = getDirtyValues(initialProfile.current, profile);
-
-    // 2. Kiểm tra xem có avatar mới không
     const hasAvatarChange = !!avatarFile;
 
-    // 3. Nếu không có trường text nào đổi VÀ không có avatar mới -> Return
-    if (Object.keys(dirtyFields).length === 0 && !hasAvatarChange) {
-      return;
-    }
+    if (Object.keys(dirtyFields).length === 0 && !hasAvatarChange) return;
 
     const formData = new FormData();
-
-    // 4. Chỉ append những trường ĐÃ THAY ĐỔI vào formData
     Object.keys(dirtyFields).forEach((key) => {
       formData.append(key, dirtyFields[key]);
     });
 
-    // 5. Append Avatar (nếu có)
     if (hasAvatarChange) {
       formData.append("avatar", avatarFile);
     }
 
-    // 6. Gọi API
     const promise = dispatch(updateUser(formData)).unwrap();
 
     toast
       .promise(promise, {
         loading: t("saving"),
-        success: (data) => {
-          // Reset file avatar sau khi upload thành công
+        success: () => {
           setAvatarFile(null);
-          // Lưu ý: Không cần update initialProfile thủ công ở đây
-          // vì useEffect([user]) sẽ tự động làm việc đó khi Redux state cập nhật
-          return <b>{t("saveSuccess")}</b>;
+          return <b>{t("settingPage.saveSuccess")}</b>;
         },
-        error: (err) => <b>{`${t("saveError")}: ${err?.message || "Lỗi"}`}</b>,
+        error: (err) => (
+          <b>{`${t("settingPage.saveError")}: ${err?.message || "Lỗi"}`}</b>
+        ),
       })
-      .catch((err) => {
-        console.error("Lỗi update:", err);
-      });
+      .catch((err) => console.error("Lỗi update:", err));
   };
 
   const handleLogout = async () => {
@@ -213,14 +184,33 @@ const SettingPage = () => {
     [t]
   );
 
+  // --- HÀM HELPER ĐỂ RENDER INPUT (Tránh lặp code & Xử lý xóa lỗi) ---
+  const renderField = (key, label, type = "text") => (
+    <div>
+      <EditableField
+        label={label}
+        value={profile[key]}
+        type={type}
+        onChange={(e) => {
+          setProfile({ ...profile, [key]: e.target.value });
+          // --- 3. XÓA LỖI KHI NGƯỜI DÙNG NHẬP LẠI ---
+          if (errors[key]) setErrors((prev) => ({ ...prev, [key]: null }));
+        }}
+      />
+      {errors[key] && (
+        <p className="text-red-500 text-xs mt-1 ml-1 animate-fadeIn">
+          {errors[key]}
+        </p>
+      )}
+    </div>
+  );
+
   const renderSecurityTab = () => (
     <div className="bg-white dark:bg-[#2E2E33] rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-slate-700 animate-fadeIn">
       <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6 pb-4 border-b border-gray-100 dark:border-slate-700">
         {t("security")}
       </h3>
-
       <div className="space-y-6 max-w-lg">
-        {/* EMAIL */}
         <div>
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
             {t("email")}
@@ -232,12 +222,9 @@ const SettingPage = () => {
             className="w-full px-4 py-2.5 bg-gray-100 dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 cursor-not-allowed"
           />
         </div>
-
-        {/* PASSWORD SECTION (Dùng component tái sử dụng) */}
         <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
           <ChangePasswordSection logoutOnSuccess={true} />
         </div>
-
         <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
           <button
             onClick={handleLogout}
@@ -258,84 +245,30 @@ const SettingPage = () => {
             <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6 pb-4 border-b border-gray-100 dark:border-slate-700">
               {t("userInfo")}
             </h3>
-            {/* Nếu đang loading API update, làm mờ form để tránh thao tác */}
+
             <div
               className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${
                 loading ? "opacity-50 pointer-events-none" : ""
               }`}
             >
-              <div>
-                <EditableField
-                  label={t("name")}
-                  value={profile.name || ""} // FIX 2: Chống undefined
-                  onChange={(e) =>
-                    setProfile({ ...profile, name: e.target.value })
-                  }
-                />
-                {errors.name && (
-                  <p className="text-red-500 text-xs mt-1 ml-1">
-                    {errors.name}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <EditableField
-                  label={t("phone")}
-                  value={profile.phone || ""}
-                  onChange={(e) =>
-                    setProfile({ ...profile, phone: e.target.value })
-                  }
-                />
-                {errors.phone && (
-                  <p className="text-red-500 text-xs mt-1 ml-1">
-                    {errors.phone}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <EditableField
-                  label={t("dob")}
-                  value={profile.dob || ""}
-                  type="date"
-                  onChange={(e) =>
-                    setProfile({ ...profile, dob: e.target.value })
-                  }
-                />
-                {errors.dob && (
-                  <p className="text-red-500 text-xs mt-1 ml-1">{errors.dob}</p>
-                )}
-              </div>
-
-              <div>
-                <EditableField
-                  label={t("address")}
-                  value={profile.address || ""}
-                  onChange={(e) =>
-                    setProfile({ ...profile, address: e.target.value })
-                  }
-                />
-                {errors.address && (
-                  <p className="text-red-500 text-xs mt-1 ml-1">
-                    {errors.address}
-                  </p>
-                )}
-              </div>
+              {renderField("name", t("name"))}
+              {renderField("phone", t("phone"))}
+              {renderField("dob", t("dob"), "date")}
+              {renderField("address", t("address"))}
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
                   {t("currency")}
                 </label>
                 <select
-                  value={profile.currency || "VND"}
+                  value={profile.currency}
                   onChange={(e) =>
                     setProfile((prev) => ({
                       ...prev,
                       currency: e.target.value,
                     }))
                   }
-                  className="w-full px-4 py-2.5 bg-white dark:bg-[#3a3a41] border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-[#3a3a41] border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none cursor-pointer"
                 >
                   {[...currencyMap].map(([code, label]) => (
                     <option key={code} value={code}>
@@ -343,18 +276,13 @@ const SettingPage = () => {
                     </option>
                   ))}
                 </select>
-                {errors.currency && (
-                  <p className="text-red-500 text-xs mt-1 ml-1">
-                    {errors.currency}
-                  </p>
-                )}
               </div>
             </div>
 
             <div className="mt-8 flex justify-end">
               <button
                 onClick={handleSaveProfile}
-                disabled={!isDirty || loading} // Disable khi đang loading
+                disabled={!isDirty || loading}
                 className={`px-8 py-2.5 text-white rounded-xl font-medium transition-all flex items-center gap-2 ${
                   isDirty && !loading
                     ? "bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200"
@@ -379,7 +307,6 @@ const SettingPage = () => {
             <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6 pb-4 border-b border-gray-100 dark:border-slate-700">
               {t("interface")}
             </h3>
-
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -406,7 +333,6 @@ const SettingPage = () => {
                   ))}
                 </div>
               </div>
-
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-gray-700 dark:text-gray-200">
@@ -431,10 +357,7 @@ const SettingPage = () => {
     }
   };
 
-  // Nếu không có user (lần đầu vào)
-  if (!user) {
-    return <SettingPageLoading />;
-  }
+  if (!user) return <SettingPageLoading />;
 
   return (
     <div className="min-h-screen bg-[#F5F6FA] dark:bg-[#35363A] p-4 md:p-8">
@@ -444,9 +367,8 @@ const SettingPage = () => {
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* --- CỘT TRÁI --- */}
+          {/* CỘT TRÁI */}
           <div className="lg:col-span-4 space-y-6">
-            {/* Profile Summary Card */}
             <div className="bg-white dark:bg-[#2E2E33] rounded-2xl p-6 shadow-sm text-center border border-gray-100 dark:border-slate-700">
               <div
                 className="relative w-24 h-24 mx-auto mb-4 group cursor-pointer"
@@ -454,7 +376,6 @@ const SettingPage = () => {
                 onMouseEnter={() => setIsHovering(true)}
                 onMouseLeave={() => setIsHovering(false)}
               >
-                {/* FIX 4: Logic hiển thị ảnh an toàn */}
                 <img
                   src={
                     avatarPreview ||
@@ -469,7 +390,6 @@ const SettingPage = () => {
                       (user?.name || "User");
                   }}
                 />
-
                 <div
                   className={`absolute bottom-0 right-0 bg-indigo-600 text-white p-2 rounded-full shadow-md transition-opacity duration-200 ${
                     isHovering ? "opacity-100" : "opacity-0 lg:opacity-100"
@@ -491,7 +411,6 @@ const SettingPage = () => {
               <p className="text-gray-500 text-sm">{user?.email}</p>
             </div>
 
-            {/* Menu */}
             <nav className="bg-white dark:bg-[#2E2E33] rounded-2xl shadow-sm overflow-hidden border border-gray-100 dark:border-slate-700">
               {tabs.map((tab) => (
                 <button
@@ -514,7 +433,7 @@ const SettingPage = () => {
             </nav>
           </div>
 
-          {/* --- CỘT PHẢI --- */}
+          {/* CỘT PHẢI */}
           <div className="lg:col-span-8">{renderContent()}</div>
         </div>
       </div>

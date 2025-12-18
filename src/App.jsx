@@ -43,11 +43,20 @@ function App() {
   // ⚠️ State mới cho Chat Widget
   const [isChatOpen, setIsChatOpen] = useState(false);
 
+  // 2. Lấy theme và toggleTheme
+  const { theme, toggleTheme } = useTheme();
+
   useEffect(() => {
+    // Chỉ chạy logic nếu user là admin
     if (user?.role === "admin") {
-      i18n.changeLanguage("vi");
+      if (i18n.language !== "vi") {
+        i18n.changeLanguage("vi");
+      }
+      if (theme !== "light") {
+        toggleTheme("light");
+      }
     }
-  }, [i18n]);
+  }, [user, i18n, theme, toggleTheme]);
 
   return (
     <>
