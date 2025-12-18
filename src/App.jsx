@@ -16,7 +16,7 @@ import ReportExport from "./pages/ReportExport";
 import { connectSocket, getSocket } from "./utils/socket";
 import { useEffect, useState } from "react";
 import ReportTemplate from "./components/ReportTemplate";
-import { ThemeProvider } from "./context/ThemeContext";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import AdminRoute from "./routes/AdminRoute";
 import { useSelector } from "react-redux";
 import AdminUser from "./pages/admin/AdminUser";
