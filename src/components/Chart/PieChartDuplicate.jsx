@@ -90,7 +90,7 @@ const PieChartDuplicate = ({ stats, onRender }) => {
         const base64 = chartRef.current.canvas.toDataURL("image/png");
         onRender(base64);
       }
-    }, 500); // delay nhẹ để đảm bảo chart đã render
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [stats]);

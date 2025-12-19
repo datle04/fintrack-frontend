@@ -1,4 +1,3 @@
-// src/components/Shimmer.jsx
 import React from "react";
 
 const Shimmer = () => {

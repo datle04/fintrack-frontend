@@ -21,7 +21,6 @@ const ChatIcon = ({ isOpen, onClick }) => {
       `}
       title={isOpen ? "Đóng FinAI" : "Mở FinAI"}
     >
-      {/* Tối ưu kích thước icon cho màn hình nhỏ và lớn */}
       {isOpen ? (
         <X size={24} className="sm:size-6" />
       ) : (

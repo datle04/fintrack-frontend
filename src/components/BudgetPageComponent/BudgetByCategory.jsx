@@ -1,4 +1,3 @@
-// src/components/BudgetPageComponent/BudgetByCategory.jsx
 import React from "react";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { IoWarningOutline } from "react-icons/io5";
@@ -8,7 +7,6 @@ import { getCurrencySymbol } from "../../constant/currencies";
 const BudgetByCategory = ({ categoryList, categoryStats, currency }) => {
   const { t, i18n } = useTranslation();
 
-  // Helper lấy icon và màu sắc
   const getCategoryMeta = (key) => {
     const found = categoryList.find((c) => c.key === key);
     return found
@@ -32,13 +30,10 @@ const BudgetByCategory = ({ categoryList, categoryStats, currency }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 2xl:gap-6">
       {categoryStats.map((item) => {
-        // Dữ liệu này ĐÃ ĐƯỢC TÍNH TOÁN bởi useBudgetCalculations
-        // Chúng ta chỉ việc hiển thị
         const { displayBudget, displaySpent, percentUsed, isOver } = item;
-        const percent = Math.min(percentUsed || 0, 100); // Max 100 cho thanh bar
+        const percent = Math.min(percentUsed || 0, 100);
         const { label, icon } = getCategoryMeta(item.category);
 
-        // Màu sắc thanh tiến độ
         let progressColor = "bg-green-500";
         if (isOver) progressColor = "bg-red-500";
         else if (percent > 80) progressColor = "bg-yellow-500";

@@ -37,15 +37,12 @@ const AdminTransaction = () => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
 
-  // Safe Access
   const transactions =
     useSelector((state) => state.transaction.transactions) || [];
   const totalPages = useSelector((state) => state.transaction.totalPages);
 
-  // --- STATE ---
   const { startOfYear, present } = getCurrentMonthRange();
 
-  // Filter States
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [type, setType] = useState("");
@@ -53,21 +50,18 @@ const AdminTransaction = () => {
   const [endDate, setEndDate] = useState(present);
   const [page, setPage] = useState(1);
 
-  // DatePicker States
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [selectingStartDate, setSelectingStartDate] = useState(true);
   const datePickerRef = useRef(null);
 
-  // Modal States
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // --- 1. API CALL FUNCTION ---
   const fetchTransactions = useCallback(
     (searchTerm, cat, typ, start, end, p) => {
       dispatch(
@@ -85,7 +79,6 @@ const AdminTransaction = () => {
     [dispatch]
   );
 
-  // --- 2. DEBOUNCE SEARCH ---
   const debouncedFetch = useMemo(() => {
     return debounce((searchTerm, c, t, s, e, p) => {
       fetchTransactions(searchTerm, c, t, s, e, p);
@@ -96,19 +89,13 @@ const AdminTransaction = () => {
     return () => debouncedFetch.cancel();
   }, [debouncedFetch]);
 
-  // --- 3. EFFECTS ---
-  // Khi Search thay đổi -> Debounce gọi API & Reset Page
   useEffect(() => {
     debouncedFetch(search, category, type, startDate, endDate, page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  // Khi Filter/Page thay đổi -> Gọi ngay lập tức
   useEffect(() => {
-    // Tránh gọi trùng nếu search đang chạy (nhưng ở đây gọi lại cũng không sao để đảm bảo data mới nhất)
     fetchTransactions(search, category, type, startDate, endDate, page);
     window.scrollTo({ top: 0, behavior: "smooth" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, type, startDate, endDate, page]);
 
   // --- HANDLERS ---
@@ -137,7 +124,6 @@ const AdminTransaction = () => {
       ).unwrap();
       toast.success("Đã xóa giao dịch thành công!");
       setIsConfirmModalOpen(false);
-      // Refresh data
       fetchTransactions(search, category, type, startDate, endDate, page);
     } catch (error) {
       toast.error(error?.message || "Có lỗi xảy ra!");
@@ -162,7 +148,6 @@ const AdminTransaction = () => {
     setIsDetailOpen(true);
   };
 
-  // --- DATE PICKER HELPERS (Giữ nguyên logic cũ nhưng clean code hơn) ---
   const monthNames = [
     "Tháng 1",
     "Tháng 2",
@@ -215,7 +200,6 @@ const AdminTransaction = () => {
   const getDateRangeDisplay = () =>
     `${format(startDate, "dd/MM/yyyy")} - ${format(endDate, "dd/MM/yyyy")}`;
 
-  // Close Datepicker Click Outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -267,7 +251,6 @@ const AdminTransaction = () => {
 
   return (
     <div className="p-4 sm:p-6 bg-blue-50/50 min-h-screen">
-      {/* Mobile Warning */}
       <div className="sm:hidden text-center text-gray-500 mt-10 px-4">
         Vui lòng sử dụng máy tính để quản lý giao dịch tốt nhất.
       </div>

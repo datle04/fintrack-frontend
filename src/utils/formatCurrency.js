@@ -17,15 +17,11 @@ export const formatCurrency = (amount, currencyCode = "VND", locale = "vi") => {
     currency: currencyCode,
   };
 
-  // Quy tắc đặc biệt: Không hiển thị số lẻ cho VND
   if (currencyCode === "VND") {
     options.minimumFractionDigits = 0;
     options.maximumFractionDigits = 0;
   }
 
-  // Tự động định dạng dựa trên ngôn ngữ
-  // 'vi' sẽ ra: 10.000 ₫
-  // 'en' sẽ ra: $10.00
   return new Intl.NumberFormat(locale, options).format(amount);
 };
 
@@ -42,30 +38,24 @@ export const getCurrencyInfo = (budget) => {
   const originalCurrency = budget?.currency || BASE_CURRENCY;
   let exchangeRate = 1; // Mặc định 1:1 (nếu là VND)
 
-  // Chỉ tính tỷ giá nếu tiền tệ khác VND
   if (
     originalCurrency !== BASE_CURRENCY &&
     budget?.originalAmount &&
     budget?.totalBudget
   ) {
-    // Tỷ giá = (Tổng VND) / (Tổng Gốc EUR)
     if (budget.originalAmount !== 0) {
       exchangeRate = budget.totalBudget / budget.originalAmount;
     }
   }
 
-  // Safeguard: Tránh lỗi chia cho 0
   if (exchangeRate === 0) exchangeRate = 1;
 
   return {
     displayCurrency: originalCurrency,
-    exchangeRate: exchangeRate, // Tỷ giá (VND -> Display Currency)
+    exchangeRate: exchangeRate, 
   };
 };
 
-/**
- * Hàm cũ của bạn, giờ đã được refactor để dùng getCurrencyInfo
- */
 export const getDisplaySpentValue = (budget) => {
   const { displayCurrency, exchangeRate } = getCurrencyInfo(budget);
   const totalSpent = budget?.totalSpent || 0; 

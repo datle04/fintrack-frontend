@@ -12,7 +12,6 @@ const InputField = ({
 }) => {
   const [showPass, setShowPass] = useState(false);
 
-  // Quyết định type thực tế (nếu là password field thì dựa vào state showPass)
   const inputType = isPassword ? (showPass ? "text" : "password") : type;
 
   return (

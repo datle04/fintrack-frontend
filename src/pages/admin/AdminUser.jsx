@@ -41,26 +41,22 @@ const badgeClass = (type, value) => {
 };
 
 const AdminUser = () => {
-  // Safe access
   const users = useSelector((state) => state.users.users) || [];
   const totalPages = useSelector((state) => state.users.totalPages);
   const dispatch = useDispatch();
 
-  // State
   const [search, setSearch] = useState("");
   const [searchId, setSearchId] = useState("");
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
 
-  // Modal states
   const [selectedUser, setSelectedUser] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmModalType, setConfirmModalType] = useState("ban");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // --- 1. API CALL ---
   const fetchUsers = useCallback(
     (searchTerm, searchIdTerm, roleFilter, statusFilter, pageNumber) => {
       dispatch(
@@ -71,14 +67,13 @@ const AdminUser = () => {
           role: roleFilter,
           isBanned: statusFilter,
           page: pageNumber,
-          limit: 10, // Đồng bộ limit = 10 cho gọn
+          limit: 10,
         })
       );
     },
     [dispatch]
   );
 
-  // --- 2. DEBOUNCE ---
   const debouncedFetch = useMemo(() => {
     return debounce((searchTerm, searchIdTerm, r, s, p) => {
       fetchUsers(searchTerm, searchIdTerm, r, s, p);
@@ -89,20 +84,15 @@ const AdminUser = () => {
     return () => debouncedFetch.cancel();
   }, [debouncedFetch]);
 
-  // Effect Trigger
   useEffect(() => {
     debouncedFetch(search, searchId, role, status, page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, searchId]);
 
   useEffect(() => {
-    // Gọi ngay khi filter/page đổi (trừ search text)
     fetchUsers(search, searchId, role, status, page);
     window.scrollTo({ top: 0, behavior: "smooth" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, role, status]);
 
-  // --- HANDLERS ---
   const handleSearchIdChange = (e) => {
     setSearchId(e.target.value);
     setPage(1);
@@ -155,7 +145,6 @@ const AdminUser = () => {
 
       await dispatch(action).unwrap();
       toast.success(successMessage);
-      // Refresh Data
       fetchUsers(search, searchId, role, status, page);
       setIsConfirmModalOpen(false);
       setSelectedUser(null);
@@ -166,7 +155,6 @@ const AdminUser = () => {
     }
   };
 
-  // --- MODAL PROPS ---
   const getModalProps = () => {
     if (!selectedUser) return {};
     switch (confirmModalType) {
@@ -220,7 +208,6 @@ const AdminUser = () => {
           <div className="flex flex-col xl:flex-row gap-4 justify-between">
             {/* GROUP SEARCH: ID & NAME */}
             <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
-              {/* 1. INPUT TÌM ID */}
               <div className="relative w-full md:w-48 group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FaHashtag className="text-gray-400 group-focus-within:text-blue-500 transition-colors" />
@@ -244,7 +231,6 @@ const AdminUser = () => {
                 )}
               </div>
 
-              {/* 2. INPUT TÌM TÊN/EMAIL */}
               <div className="relative w-full md:w-80 group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FaSearch className="text-gray-400 group-focus-within:text-blue-500 transition-colors" />

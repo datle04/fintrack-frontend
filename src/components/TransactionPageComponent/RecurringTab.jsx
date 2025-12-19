@@ -6,7 +6,6 @@ import { formatCurrency } from "../../utils/formatCurrency";
 import ConfirmModal from "../ConfirmModal";
 import toast from "react-hot-toast";
 import { categoryList } from "../../constant/categoryList";
-// Import thunk action từ slice của bạn
 import {
   cancelRecurringTransaction,
   getRecurringTransactions,
@@ -16,17 +15,14 @@ const RecurringTab = () => {
   const { t, i18n } = useTranslation();
   const dispatch = useDispatch();
 
-  // 1. Lấy dữ liệu từ Redux
-  // Giả sử state.transaction.recurringTransactions lưu nguyên cục data bạn paste
   const { recurringTransactions, recurringLoading } = useSelector(
     (state) => state.transaction
   );
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTx, setSelectedTx] = useState(null);
-  const [actionType, setActionType] = useState(null); // 'stop' | 'delete_all'
+  const [actionType, setActionType] = useState(null);
 
-  // 2. Gọi API lấy dữ liệu khi mount (nếu chưa có)
   useEffect(() => {
     dispatch(getRecurringTransactions());
   }, [dispatch]);
@@ -35,20 +31,13 @@ const RecurringTab = () => {
     console.log(recurringTransactions);
   }, [recurringTransactions]);
 
-  // 3. 🔥 QUAN TRỌNG: Chuyển đổi Data Object thành Array để render
   const recurringList = useMemo(() => {
-    // Kiểm tra an toàn: nếu không có data thì trả về mảng rỗng
     if (!recurringTransactions || !recurringTransactions.data) return [];
-
-    // recurringTransactions.data là Object { "uuid": [tx], "uuid2": [tx] }
-    // Chúng ta dùng Object.values để lấy mảng các value: [ [tx], [tx] ]
-    // Sau đó map để lấy phần tử đầu tiên của mỗi nhóm (vì mỗi nhóm là 1 array)
     return Object.values(recurringTransactions.data)
-      .map((group) => group[0]) // Lấy item đầu tiên làm đại diện hiển thị
-      .filter((item) => item); // Lọc bỏ item null/undefined nếu có lỗi
+      .map((group) => group[0])
+      .filter((item) => item);
   }, [recurringTransactions]);
 
-  // --- Xử lý Action ---
   const handleActionClick = (tx, type) => {
     setSelectedTx(tx);
     setActionType(type);
@@ -60,11 +49,9 @@ const RecurringTab = () => {
     const isDeleteAll = actionType === "delete_all";
 
     try {
-      // Gọi API: Truyền ID của giao dịch hiện tại và cờ deleteAll
-      // Lưu ý: selectedTx._id ở đây là ID của bản ghi template/đại diện
       await dispatch(
         cancelRecurringTransaction({
-          id: selectedTx._id, // Backend sẽ tự tìm recurringId từ transaction này
+          id: selectedTx._id,
           deleteAll: isDeleteAll,
         })
       ).unwrap();
@@ -76,7 +63,6 @@ const RecurringTab = () => {
       );
       setModalOpen(false);
 
-      // Refresh lại list sau khi xóa
       dispatch(getRecurringTransactions());
     } catch (error) {
       toast.error(error?.message || t("error"));
@@ -103,7 +89,7 @@ const RecurringTab = () => {
       ) : (
         recurringList.map((item) => (
           <div
-            key={item._id} // Hoặc item.recurringId
+            key={item._id}
             className="bg-white dark:bg-[#2E2E33] rounded-lg p-4 shadow-sm border border-gray-100 dark:border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 hover:shadow-md transition-shadow"
           >
             {/* --- Cột Thông tin --- */}

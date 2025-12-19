@@ -18,7 +18,6 @@ const EditBudgetModal = ({ budget, onClose }) => {
     categories: budget.categories,
     reason: "",
   });
-  // Bạn có thể mở rộng để sửa từng danh mục con nếu cần
 
   useEffect(() => {
     console.log(budget);

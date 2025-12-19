@@ -51,7 +51,7 @@ const TransactionModal = ({
 
   const user = useSelector((state) => state.auth.user);
   const goals = useSelector((state) => state.goals.goals);
-  const { t } = useTranslation(); // Bỏ i18n nếu không dùng trực tiếp
+  const { t } = useTranslation();
   const dispatch = useDispatch();
 
   const isAdminEditing = user?.role === "admin" && !!transaction;
@@ -59,7 +59,7 @@ const TransactionModal = ({
   const [formData, setFormData] = useState(initialState);
   const [existingImages, setExistingImages] = useState([]);
   const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false); // Thêm state loading cho UI
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (transaction) {

@@ -4,7 +4,7 @@ import { addBudget } from "../../features/budgetSlice";
 import toast from "react-hot-toast";
 import { useTranslation, Trans } from "react-i18next";
 import { currencyMap } from "../../constant/currencies";
-import { X, Plus, Trash2, Wallet, Calendar, AlertCircle } from "lucide-react"; // Import Icons
+import { X, Plus, Trash2, Wallet, Calendar, AlertCircle } from "lucide-react";
 
 const BudgetModal = ({
   categoryList,
@@ -34,8 +34,6 @@ const BudgetModal = ({
   const prevCurrencyRef = useRef(formData.currency);
   const isFirstRender = useRef(true);
 
-  // --- LOGIC GIỮ NGUYÊN (USE EFFECT, HANDLERS...) ---
-  // (Phần logic nạp dữ liệu và toast cảnh báo giữ nguyên như cũ để đảm bảo tính năng)
   useEffect(() => {
     const isMatchingDate =
       currentBudget.month === Number(selectedMonth) &&
@@ -131,7 +129,6 @@ const BudgetModal = ({
     }
   }, [formData.currency]);
 
-  // --- HANDLERS (LOGIC CŨ) ---
   const closeForm = (e) => {
     e.stopPropagation();
     setIsFormOpen(false);
@@ -199,7 +196,6 @@ const BudgetModal = ({
     }
   };
 
-  // --- TÍNH TOÁN UI ---
   const selectedCategories = formData.categories.map((c) => c.name);
   const remainingOptions = categoryNames.filter(
     (opt) => !selectedCategories.includes(opt)

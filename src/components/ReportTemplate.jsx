@@ -9,15 +9,11 @@ const ReportTemplate = ({ month, year, data }) => {
     data;
 
   return (
-    // Sử dụng font-roboto (vì chúng ta đã cài nó)
     <div className="p-8 text-sm text-gray-800 font-roboto">
-            {/* Tiêu đề chính */}     
       <h1 className="text-2xl font-bold text-center text-blue-700 mb-8">
                 BÁO CÁO TÀI CHÍNH THÁNG {month}/{year}     
       </h1>
-            {/* Gộp thông tin người dùng & tổng quan vào 1 flexbox */}     
       <section className="flex justify-between gap-8 mb-6 no-break">
-        {/* Box Thông tin người dùng */}       
         <div className="w-1/2 p-4 border rounded-lg shadow-sm">
                    
           <h2 className="text-lg font-bold mb-3 text-blue-600 border-b pb-2">
@@ -112,7 +108,6 @@ const ReportTemplate = ({ month, year, data }) => {
           <tbody>
                        
             {transactions.map((tx, index) => (
-              // Thêm màu xen kẽ
               <tr key={index} className="text-left even:bg-gray-50">
                                
                 <td className="p-2 border-b border-gray-200">
@@ -142,7 +137,7 @@ const ReportTemplate = ({ month, year, data }) => {
         </table>
              
       </section>
-            {/* Biểu đồ (Logic đã sửa) */}     
+            {/* Biểu đồ */}     
       <section className="mb-4 text-center no-break">
                
         <h2 className="text-lg font-bold mb-4 text-blue-600">
@@ -171,17 +166,6 @@ const ReportTemplate = ({ month, year, data }) => {
         </p>
              
       </section>
-      {/* <section className="mb-4 text-center">
-        <h2 className="text-lg font-bold mb-2">Chi tiêu theo ngày</h2>
-        <img
-          src={heatmapUrl}
-          alt="Heatmap chi tiêu"
-          className="inline-block w-[80%] h-auto border object-contain"
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          Nguồn dữ liệu từ các giao dịch trong tháng
-        </p>
-      </section> */}
     </div>
   );
 };

@@ -7,7 +7,7 @@ const FilterSelect = ({
   name,
   options,
   placeholder,
-  icon: Icon, // Icon đại diện (ví dụ: Filter, Tag)
+  icon: Icon,
 }) => {
   return (
     <div className="relative min-w-[150px] flex-1">
@@ -33,13 +33,9 @@ const FilterSelect = ({
         ))}
       </select>
 
-      {/* Icon bên phải (Mũi tên) */}
       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
         <ChevronDown size={14} />
       </div>
-
-      {/* Icon bên trái (Tùy chọn - Nếu bạn muốn floating icon như ô Search) */}
-      {/* Nếu muốn icon bên trong select thì cần padding-left lớn hơn */}
     </div>
   );
 };

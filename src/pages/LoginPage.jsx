@@ -8,10 +8,10 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import { useLoading } from "../context/LoadingContext";
 import InputField from "../components/LoginPageComponent/InputField";
-import { useTranslation } from "react-i18next"; // 1. Import hook
+import { useTranslation } from "react-i18next";
 
 export default function LoginPage() {
-  const { t } = useTranslation(); // 2. Khởi tạo hook
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
@@ -19,7 +19,6 @@ export default function LoginPage() {
 
   const [isRegister, setIsRegister] = useState(false);
 
-  // Form State
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -53,9 +52,8 @@ export default function LoginPage() {
       await action;
 
       if (isRegister) {
-        setIsRegister(false); // Chuyển về login sau khi đăng ký
+        setIsRegister(false);
       } else {
-        // Login thành công
         setIsAppLoading(true);
         setTimeout(() => {
           if (user?.role === "admin") {
@@ -67,7 +65,6 @@ export default function LoginPage() {
         }, 1500);
       }
 
-      // Reset form
       setEmail("");
       setName("");
       setPassword("");
@@ -78,7 +75,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full bg-white text-gray-900 font-sans selection:bg-indigo-100 selection:text-indigo-700">
-      {/* ================= MOBILE LAYOUT ================= */}
       <div className="lg:hidden min-h-screen flex flex-col justify-center px-6 py-8 relative bg-gradient-to-b from-indigo-50/50 to-white">
         {/* Header Mobile */}
         <div className="mb-8 text-center">
@@ -251,7 +247,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* RIGHT COLUMN: Visuals (60%) */}
+        {/* RIGHT COLUMN */}
         <div className="hidden lg:flex flex-1 bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-800 relative items-center justify-center overflow-hidden">
           {/* Abstract Shapes Background */}
           <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-white opacity-5 rounded-full blur-3xl animate-pulse"></div>

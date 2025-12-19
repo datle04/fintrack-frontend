@@ -10,60 +10,47 @@ const DashboardBudgetInfo = ({ className = "" }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  // const budget = useSelector((state) => state.budget);
-  // --- BẮT ĐẦU SỬA LỖI ---
+
   const {
     totalBudget,
     totalSpent,
     totalPercentUsed,
-    currency, // Đây là 'originalCurrency' từ slice của bạn
-    originalAmount, // Thêm trường này
+    currency,
+    originalAmount,
     loading,
     error,
   } = useSelector((state) => state.budget);
 
-  // Xóa dòng này, chúng ta sẽ tính lại
-  // const remain = totalBudget - totalSpent;
-  // --- KẾT THÚC SỬA LỖI ---
-
   useEffect(() => {
     const now = new Date();
     dispatch(getBudget({ month: now.getMonth() + 1, year: now.getFullYear() }));
-  }, [dispatch]); // Thêm 'dispatch' vào dependency array
+  }, [dispatch]);
 
   if (loading) return <ShortBudgetLoading className={className} />;
 
-  // --- THÊM MỚI: Logic tính toán hiển thị ---
   const BASE_CURRENCY = "VND";
 
   let displayBudget = 0;
   let displaySpent = 0;
   let displayRemaining = 0;
-  // 'currency' từ slice (là originalCurrency) là tiền tệ chúng ta muốn hiển thị
   let displayCurrency = currency || BASE_CURRENCY;
 
   if (displayCurrency === BASE_CURRENCY || !currency) {
-    // TRƯỜNG HỢP 1: Ngân sách là VND
     displayBudget = totalBudget;
     displaySpent = totalSpent;
   } else {
-    // TRƯỜNG HỢP 2: Ngân sách là ngoại tệ (USD, EUR...)
-    displayBudget = originalAmount; // Hiển thị số tiền gốc (ví dụ: 100)
+    displayBudget = originalAmount;
 
-    // Tính tỷ giá (VND / Gốc)
     let exchangeRate = 1;
     if (originalAmount !== 0) {
       exchangeRate = totalBudget / originalAmount;
     }
-    if (exchangeRate === 0) exchangeRate = 1; // Tránh chia cho 0
+    if (exchangeRate === 0) exchangeRate = 1;
 
-    // Quy đổi spent (VND) về (Gốc)
     displaySpent = totalSpent / exchangeRate;
   }
 
-  // Tính 'còn lại' dựa trên các giá trị *hiển thị*
   displayRemaining = displayBudget - displaySpent;
-  // --- KẾT THÚC THÊM MỚI ---
 
   return (
     <div

@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "tailwindcss/utilities";
 @custom-variant dark (&:where(.dark, .dark *));
-/* Thêm font nếu muốn */
 
 @theme {
   --breakpoint-sm: 640px;

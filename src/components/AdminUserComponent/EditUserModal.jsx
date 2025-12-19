@@ -1,21 +1,18 @@
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Shield, User, Lock, Save, X, AlertCircle } from "lucide-react"; // Thêm icon cho đẹp
+import { Shield, User, Lock, Save, X, AlertCircle } from "lucide-react";
 import { currencyMap } from "../../constant/currencies";
 
 const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
-  // State chỉ lưu những gì được phép sửa
   const [formData, setFormData] = useState({
     role: "user",
     reason: "",
   });
 
-  // State lưu thông tin hiển thị (Read-only)
   const [displayData, setDisplayData] = useState({});
 
   useEffect(() => {
     if (user) {
-      // 1. Set dữ liệu để hiển thị (Snapshot)
       setDisplayData({
         name: user.name || "",
         email: user.email || "",
@@ -25,10 +22,9 @@ const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
         currency: user.currency || "VND",
       });
 
-      // 2. Set dữ liệu để chỉnh sửa
       setFormData({
         role: user.role || "user",
-        reason: "", // Luôn reset lý do
+        reason: "",
       });
     }
   }, [user]);
@@ -39,19 +35,16 @@ const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
   };
 
   const handleSubmit = () => {
-    // 1. Validate Role (Không cho phép đổi role nếu chưa chọn)
     if (!formData.role) return;
 
-    // 2. Validate Reason (Bắt buộc)
     if (!formData.reason.trim()) {
       toast.error("Vui lòng nhập lý do thay đổi quyền hạn!");
       return;
     }
 
-    // 3. Gọi hàm save (Chỉ gửi role và reason)
     onSave({
       ...formData,
-      id: user._id, // Gửi kèm ID để parent component xử lý
+      id: user._id,
     });
   };
 
@@ -87,7 +80,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
 
         {/* BODY (Scrollable) */}
         <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
-          {/* 🔴 SECTION 1: THÔNG TIN CÁ NHÂN (READ-ONLY) */}
+          {/* SECTION 1: THÔNG TIN CÁ NHÂN (READ-ONLY) */}
           <div className="space-y-4 opacity-75">
             <div className="flex items-center gap-2 mb-2">
               <User size={16} className="text-gray-400" />
@@ -157,7 +150,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
 
           <hr className="border-gray-100 dark:border-gray-700" />
 
-          {/* 🟢 SECTION 2: PHÂN QUYỀN (EDITABLE) */}
+          {/* SECTION 2: PHÂN QUYỀN (EDITABLE) */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-2">
               <Lock size={16} className="text-indigo-500" />

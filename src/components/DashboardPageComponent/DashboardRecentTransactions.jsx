@@ -6,10 +6,7 @@ import { formatCurrency } from "../../utils/formatCurrency";
 import { useNavigate } from "react-router";
 import RecentTransactionsLoading from "../Loading/DashboardLoading/RecentTransactionsLoading";
 import { useTranslation } from "react-i18next";
-// Import component Empty State vừa tạo (nếu để file riêng)
-// import EmptyTransactionState from "./EmptyTransactionState";
 
-// Nếu bạn để chung file thì dùng code EmptyTransactionState ở trên
 const EmptyTransactionState = ({ t, onAddClick }) => {
   return (
     <div className="flex flex-col items-center justify-center py-6 h-full min-h-[180px] text-center animate-fade-in">
@@ -50,7 +47,6 @@ const DashboardRecentTransactions = ({ className = "" }) => {
   const { t, i18n } = useTranslation();
 
   const today = new Date();
-  // ⚠️ FIX: getMonth() trả về 0-11, nên dùng today.getMonth() để lấy tháng hiện tại
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
   const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
@@ -64,7 +60,7 @@ const DashboardRecentTransactions = ({ className = "" }) => {
         endDate: lastDay.toISOString().split("T")[0],
       })
     );
-  }, [dispatch]); // Thêm dispatch vào deps để chuẩn React Hooks
+  }, [dispatch]);
 
   if (loading) return <RecentTransactionsLoading className={className} />;
 
@@ -122,14 +118,13 @@ const DashboardRecentTransactions = ({ className = "" }) => {
                 </div>
               ))}
             </div>
-            {/* Fade effect ở bottom */}
+            {/* Fade effect */}
             <div className="absolute z-10 bottom-0 left-0 w-full h-12 bg-gradient-to-t from-white via-white/80 to-transparent dark:from-[#2E2E33] dark:via-[#2E2E33]/80" />
           </div>
         ) : (
-          /* HIỂN THỊ EMPTY STATE KHI KHÔNG CÓ DỮ LIỆU */
           <EmptyTransactionState
             t={t}
-            onAddClick={() => navigate("/transactions")} // Hoặc route thêm giao dịch của bạn
+            onAddClick={() => navigate("/transactions")}
           />
         )}
       </div>

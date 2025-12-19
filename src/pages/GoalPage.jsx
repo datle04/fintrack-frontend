@@ -1,5 +1,3 @@
-// src/pages/GoalPage.jsx
-
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
@@ -32,7 +30,6 @@ const GoalPage = () => {
   };
 
   const handleOpenContributeModal = (goal) => {
-    // Chỉ cho phép đóng góp nếu goal đang "in_progress"
     if (goal.status !== "in_progress") {
       toast.error(
         t("goalPage.cannotContribute") ||
@@ -52,24 +49,19 @@ const GoalPage = () => {
     });
   };
 
-  // 🔥 CẬP NHẬT LOGIC CHECK HOÀN THÀNH
   const handleMarkCompleted = (goal) => {
-    // Logic mới:
-    // - Nếu đang 'completed' -> Chuyển về 'in_progress' (Mở lại)
-    // - Nếu đang 'in_progress' hoặc 'failed' -> Chuyển thành 'completed'
     const newStatus = goal.status === "completed" ? "in_progress" : "completed";
 
-    // Tin nhắn hiển thị tùy theo trạng thái mới
     const successMsg =
       newStatus === "completed"
         ? t("goalPage.toast.completed")
-        : t("goalPage.toast.resetStatus"); // "Đã mở lại mục tiêu"
+        : t("goalPage.toast.resetStatus");
 
     toast.promise(
       dispatch(
         updateGoal({
           id: goal._id,
-          formData: { status: newStatus }, // 👇 Gửi status thay vì isCompleted
+          formData: { status: newStatus },
         })
       ).unwrap(),
       {
@@ -144,7 +136,7 @@ const GoalPage = () => {
           visible={isTransactionModalOpen}
           onClose={() => setIsTransactionModalOpen(false)}
           goalId={selectedGoalForContribute?._id}
-          goalType={"expense"} // Hoặc income tùy logic của bạn (thường saving là chuyển tiền vào -> expense)
+          goalType={"expense"}
           goalCategory={"saving"}
         />
       )}

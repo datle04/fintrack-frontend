@@ -12,7 +12,6 @@ import {
 import { IoCloseCircle } from "react-icons/io5";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { debounce } from "lodash";
-// Import Component
 import ConfirmModal from "../../components/ConfirmModal";
 import EditGoalModal from "../../components/AdminGoalComponent/EditGoalModal";
 import Pagination from "../../components/Pagination";
@@ -33,22 +32,18 @@ const ProgressBar = ({ current, target }) => {
 };
 
 const AdminGoalPage = () => {
-  // --- STATE ---
   const [goals, setGoals] = useState([]);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Filter State
   const [page, setPage] = useState(1);
   const [searchName, setSearchName] = useState("");
   const [searchUserId, setSearchUserId] = useState("");
   const [status, setStatus] = useState("");
 
-  // Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
 
-  // Confirm Modal State
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
     type: null, // 'delete' | 'recalculate'
@@ -56,7 +51,6 @@ const AdminGoalPage = () => {
   });
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // --- 1. API CALL ---
   const fetchGoals = useCallback(async (pageNum, sName, sUid, sStatus) => {
     setLoading(true);
     try {
@@ -80,7 +74,6 @@ const AdminGoalPage = () => {
     }
   }, []);
 
-  // --- 2. DEBOUNCE SEARCH ---
   const debouncedFetch = useMemo(() => {
     return debounce((pageNum, sName, sUid, sStat) => {
       fetchGoals(pageNum, sName, sUid, sStat);
@@ -91,16 +84,13 @@ const AdminGoalPage = () => {
     return () => debouncedFetch.cancel();
   }, [debouncedFetch]);
 
-  // --- 3. EFFECTS ---
   useEffect(() => {
     debouncedFetch(page, searchName, searchUserId, status);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchName, searchUserId]);
 
   useEffect(() => {
     fetchGoals(page, searchName, searchUserId, status);
     window.scrollTo({ top: 0, behavior: "smooth" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, status]);
 
   // --- HANDLERS ---
@@ -113,7 +103,7 @@ const AdminGoalPage = () => {
     setGoals((prev) =>
       prev.map((g) => {
         if (g._id !== updatedGoal._id) return g;
-        return { ...g, ...updatedGoal, userId: g.userId }; // Giữ nguyên object userId cũ để tránh lỗi UI
+        return { ...g, ...updatedGoal, userId: g.userId };
       })
     );
   };
@@ -135,7 +125,6 @@ const AdminGoalPage = () => {
     setConfirmConfig({ isOpen: true, type: "recalculate", data: goal });
   };
 
-  // 🔥 UPDATE: Hàm xử lý confirm nhận thêm tham số 'reason' từ Modal
   const handleConfirmAction = async (reason) => {
     const { type, data } = confirmConfig;
     if (!data) return;
@@ -143,7 +132,6 @@ const AdminGoalPage = () => {
     setIsProcessing(true);
     try {
       if (type === "delete") {
-        // Gửi reason lên server khi xóa (Admin audit log)
         await axiosInstance.delete(`/api/admin/goals/${data._id}`, {
           data: { reason },
         });
@@ -156,7 +144,6 @@ const AdminGoalPage = () => {
         updateGoalInList(res.data.goal || res.data);
         toast.success("Đã tính toán lại tiến độ!");
       }
-      // Đóng modal sau khi thành công
       setConfirmConfig({ isOpen: false, type: null, data: null });
     } catch (error) {
       toast.error(error.response?.data?.message || "Có lỗi xảy ra!");
@@ -165,7 +152,6 @@ const AdminGoalPage = () => {
     }
   };
 
-  // 🔥 UPDATE: Cấu hình Props cho Modal mới
   const getConfirmModalProps = () => {
     const { type, data } = confirmConfig;
     if (!data) return {};
@@ -174,18 +160,18 @@ const AdminGoalPage = () => {
       return {
         title: "Xóa Mục Tiêu?",
         message: `Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa mục tiêu "${data.name}" của user này không?`,
-        variant: "danger", // Icon thùng rác đỏ
+        variant: "danger",
         confirmText: "Xóa ngay",
-        requireReason: true, // Bắt buộc nhập lý do
+        requireReason: true,
       };
     }
     if (type === "recalculate") {
       return {
         title: "Tính toán lại tiến độ?",
         message: `Hệ thống sẽ quét lại toàn bộ lịch sử giao dịch để cập nhật số tiền hiện tại cho mục tiêu "${data.name}".`,
-        variant: "info", // Icon info xanh dương
+        variant: "info",
         confirmText: "Tính toán",
-        requireReason: false, // Không cần lý do
+        requireReason: false,
       };
     }
     return {};
@@ -440,16 +426,15 @@ const AdminGoalPage = () => {
           />
         )}
 
-        {/* 🔥 Tích hợp ConfirmModal Mới */}
         <ConfirmModal
           isOpen={confirmConfig.isOpen}
           onClose={() =>
             !isProcessing &&
             setConfirmConfig({ ...confirmConfig, isOpen: false })
           }
-          onConfirm={handleConfirmAction} // Hàm xử lý nhận reason
+          onConfirm={handleConfirmAction}
           isLoading={isProcessing}
-          {...getConfirmModalProps()} // Spread các props cấu hình (title, variant, requireReason...)
+          {...getConfirmModalProps()}
         />
       </div>
     </div>

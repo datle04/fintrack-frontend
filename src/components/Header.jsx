@@ -43,14 +43,10 @@ const Header = () => {
 
   const notiRef = useRef();
 
-  // --- 1. LOGIC "MỞ KHÓA" ÂM THANH ---
   useEffect(() => {
     const unlockAudio = () => {
-      // Tạo một âm thanh rỗng/ngắn để "mồi" trình duyệt
       const audio = new Audio(notificationSound);
-      audio.volume = 0; // Tắt tiếng để user không nghe thấy
-
-      // Thử phát và dừng ngay lập tức
+      audio.volume = 0;
       audio
         .play()
         .then(() => {
@@ -58,17 +54,13 @@ const Header = () => {
           audio.currentTime = 0;
           console.log("🔊 Audio Context Unlocked!");
         })
-        .catch((e) => {
-          // Vẫn bị chặn thì kệ nó, chờ lần click sau
-        });
+        .catch((e) => {});
 
-      // Chỉ cần làm 1 lần duy nhất, sau đó gỡ sự kiện ra
       document.removeEventListener("click", unlockAudio);
       document.removeEventListener("keydown", unlockAudio);
       document.removeEventListener("touchstart", unlockAudio);
     };
 
-    // Lắng nghe tương tác đầu tiên của user
     document.addEventListener("click", unlockAudio);
     document.addEventListener("keydown", unlockAudio);
     document.addEventListener("touchstart", unlockAudio);
@@ -80,37 +72,25 @@ const Header = () => {
     };
   }, []);
 
-  // --- USE EFFECT CHO SOCKET ---
   useEffect(() => {
-    // Chỉ kết nối nếu có user ID
     if (!user?.id) return;
     if (isConnecting.current) return;
 
     isConnecting.current = true;
 
-    // 1. Gọi hàm connect từ utils (truyền userId)
     const socket = connectSocket(user.id);
     console.log("CLIENT SOCKET ID:", socket.id);
 
     socket.on("test_event", (data) => console.log("TEST OK:", data));
 
-    // 2. Lắng nghe sự kiện 'new_notification'
-    // Lưu ý: Dùng .off trước để tránh đăng ký trùng lặp khi re-render
     socket.off("new_notification").on("new_notification", (newNoti) => {
       console.log("🔔 [FRONTEND] RECEIVED EVENT:", newNoti);
 
-      // A. Cập nhật Redux
       dispatch(addNewNotification(newNoti));
 
-      // --- A. XỬ LÝ ÂM THANH ---
       try {
-        // Cách 1: Dùng file local (Khuyên dùng)
         const audio = new Audio(notificationSound);
-
-        // Cách 2: Dùng link online (Để test nhanh nếu chưa có file)
-        // const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-
-        audio.volume = 0.5; // Chỉnh âm lượng (0.0 đến 1.0)
+        audio.volume = 0.5;
         audio
           .play()
           .catch((err) =>
@@ -120,53 +100,45 @@ const Header = () => {
         console.error("Lỗi âm thanh:", error);
       }
 
-      // --- B. XỬ LÝ ANIMATION (Timeline) ---
       if (!toggleNotification) {
-        // Tạo một timeline mới để các hành động diễn ra nối tiếp/đồng thời
         const tl = gsap.timeline();
 
         tl.to(".bell-icon", {
-          scale: 1.2, // 1. Phóng to lên 1.2 lần
+          scale: 1.2,
           duration: 0.1,
           ease: "power1.out",
         })
           .to(".bell-icon", {
-            rotation: 15, // 2. Bắt đầu rung (nghiêng sang phải trước)
+            rotation: 15,
             duration: 0.05,
             ease: "linear",
           })
           .to(".bell-icon", {
-            rotation: -15, // 3. Rung qua lại
+            rotation: -15,
             duration: 0.1,
-            repeat: 5, // Lặp lại 5 lần (tạo hiệu ứng rung)
-            yoyo: true, // Quay ngược lại
+            repeat: 5,
+            yoyo: true,
             ease: "linear",
           })
           .to(".bell-icon", {
-            scale: 1, // 4. Kết thúc: Thu về kích thước cũ
-            rotation: 0, //    VÀ Trả về góc 0 độ (thẳng đứng)
+            scale: 1,
+            rotation: 0,
             duration: 0.2,
-            ease: "elastic.out(1, 0.3)", // Hiệu ứng đàn hồi nhẹ khi dừng
+            ease: "elastic.out(1, 0.3)",
           });
       }
     });
 
-    // 3. Logic duy trì session (Heartbeat 30s)
     const interval = setInterval(() => {
       if (socket && socket.connected) {
         socket.emit("session.update", { userId: user.id });
       }
     }, 30_000);
 
-    // 4. Cleanup khi unmount
     return () => {
       clearInterval(interval);
-      // Tắt lắng nghe sự kiện cụ thể
       isConnecting.current = false;
       socket.off("new_notification");
-
-      // Nếu user đăng xuất (user._id thay đổi thành null), ngắt kết nối
-      // disconnectSocket(); // (Tùy chọn: Uncomment nếu muốn ngắt hẳn khi Header unmount)
     };
   }, [user?.id]);
 

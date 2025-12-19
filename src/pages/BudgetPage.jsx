@@ -40,41 +40,33 @@ const BudgetPage = () => {
   }, [fetchBudget]);
 
   const handleDeleteClick = () => {
-    // Thay vì window.confirm, hãy mở modal
     setShowDeleteConfirm(true);
   };
 
-  // Hàm xóa thật sự (sẽ được gọi khi User bấm "Xóa" trong Modal)
   const handleConfirmDelete = async () => {
-    // Bật loading để nút trong Modal xoay xoay
     setIsDeleting(true);
 
     try {
-      // Gọi API xóa
       await dispatch(
         deleteBudget({ month: selectedMonth, year: selectedYear })
       ).unwrap();
 
-      // Thành công: Thông báo & Đóng modal
       toast.success(t("deleteBudgetSuccess"));
       setShowDeleteConfirm(false);
     } catch (error) {
-      // Thất bại: Thông báo lỗi (Không đóng modal để user biết)
       toast.error(error?.message || t("smthIsWrong"));
     } finally {
-      // Tắt loading
       setIsDeleting(false);
     }
   };
 
-  // 🔥 THAY THẾ TOÀN BỘ KHỐI TÍNH TOÁN CŨ BẰNG 1 DÒNG NÀY:
   const {
     displayBudget,
     displaySpent,
     displayRemaining,
     displayCurrency,
     percentUsed,
-    categoryStats, // Dùng cái này truyền xuống BudgetByCategory
+    categoryStats,
   } = useBudgetCalculations(budget);
 
   const monthValues = Array.from({ length: 12 }, (_, i) => ({
@@ -87,7 +79,6 @@ const BudgetPage = () => {
 
   return (
     <section className="w-full min-h-screen bg-[#F5F6FA] dark:bg-[#35363A] p-4 md:p-6 xl:p-8">
-      {/* --- 1. TOOLBAR (Header) --- */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">
@@ -140,22 +131,18 @@ const BudgetPage = () => {
     p-2 rounded-lg transition-colors shadow-sm flex items-center gap-2 text-white
     ${
       hasBudget
-        ? "bg-orange-500 hover:bg-orange-600" // Màu cam cho Edit
-        : "bg-indigo-600 hover:bg-indigo-700" // Màu tím cho Add
+        ? "bg-orange-500 hover:bg-orange-600"
+        : "bg-indigo-600 hover:bg-indigo-700"
     }
   `}
-            title={hasBudget ? t("edit_budget") : t("add_budget")} // Tooltip
+            title={hasBudget ? t("edit_budget") : t("add_budget")}
           >
-            {/* Đổi Icon dựa trên trạng thái */}
             {hasBudget ? <Edit size={18} /> : <Plus size={18} />}
-
-            {/* (Tùy chọn) Nếu bạn muốn hiện chữ bên cạnh icon */}
             <span className="hidden md:inline font-medium text-sm">
               {hasBudget ? t("edit") : t("add")}
             </span>
           </button>
 
-          {/* Nút Delete (Chỉ hiện khi đã có Budget) */}
           {hasBudget && (
             <button
               onClick={handleDeleteClick}
@@ -168,7 +155,6 @@ const BudgetPage = () => {
         </div>
       </div>
 
-      {/* --- 2. SUMMARY CARD (Thẻ Tổng quan Hiện đại) --- */}
       {budget.originalAmount !== 0 ? (
         <div
           className="
@@ -180,11 +166,9 @@ const BudgetPage = () => {
             flex flex-col md:flex-row items-center justify-between gap-8
           "
         >
-          {/* 1. HỌA TIẾT TRANG TRÍ NỀN (Background Decor) */}
           <div className="absolute top-0 right-0 -mr-10 -mt-10 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl pointer-events-none"></div>
           <div className="absolute bottom-0 left-0 -ml-10 -mb-10 w-40 h-40 bg-purple-400 opacity-20 rounded-full blur-2xl pointer-events-none"></div>
 
-          {/* 2. THÔNG TIN CHÍNH (Left Side) */}
           <div className="flex-1 z-10 w-full">
             <div className="flex items-center gap-2 mb-2 opacity-90">
               <span className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
@@ -195,14 +179,11 @@ const BudgetPage = () => {
               </p>
             </div>
 
-            {/* Số tiền to và đậm hơn */}
             <h2 className="text-3xl md:text-4xl font-extrabold mb-6 tracking-tight drop-shadow-sm">
               {formatCurrency(displayRemaining, displayCurrency, i18n.language)}
             </h2>
 
-            {/* 3. CÁC HỘP THÔNG TIN PHỤ (Glassmorphism Boxes) */}
             <div className="flex gap-4">
-              {/* Box 1: Đã đặt */}
               <div className="flex-1 bg-black/20 backdrop-blur-md rounded-xl p-3 border border-white/10">
                 <p className="text-indigo-100 text-xs mb-1 opacity-80">
                   {t("totalBudget")}
@@ -216,7 +197,6 @@ const BudgetPage = () => {
                 </p>
               </div>
 
-              {/* Box 2: Đã chi */}
               <div className="flex-1 bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10">
                 <p className="text-indigo-100 text-xs mb-1 opacity-80">
                   {t("spent")}
@@ -228,9 +208,7 @@ const BudgetPage = () => {
             </div>
           </div>
 
-          {/* 4. BIỂU ĐỒ (Right Side) */}
           <div className="z-10 relative">
-            {/* Thêm vòng tròn mờ phía sau biểu đồ để làm nổi bật */}
             <div className="absolute inset-0 bg-white/5 rounded-full blur-md transform scale-90"></div>
             <div className="bg-white/10 p-2 rounded-full backdrop-blur-sm border border-white/10 shadow-inner">
               <MyBudgetCircle percentage={percentUsed} />
@@ -238,7 +216,6 @@ const BudgetPage = () => {
           </div>
         </div>
       ) : (
-        // Empty State
         <div className="bg-white dark:bg-[#2E2E33] p-8 rounded-2xl border border-dashed border-gray-300 text-center mb-8">
           <p className="text-gray-500">{t("no_budget_this_month")}</p>
           <button
@@ -250,7 +227,6 @@ const BudgetPage = () => {
         </div>
       )}
 
-      {/* --- 3. DANH SÁCH CHI TIẾT (Grid Layout) --- */}
       <div>
         <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4">
           {t("budget_by_category")}
@@ -276,19 +252,17 @@ const BudgetPage = () => {
         />
       )}
 
-      {/* --- CUỐI CÙNG: Thêm ConfirmModal --- */}
       <ConfirmModal
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleConfirmDelete}
-        isLoading={isDeleting} // Truyền state loading vào đây
-        // Cấu hình nội dung hiển thị
+        isLoading={isDeleting}
         title={t("deleteBudgetTitle")}
         message={t("deleteBudgetMessage", {
           month: selectedMonth,
           year: selectedYear,
         })}
-        variant="danger" // Màu đỏ
+        variant="danger"
         confirmText={t("delete")}
         cancelText={t("cancel")}
       />

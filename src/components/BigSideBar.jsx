@@ -25,7 +25,6 @@ const BigSideBar = () => {
   const itemsRef = useRef([]);
 
   useEffect(() => {
-    // ... (Logic setNavArr giữ nguyên như cũ) ...
     if (user?.role === "admin") {
       setNavArr([
         {
@@ -65,7 +64,6 @@ const BigSideBar = () => {
   }, [user, i18n.language]);
 
   useGSAP(() => {
-    // Hàm thực hiện animation
     const updatePillPosition = () => {
       if (navArr.length === 0) return;
 
@@ -86,17 +84,13 @@ const BigSideBar = () => {
       }
     };
 
-    // A. Chạy ngay lập tức
     updatePillPosition();
 
-    // B. Chạy lại sau 1 khoảng nhỏ (để chờ font/layout render xong)
     const timer = setTimeout(updatePillPosition, 100);
 
-    // C. Lắng nghe sự kiện resize cửa sổ (để fix khi user co kéo trình duyệt)
     const onResize = () => updatePillPosition();
     window.addEventListener("resize", onResize);
 
-    // Cleanup
     return () => {
       clearTimeout(timer);
       window.removeEventListener("resize", onResize);
@@ -109,16 +103,14 @@ const BigSideBar = () => {
     : "bg-gradient-to-r from-[#5D43DB] to-[#A596E7] dark:from-[#6865C0] dark:to-[#6865C0]";
 
   return (
-    // Thêm containerRef và relative để định vị viên thuốc
     <div
       ref={containerRef}
       className="w-full h-screen p-6 flex flex-col gap-2 text-[#464646] font-bold dark:bg-[#2B2B2F] dark:text-white/87 relative"
     >
-      {/* 4. Viên thuốc (Pill) - Absolute */}
       <div
         ref={pillRef}
         className={`absolute top-0 left-6 right-6 rounded-lg z-0 opacity-0 pointer-events-none ${pillGradient}`}
-        style={{ height: 0 }} // Chiều cao ban đầu là 0
+        style={{ height: 0 }}
       />
 
       {navArr.map((item, index) => {
@@ -128,7 +120,6 @@ const BigSideBar = () => {
           <Link
             key={index}
             to={item.path}
-            // 5. Gán ref cho từng item vào mảng itemsRef
             ref={(el) => (itemsRef.current[index] = el)}
             className={`
               relative z-10 flex items-center gap-3 p-3 rounded-lg 3xl:p-4 cursor-pointer transition-colors duration-200

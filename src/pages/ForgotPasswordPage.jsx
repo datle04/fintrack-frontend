@@ -48,7 +48,7 @@ const ForgotPasswordPage = () => {
       });
     }, containerRef);
 
-    return () => ctx.revert(); // Cleanup
+    return () => ctx.revert();
   }, []);
 
   useEffect(() => {

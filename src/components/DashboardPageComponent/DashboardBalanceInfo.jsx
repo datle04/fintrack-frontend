@@ -19,10 +19,7 @@ const DashboardBalanceInfo = ({ className = "" }) => {
   const dispatch = useDispatch();
 
   const today = new Date();
-
-  // 🗓️ Lấy ngày đầu tháng
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-  // 🗓️ Lấy ngày cuối tháng
   const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
   useEffect(() => {

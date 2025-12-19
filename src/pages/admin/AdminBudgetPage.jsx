@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
-import { FaEdit, FaTrash, FaFilter, FaHashtag } from "react-icons/fa"; // Thêm icon
+import { FaEdit, FaTrash, FaFilter, FaHashtag } from "react-icons/fa";
 import { IoCloseCircle } from "react-icons/io5";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { useDispatch, useSelector } from "react-redux";
@@ -12,32 +12,27 @@ import {
 } from "../../features/adminBudgetSlice";
 import EditBudgetModal from "../../components/AdminBudgetComponent/EditBudgetModal";
 import ConfirmModal from "../../components/ConfirmModal";
-import Pagination from "../../components/Pagination"; // Import Pagination component
+import Pagination from "../../components/Pagination";
 
 const AdminBudgetPage = () => {
   const dispatch = useDispatch();
 
-  // Safe Access State
   const budgets = useSelector((state) => state.adminBudgets.budgets) || [];
   const pagination = useSelector((state) => state.adminBudgets.pagination);
   const loading = useSelector((state) => state.adminBudgets.loading);
   const error = useSelector((state) => state.adminBudgets.error);
 
-  // --- STATE ---
   const [page, setPage] = useState(1);
 
-  // Filter States
   const [userId, setUserId] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState(new Date().getFullYear().toString());
 
-  // Modal States
   const [selectedBudget, setSelectedBudget] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // --- 1. API CALL ---
   const fetchBudgets = useCallback(
     (pageNumber, uId, m, y) => {
       dispatch(
@@ -46,14 +41,13 @@ const AdminBudgetPage = () => {
           userId: uId,
           month: m,
           year: y,
-          limit: 10, // Đồng bộ limit
+          limit: 10,
         })
       );
     },
     [dispatch]
   );
 
-  // --- 2. DEBOUNCE SEARCH (USER ID) ---
   const debouncedFetch = useMemo(() => {
     return debounce((pageNumber, uId, m, y) => {
       fetchBudgets(pageNumber, uId, m, y);
@@ -64,19 +58,13 @@ const AdminBudgetPage = () => {
     return () => debouncedFetch.cancel();
   }, [debouncedFetch]);
 
-  // --- 3. EFFECTS ---
-
-  // Effect cho User ID (Debounce)
   useEffect(() => {
     debouncedFetch(page, userId, month, year);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  // Effect cho Month/Year/Page (Gọi ngay)
   useEffect(() => {
     fetchBudgets(page, userId, month, year);
     window.scrollTo({ top: 0, behavior: "smooth" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, month, year]);
 
   // Error Handling
@@ -117,7 +105,6 @@ const AdminBudgetPage = () => {
       setIsDeleteModalOpen(false);
       setSelectedBudget(null);
 
-      // Refresh list
       fetchBudgets(page, userId, month, year);
     } catch (err) {
       toast.error(err?.message || "Lỗi khi xóa ngân sách!");

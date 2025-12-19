@@ -10,19 +10,17 @@ import {
   ArrowDownCircle,
   Image as ImageIcon,
   Repeat,
-} from "lucide-react"; // Import icons
+} from "lucide-react";
 
 const DetailTransaction = ({ transaction, onClose }) => {
   if (!transaction) return null;
 
   const { t, i18n } = useTranslation();
 
-  // Logic xác định màu sắc và icon dựa trên loại giao dịch
   const isExpense = transaction.type === "expense";
   const themeColor = isExpense ? "red" : "green";
   const TypeIcon = isExpense ? ArrowDownCircle : ArrowUpCircle;
 
-  // Format ngày hiển thị
   const displayDate = transaction.isRecurring
     ? `${t("recurringDay")} ${transaction.recurringDay}`
     : new Date(transaction.date).toLocaleDateString("vi-VN", {

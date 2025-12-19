@@ -24,10 +24,9 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
 
-  // Auto-focus: Chỉ focus khi isOpen chuyển sang true
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      setTimeout(() => inputRef.current.focus(), 300); // Tăng delay chút để đợi slide xong
+      setTimeout(() => inputRef.current.focus(), 300);
     }
   }, [isOpen]);
 
@@ -37,37 +36,32 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
     }
   }, [messages, isOpen]);
 
-  // Hàm xử lý gửi tin nhắn (Tách riêng để tái sử dụng)
   const handleSendMessage = async (text) => {
     if (!text || !text.trim() || loading) return;
 
     const currentInput = text.trim();
 
-    // 1. Thêm tin nhắn User ngay lập tức
     const userMessage = { role: "user", reply: currentInput };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
 
     try {
-      // 2. Gọi API
       const res = await axiosInstance.post(`/api/chat-proxy`, {
         message: currentInput,
       });
 
       console.log("API RESPONSE: ", res.data);
 
-      // 3. Nhận kết quả từ Backend (bao gồm reply, intent, data)
       const botResponse = res.data.result;
 
-      // 4. Thêm tin nhắn Bot
       setMessages((prev) => [
         ...prev,
         {
           role: "model",
           reply: botResponse?.reply,
-          intent: res?.data?.intent, // Lưu intent để render widget
-          data: botResponse?.data, // Lưu data để render widget
+          intent: res?.data?.intent,
+          data: botResponse?.data,
         },
       ]);
     } catch (error) {
@@ -85,13 +79,11 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
     }
   };
 
-  // Wrapper cho form submit
   const onFormSubmit = (e) => {
     e.preventDefault();
     handleSendMessage(input);
   };
 
-  // Các gợi ý nhanh
   const quickReplies = useMemo(
     () => [
       "Tổng chi tháng này",
@@ -127,7 +119,6 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
           <h3 className="font-semibold text-lg sm:text-xl">FinAI</h3>
         </div>
         {/* Nút đóng cho Mobile & Desktop */}
-        {/* Dùng onClick={onClose} để gọi hàm setIsChatOpen(false) từ App.jsx */}
         <button
           onClick={onClick}
           className="p-1 text-white hover:text-red-200 cursor-pointer"
@@ -142,10 +133,6 @@ const ChatWidget = ({ isOpen, onClose, onClick }) => {
         className="flex-1 overflow-y-auto p-4 space-y-3 sm:space-y-4"
       >
         {messages.map((msg, index) => {
-          // Logic kiểm tra xem có nên chạy chữ không
-          // 1. Phải là tin nhắn của Bot
-          // 2. Phải là tin nhắn cuối cùng trong danh sách
-          // 3. (Optional) Không phải là tin nhắn chào mừng ban đầu (nếu muốn chào mừng hiện luôn)
           const isLastMessage = index === messages.length - 1;
           const shouldAnimate = isLastMessage && msg.role === "model";
 

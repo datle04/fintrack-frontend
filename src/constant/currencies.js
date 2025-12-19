@@ -1,4 +1,3 @@
-// "Hashmap" (Đối tượng) cho các đơn vị tiền tệ
 export const currencyMap = new Map(
     [
         ["VND", "₫ - Việt Nam Đồng"],

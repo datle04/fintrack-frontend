@@ -24,7 +24,7 @@ const InputField = ({
         w-full border border-gray-300 p-2 rounded-lg dark:bg-[#3A3B3C] dark:border-slate-600
         ${
           !!goal
-            ? "cursor-not-allowed opacity-60 bg-gray-100 dark:bg-gray-700" // 3. Thêm style khi bị vô hiệu hóa
+            ? "cursor-not-allowed opacity-60 bg-gray-100 dark:bg-gray-700"
             : "cursor-pointer"
         }
         `}

@@ -10,7 +10,7 @@ const PieChartLoading = ({ className = "" }) => {
 
   const legendsToShow = isMobile ? 3 : 5;
 
-  const isDark = document.documentElement.classList.contains("dark"); // check dark mode class
+  const isDark = document.documentElement.classList.contains("dark");
 
   return (
     <div

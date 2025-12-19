@@ -1,4 +1,3 @@
-// components/CategoryPieChart.jsx
 import React from "react";
 import { Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
@@ -14,7 +13,6 @@ const CategoryPieChart = ({ data }) => {
   const { t, i18n } = useTranslation();
   if (!data || data.length === 0) return <p>{t("noData")}</p>;
 
-  // Sort danh mục theo tổng giảm dần và lấy top 8
   const topCategories = [...data].sort((a, b) => b.total - a.total).slice(0, 8);
 
   const chartData = {
@@ -45,7 +43,7 @@ const CategoryPieChart = ({ data }) => {
         position: "right",
         labels: {
           font: {
-            size: 16, // 👈 tăng cỡ chữ legend
+            size: 16,
             weight: "500",
           },
           boxWidth: 20,

@@ -17,7 +17,6 @@ const DashboardPage = () => {
   }, [user]);
   return (
     <div className="w-full h-full">
-      {/* Balance information */}
       <section
         className="
           w-full h-[85vh] p-1 bg-[#F5F6FA] text-[#464646] dark:bg-[#35363A] dark:text-white/90

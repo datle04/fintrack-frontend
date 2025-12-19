@@ -8,9 +8,7 @@ const initialState = {
   error: null,
 };
 
-// ===================== THUNKS ===================== //
 
-// Đăng ký
 export const registerUser = createAsyncThunk(
   "auth/registerUser",
   async (credentials, { rejectWithValue }) => {
@@ -23,7 +21,6 @@ export const registerUser = createAsyncThunk(
   }
 );
 
-// Đăng nhập (nhận refreshToken + user)
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
   async (credentials, { rejectWithValue }) => {
@@ -33,17 +30,13 @@ export const loginUser = createAsyncThunk(
     } catch (error) {
       console.log(error);
       
-      // Ưu tiên 1: Lấy message từ response backend (401/400/500)
       if (error.response && error.response.data) {
-        // Nếu backend trả về { message: "..." } -> lấy .message
         if (error.response.data.message) {
              return rejectWithValue(error.response.data.message);
         }
-        // Nếu backend trả về string trực tiếp hoặc cấu trúc khác
         return rejectWithValue(JSON.stringify(error.response.data));
       }
       
-      // Ưu tiên 2: Lỗi mạng hoặc lỗi code (error.message)
       return rejectWithValue(error.message || "Lỗi không xác định");
     }
   }
@@ -149,7 +142,6 @@ export const resetPasswordExecute = createAsyncThunk(
   "auth/resetPasswordExecute",
   async ({ email, otp, newPassword }, thunkAPI) => {
     try {
-      // API: /auth/reset-password (Public)
       const response = await axiosInstance.post("/api/auth/reset-password", { 
         email, otp, newPassword 
       });

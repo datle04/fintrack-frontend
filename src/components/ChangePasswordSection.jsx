@@ -1,4 +1,3 @@
-// src/components/common/ChangePasswordSection.jsx
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
@@ -8,19 +7,15 @@ import {
   requestChangePassword,
   verifyAndChangePassword,
   logoutUser,
-} from "../features/authSlice"; // Sửa đường dẫn import cho đúng với dự án của bạn
+} from "../features/authSlice";
 
-const ChangePasswordSection = ({
-  logoutOnSuccess = true, // Option: Có logout sau khi đổi thành công không?
-  className = "",
-}) => {
+const ChangePasswordSection = ({ logoutOnSuccess = true, className = "" }) => {
   const user = useSelector((state) => state.auth.user);
   const { t, i18n } = useTranslation();
   const dispatch = useDispatch();
 
-  // --- LOCAL STATE ---
   const [isEditMode, setIsEditMode] = useState(false);
-  const [step, setStep] = useState(1); // 1: Old Pass, 2: OTP & New Pass
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -38,7 +33,6 @@ const ChangePasswordSection = ({
     }
   }, [i18n]);
 
-  // --- HANDLERS ---
   const resetForm = () => {
     setIsEditMode(false);
     setStep(1);
@@ -50,7 +44,6 @@ const ChangePasswordSection = ({
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Bước 1: Gửi mật khẩu cũ -> Lấy OTP
   const handleRequestOTP = async () => {
     if (!formData.current)
       return toast.error(
@@ -71,9 +64,7 @@ const ChangePasswordSection = ({
     }
   };
 
-  // Bước 2: Xác thực OTP -> Đổi mật khẩu
   const handleVerifyAndChange = async () => {
-    // Validate
     if (!formData.otp) return toast.error("Vui lòng nhập mã OTP");
     if (formData.otp.length !== 6) return toast.error("Mã OTP phải có 6 ký tự");
     if (!formData.new) return toast.error("Vui lòng nhập mật khẩu mới");
@@ -99,7 +90,6 @@ const ChangePasswordSection = ({
         toast.loading("Đang đăng xuất để bảo mật...", { duration: 2000 });
         setTimeout(() => {
           dispatch(logoutUser());
-          // Navigate sẽ được xử lý ở App.js hoặc component cha khi user = null
           window.location.href = "/login";
         }, 1500);
       }
@@ -110,11 +100,9 @@ const ChangePasswordSection = ({
     }
   };
 
-  // --- RENDER ---
   return (
     <div className={`w-full ${className}`}>
       {!isEditMode ? (
-        // VIEW MODE
         <div className="flex items-center justify-between py-2">
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block">
@@ -130,7 +118,6 @@ const ChangePasswordSection = ({
           </button>
         </div>
       ) : (
-        // EDIT MODE
         <div className="bg-gray-50 dark:bg-[#3a3a41] p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/30 animate-fadeIn">
           {/* Header Form */}
           <div className="flex justify-between items-center mb-4 border-b border-gray-200 dark:border-gray-600 pb-2">

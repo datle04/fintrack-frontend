@@ -12,7 +12,7 @@ import {
   FileText,
   Wallet,
   CheckCircle,
-} from "lucide-react"; // Import Icons
+} from "lucide-react";
 
 const GoalModal = ({ goal, onClose, t }) => {
   const dispatch = useDispatch();
@@ -27,7 +27,6 @@ const GoalModal = ({ goal, onClose, t }) => {
     description: "",
   });
 
-  // --- LOGIC GIỮ NGUYÊN ---
   useEffect(() => {
     if (goal) {
       const initData = {
@@ -129,7 +128,6 @@ const GoalModal = ({ goal, onClose, t }) => {
       .catch(() => {});
   };
 
-  // --- STYLES ---
   const inputContainerClass = (hasError) => `
     flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-200
     ${

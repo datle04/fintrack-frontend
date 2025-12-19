@@ -7,13 +7,12 @@ import {
   Clock,
   XCircle,
   RotateCcw,
-} from "lucide-react"; // Đã bỏ import Plus, Target, TransactionModal vì không dùng
+} from "lucide-react";
 import InfoItem from "./InfoItem";
 import SavingsRec from "./SavingsRec";
 import { formatCurrency } from "../../utils/formatCurrency";
 import dayjs from "dayjs";
 
-// --- Goal Card Component ---
 const GoalCard = ({
   goal,
   onComplete,
@@ -23,9 +22,8 @@ const GoalCard = ({
   t,
   i18n,
 }) => {
-  // 1. Destructure các dữ liệu cần thiết từ goal
   const {
-    status = "in_progress", // Mặc định là in_progress nếu thiếu
+    status = "in_progress",
     savingsPlan,
     progressPercent = 0,
     displayRemainingAmount = 0,
@@ -36,15 +34,13 @@ const GoalCard = ({
     targetDate,
   } = goal;
 
-  // Logic hiển thị
   const isCompleted = status === "completed";
   const isFailed = status === "failed";
 
   const daysRemaining = savingsPlan?.daysRemaining || 0;
-  // Quá hạn khi: chưa xong VÀ ngày còn lại <= 0
+
   const isOverdue = daysRemaining <= 0 && !isCompleted;
 
-  // 2. Config màu sắc/icon cho Badge
   const getStatusConfig = (currentStatus) => {
     switch (currentStatus) {
       case "completed":
@@ -63,7 +59,7 @@ const GoalCard = ({
           label: t("failed") || "Thất bại",
           borderColor: "border-red-500",
         };
-      default: // in_progress
+      default:
         return {
           color:
             "text-blue-700 bg-blue-100 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
@@ -76,7 +72,6 @@ const GoalCard = ({
 
   const statusConfig = getStatusConfig(status);
 
-  // Style cho progress bar
   const progressStyle = buildStyles({
     pathColor:
       status === "completed"
@@ -179,7 +174,6 @@ const GoalCard = ({
       </div>
 
       {/* KẾ HOẠCH TIẾT KIỆM KHUYẾN NGHỊ */}
-      {/* Logic hiển thị: Chưa hoàn thành VÀ còn số tiền phải đóng VÀ chưa quá hạn */}
       {!isCompleted && displayRemainingAmount > 0 && daysRemaining > 0 && (
         <div className="mt-6 pt-4 border-t border-dashed dark:border-slate-700/50">
           <h4 className="text-md font-bold mb-3 text-indigo-600 dark:text-indigo-400">
@@ -227,7 +221,6 @@ const GoalCard = ({
         {/* Nút Hoàn thành / Mở lại */}
         <button
           onClick={onComplete}
-          // 1. Nếu Failed -> Disable nút này
           disabled={isFailed}
           title={
             isCompleted
@@ -247,7 +240,6 @@ const GoalCard = ({
           {isCompleted ? (
             <RotateCcw size={18} />
           ) : isFailed ? (
-            // Icon khác biệt cho trạng thái Failed (Ví dụ: Biển cấm hoặc Xám)
             <XCircle size={18} />
           ) : (
             <CheckCircle size={18} />

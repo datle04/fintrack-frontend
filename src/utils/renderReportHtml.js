@@ -1,4 +1,3 @@
-// utils/renderReportHtml.ts (ở frontend)
 import ReactDOMServer from 'react-dom/server';
 import ReportTemplate from '../components/ReportTemplate';
 

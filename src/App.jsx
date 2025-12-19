@@ -40,14 +40,12 @@ function App() {
   const { i18n } = useTranslation();
   const user = useSelector((state) => state.auth.user);
   const location = useLocation();
-  // ⚠️ State mới cho Chat Widget
+
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  // 2. Lấy theme và toggleTheme
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
-    // Chỉ chạy logic nếu user là admin
     if (user?.role === "admin") {
       if (i18n.language !== "vi") {
         i18n.changeLanguage("vi");
@@ -107,15 +105,12 @@ function App() {
         </Routes>
 
         {/* ======================================= */}
-        {/* ⚠️ Tích hợp Chat Widget/Icon ở đây (Chỉ khi User tồn tại) */}
         {user && user.role === "user" && location.pathname !== "/login" && (
           <>
-            {/* ✅ Cách mới (Giữ state, chỉ ẩn bằng CSS) */}
             <ChatWidget
               isOpen={isChatOpen}
               onClick={() => setIsChatOpen(!isChatOpen)}
             />
-            {/* Nút Floating Button để mở chat (nếu bạn để nó riêng bên ngoài widget) */}
             <button
               onClick={() => setIsChatOpen(true)}
               className={`fixed bottom-6 right-6 z-50 p-4 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all hover:scale-110 active:scale-95 cursor-pointer ${

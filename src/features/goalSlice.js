@@ -55,7 +55,7 @@ export const deleteGoal = createAsyncThunk(
     async (id, { rejectWithValue }) => {
         try {
             await axiosInstance.delete(`/api/goals/${id}`);
-            return id; // Trả về ID để xóa khỏi state
+            return id; 
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || error.message);
         }

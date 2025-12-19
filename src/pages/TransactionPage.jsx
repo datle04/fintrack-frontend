@@ -5,7 +5,7 @@ import {
   deleteTransaction,
   setShouldRefetch,
 } from "../features/transactionSlice";
-import { FaEdit, FaTrash } from "react-icons/fa"; // FaPlus đã thay bằng Lucide Plus
+import { FaEdit, FaTrash } from "react-icons/fa";
 import TransactionModal from "../components/TransactionModal";
 import DetailTransaction from "../components/DetailTransaction";
 import {
@@ -43,12 +43,11 @@ const TransactionPage = () => {
     (state) => state.dashboard
   );
 
-  // 1. Khởi tạo giá trị mặc định
   const today = new Date();
   const defaultStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
   const defaultEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-  const [activeTab, setActiveTab] = useState("history"); // 'history' | 'recurring'
+  const [activeTab, setActiveTab] = useState("history");
   const [showModal, setShowModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [detailTransaction, setDetailTransaction] = useState(null);
@@ -87,11 +86,10 @@ const TransactionPage = () => {
     () =>
       debounce((currentFilters) => {
         if (activeTab === "history") {
-          // Chỉ fetch nếu đang ở tab history
           dispatch(getTransactions(currentFilters));
         }
       }, 500),
-    [dispatch, activeTab] // Thêm activeTab vào dependency
+    [dispatch, activeTab]
   );
 
   useEffect(() => {
@@ -157,29 +155,22 @@ const TransactionPage = () => {
   const handleConfirmDelete = async () => {
     if (!transactionToDelete) return;
 
-    // 1. Bật trạng thái loading để Modal hiện spinner
     setIsDeleting(true);
 
     try {
-      // 2. Gọi API xóa
       await dispatch(deleteTransaction(transactionToDelete._id)).unwrap();
 
-      // 3. Thông báo thành công
       toast.success(t("transactionDeleteSuccess"));
 
-      // 4. Đóng modal và reset
       setDeleteModalOpen(false);
       setTransactionToDelete(null);
     } catch (err) {
-      // 5. Thông báo lỗi (Không đóng modal để user thử lại)
       toast.error(err?.message || t("smthIsWrong"));
     } finally {
-      // 6. Tắt loading dù thành công hay thất bại
       setIsDeleting(false);
     }
   };
 
-  // --- A11Y HELPER: Hỗ trợ phím Enter/Space cho các thẻ div tương tác ---
   const handleKeyDown = (e, action) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -192,7 +183,6 @@ const TransactionPage = () => {
   }
 
   return (
-    /* SEO: Sử dụng <main> thay vì <div> cho nội dung chính */
     <main className="min-h-screen w-full bg-[#F5F6FA] 2xl:px-6 2xl:py-2 3xl:px-8 3xl:py-2 dark:bg-[#35363A]">
       <h1 className="sr-only">{t("txManagement")}</h1>
       <section
@@ -216,7 +206,7 @@ const TransactionPage = () => {
                 value={filters.keyword}
                 onChange={handleChange}
                 placeholder={t("searchPlaceholder")}
-                aria-label={t("searchPlaceholder")} // A11y: Label cho input
+                aria-label={t("searchPlaceholder")}
                 className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg leading-5 bg-gray-50 dark:bg-[#3a3a41] text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none  focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 ease-in-out sm:text-sm"
               />
             </div>
@@ -284,7 +274,7 @@ const TransactionPage = () => {
                 options={typeOptions}
                 placeholder={t("allType") || "Tất cả loại"}
                 icon={Filter}
-                aria-label={t("type")} // Truyền prop này nếu FilterSelect hỗ trợ, không thì bọc ngoài
+                aria-label={t("type")}
               />
 
               <FilterSelect
@@ -316,12 +306,10 @@ const TransactionPage = () => {
         </div>
 
         {/* SUMMARY SECTION */}
-        {/* SEO: Dùng <section> hoặc <aside> cho thông tin bổ trợ */}
         <section
           aria-label="Tóm tắt thu chi"
           className="bg-white shadow-sm border border-slate-200 mt-2 rounded-md p-4 2xl:p-6 3xl:p-8 flex justify-between items-center flex-2 min-w-[300px] 2xl:min-w-[400px] 3xl:min-w-[500px] dark:bg-[#2E2E33] dark:border dark:border-slate-700"
         >
-          {/* --- CỘT TRÁI: THU - CHI - SỐ DƯ --- */}
           <div className="flex-1 flex flex-col justify-center">
             {/* Total Income */}
             <div className="flex justify-between text-[12px] 2xl:text-sm 3xl:text-base mb-2">
@@ -343,10 +331,9 @@ const TransactionPage = () => {
               </span>
             </div>
 
-            {/* Đường kẻ ngang phân cách */}
             <hr className="border-t border-slate-200 dark:border-slate-600 my-1" />
 
-            {/* Balance (Mới thêm) */}
+            {/* Balance */}
             <div className="flex justify-between text-[13px] 2xl:text-[15px] 3xl:text-lg mt-2">
               <span className="text-gray-900 font-bold dark:text-white">
                 {t("balance")}:
@@ -364,8 +351,6 @@ const TransactionPage = () => {
             </div>
           </div>
 
-          {/* --- ĐƯỜNG KẺ DỌC (DIVIDER) --- */}
-          {/* Đổi từ h-16 sang self-stretch để tự động cao theo nội dung bên trái */}
           <div
             className="w-[1px] self-stretch bg-gray-300 mx-4 2xl:mx-6 dark:bg-slate-600"
             aria-hidden="true"
@@ -396,7 +381,6 @@ const TransactionPage = () => {
           >
             <History size={18} />
             {t("history") || "Lịch sử"}
-            {/* Active Indicator Line */}
             {activeTab === "history" && (
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-t-full" />
             )}
@@ -420,7 +404,6 @@ const TransactionPage = () => {
       </section>
 
       {/* TRANSACTIONS LIST */}
-      {/* SEO: Dùng <section> cho danh sách chính */}
       {activeTab === "history" ? (
         <section
           aria-label="Danh sách giao dịch chi tiết"
@@ -433,12 +416,10 @@ const TransactionPage = () => {
               <div className="text-center p-8 text-gray-500">{t("noData")}</div>
             ) : (
               groupedTransactions.map((group) => (
-                // SEO: Dùng <article> cho mỗi nhóm ngày
                 <article
                   key={group.date}
                   className="bg-white dark:bg-[#2E2E33] rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden"
                 >
-                  {/* Header Ngày - SEO: Dùng <h3> hoặc <h4> */}
                   <header className="bg-gray-50 dark:bg-[#3a3a41] px-4 py-2 border-b border-gray-100 dark:border-slate-600 flex justify-between items-center">
                     <h3 className="font-semibold text-gray-700 dark:text-gray-200 text-sm xl:text-base">
                       {formatDateToString(group.date)}
@@ -448,10 +429,8 @@ const TransactionPage = () => {
                     </span>
                   </header>
 
-                  {/* Danh sách items - A11y: Dùng role="list" */}
                   <div role="list">
                     {group.items.map((item) => (
-                      // A11y: role="listitem", tabIndex="0" để focus được, onKeyDown để bấm Enter
                       <div
                         key={item._id}
                         role="listitem"
@@ -514,14 +493,14 @@ const TransactionPage = () => {
                                 e.stopPropagation();
                                 handleEdit(item);
                               }}
-                              aria-label={t("edit")} // A11y
+                              aria-label={t("edit")}
                               className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-full cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                               <FaEdit aria-hidden="true" />
                             </button>
                             <button
                               onClick={(e) => handleDeleteClick(e, item)}
-                              aria-label={t("delete")} // A11y
+                              aria-label={t("delete")}
                               className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-gray-600 rounded-full cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-red-500"
                             >
                               <FaTrash aria-hidden="true" />
@@ -537,7 +516,6 @@ const TransactionPage = () => {
           </div>
         </section>
       ) : (
-        /* Render Component Định Kỳ Mới */
         <RecurringTab />
       )}
 
@@ -580,7 +558,7 @@ const TransactionPage = () => {
         ) : page < totalPages ? (
           <button
             onClick={handleLoadMore}
-            aria-label="Xem thêm giao dịch" // A11y
+            aria-label="Xem thêm giao dịch"
             className="group flex items-center gap-2 px-6 py-2.5 rounded-full cursor-pointer bg-white dark:bg-[#3a3a41] border border-gray-200 dark:border-slate-600 text-sm font-medium text-gray-600 dark:text-gray-300 shadow-sm hover:shadow-md hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <span>{t("loadMoreOldTransactions")}</span>
@@ -605,7 +583,7 @@ const TransactionPage = () => {
         ) : null}
       </div>
 
-      {/* MODALS (Giữ nguyên) */}
+      {/* MODALS */}
       {showModal && (
         <TransactionModal
           visible={true}

@@ -22,7 +22,6 @@ export const addBudget = createAsyncThunk(
   'budget/addBudget', 
   async (payload, { rejectWithValue }) => {
     try {
-      // payload lúc này sẽ là: { month, year, originalAmount, originalCurrency, categories }
       const res = await axiosInstance.post(`/api/budget`, payload);
       return res.data;
     } catch (error) {

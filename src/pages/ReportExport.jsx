@@ -39,11 +39,8 @@ const ReportExport = ({ month, year }) => {
 
   useEffect(() => {
     if (pieChartUrl) {
-      // Case 1: Chart render thành công
       setChartsReady(true);
     } else if (!statsLoading && stats && stats.length === 0) {
-      // Case 2: Đã tải xong và không có dữ liệu
-      // Vẫn là "sẵn sàng" để export (với chart rỗng)
       setChartsReady(true);
     }
   }, [pieChartUrl, stats, statsLoading]);
@@ -77,7 +74,6 @@ const ReportExport = ({ month, year }) => {
   const dailyExpense = transactions.reduce((acc, tx) => {
     if (tx.type !== "expense") return acc;
     const day = new Date(tx.date).getDate();
-    // Luôn nhân với tỷ giá
     const baseAmount = tx.amount * (tx.exchangeRate || 1);
     acc[day] = (acc[day] || 0) + baseAmount;
     return acc;
@@ -89,8 +85,6 @@ const ReportExport = ({ month, year }) => {
   }));
 
   const handleExport = () => {
-    // 1. CHUẨN BỊ DỮ LIỆU (Đồng bộ)
-    // Các tác vụ này nhanh, không cần đưa vào "pending"
     const data = {
       user: {
         name: user.name,
@@ -116,56 +110,42 @@ const ReportExport = ({ month, year }) => {
       <ReportTemplate month={month} year={year} data={data} />
     );
 
-    // 2. ĐỊNH NGHĨA PROMISE SẼ CHẠY
-    // Đây là hàm sẽ thực thi khi toast.promise được gọi
     const exportPromise = async () => {
       const res = await axiosInstance.post(`/api/report/export`, {
         html: htmlString,
         reportId: data.reportId,
         month: `${month}-${year}`,
       });
-
-      // Trả về dữ liệu khi thành công (fileUrl)
-      // Dữ liệu này sẽ được chuyển vào hàm 'render' của 'success'
       return `${BACK_END_URL}/${res.data.report.filePath}`;
     };
 
-    // 3. GỌI TOAST.PROMISE
-    // Tự động xử lý UI cho 3 trạng thái
-    toast.promise(
-      exportPromise(), // Thực thi promise
-      {
-        // 'pending' đổi thành 'loading'
-        loading: "Đang xuất báo cáo, vui lòng chờ... ⏳",
+    toast.promise(exportPromise(), {
+      loading: "Đang xuất báo cáo, vui lòng chờ... ⏳",
 
-        success: (fileUrl) => {
-          // fileUrl chính là 'data' được trả về
-          window.open(fileUrl);
-          return "Đã xuất báo cáo thành công! 🎉";
-        }, // 'error' là một HÀM, không phải object
+      success: (fileUrl) => {
+        window.open(fileUrl);
+        return "Đã xuất báo cáo thành công! 🎉";
+      },
 
-        error: (err) => {
-          // err chính là 'data' (lỗi) bị catch
-          console.error("❌ Xuất báo cáo thất bại:", err);
-          return err.response?.data?.message || "Xuất báo cáo thất bại!";
-        },
-      }
-    );
+      error: (err) => {
+        console.error("❌ Xuất báo cáo thất bại:", err);
+        return err.response?.data?.message || "Xuất báo cáo thất bại!";
+      },
+    });
   };
 
   return (
     <div className="space-y-4 mt-5 w-full flex flex-col ">
       <div className="absolute hidden w-full h-[600px] -z-10 opacity-0 pointer-events-none">
            {" "}
-        {stats &&
-          stats.length > 0 && ( // <-- THÊM ĐIỀU KIỆN NÀY
-            <PieChartDuplicate
-              stats={stats}
-              onRender={(url) => {
-                if (!pieChartUrl) setPieChartUrl(url);
-              }}
-            />
-          )}
+        {stats && stats.length > 0 && (
+          <PieChartDuplicate
+            stats={stats}
+            onRender={(url) => {
+              if (!pieChartUrl) setPieChartUrl(url);
+            }}
+          />
+        )}
          {" "}
       </div>
 

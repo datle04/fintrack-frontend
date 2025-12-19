@@ -30,16 +30,14 @@ function SidebarComponent({ setToggleSidebar }) {
   ];
 
   useEffect(() => {
-    // Slide in
     gsap.fromTo(
       sidebarRef.current,
       { x: "100%" },
       { x: "0%", duration: 0.5, ease: "power2.out" }
     );
 
-    // Gradient chạy ngang ping-pong
     gsap.to(sidebarRef.current, {
-      backgroundPosition: "400% 0%", // CHỈ ngang
+      backgroundPosition: "400% 0%",
       duration: 20,
       ease: "linear",
       repeat: -1,
@@ -48,7 +46,6 @@ function SidebarComponent({ setToggleSidebar }) {
   }, []);
 
   useEffect(() => {
-    // Slide vào khi render
     gsap.fromTo(
       sidebarRef.current,
       { x: "100%" },
@@ -56,14 +53,13 @@ function SidebarComponent({ setToggleSidebar }) {
     );
   }, []);
 
-  // 👇 Function này sẽ chạy slide out
   const handleCloseSidebar = () => {
     gsap.to(sidebarRef.current, {
-      x: "100%", // trượt ra ngoài bên phải
+      x: "100%",
       duration: 0.4,
       ease: "power2.in",
       onComplete: () => {
-        setToggleSidebar(false); // tắt sau khi animation xong
+        setToggleSidebar(false);
       },
     });
   };

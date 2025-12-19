@@ -8,20 +8,18 @@ import {
   Activity,
   Save,
   MessageSquare,
-  FileText, // Icon cho description
+  FileText,
 } from "lucide-react";
 import axiosInstance from "../../api/axiosInstance";
 import toast from "react-hot-toast";
-// 👇 Import hàm tiện ích
 import { getDirtyValues } from "../../utils/formUtils";
 
 const EditGoalModal = ({ goal, onClose, onSave }) => {
-  // 1️⃣ State lưu giá trị gốc để so sánh
   const [initialValues, setInitialValues] = useState(null);
 
   const [formData, setFormData] = useState({
     name: "",
-    description: "", // 👇 Thêm trường này vì Backend cho phép sửa
+    description: "",
     targetBaseAmount: 0,
     currentBaseAmount: 0,
     status: "in_progress",
@@ -31,7 +29,6 @@ const EditGoalModal = ({ goal, onClose, onSave }) => {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load data vào form khi mở modal
   useEffect(() => {
     if (goal) {
       const initData = {
@@ -41,7 +38,6 @@ const EditGoalModal = ({ goal, onClose, onSave }) => {
         currentBaseAmount: goal.currentBaseAmount || 0,
         status: goal.status || "in_progress",
         deadline: goal.targetDate ? goal.targetDate.split("T")[0] : "",
-        // Reason không nằm trong initialValues vì nó là input mới mỗi lần sửa
       };
 
       setInitialValues(initData);
@@ -57,24 +53,19 @@ const EditGoalModal = ({ goal, onClose, onSave }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 2️⃣ Validate bắt buộc nhập lý do
     if (!formData.reason.trim()) {
       toast.error("Vui lòng nhập lý do chỉnh sửa!");
       return;
     }
 
-    // 3️⃣ Sử dụng getDirtyValues để lấy các trường thay đổi
-    // (Lưu ý: reason không nằm trong initialValues nên ta xử lý riêng)
     const { reason, ...currentDataWithoutReason } = formData;
     const dirtyFields = getDirtyValues(initialValues, currentDataWithoutReason);
 
-    // Kiểm tra xem có thay đổi gì về dữ liệu (Name/Description) không?
     if (Object.keys(dirtyFields).length === 0) {
       toast.info("Bạn chưa thay đổi thông tin nào (Tên hoặc Mô tả)!");
       return;
     }
 
-    // 4️⃣ Chuẩn bị payload: Chỉ gửi field thay đổi + reason
     const payload = {
       ...dirtyFields,
       reason: formData.reason,
@@ -108,7 +99,6 @@ const EditGoalModal = ({ goal, onClose, onSave }) => {
     100
   );
 
-  // Style cho input bị disabled (Read-only)
   const disabledInputClass =
     "bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed opacity-70";
 
@@ -158,7 +148,7 @@ const EditGoalModal = ({ goal, onClose, onSave }) => {
               onSubmit={handleSubmit}
               className="space-y-6"
             >
-              {/* 🟢 NHÓM EDITABLE: Được phép sửa */}
+              {/* NHÓM EDITABLE: Được phép sửa */}
               <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/30 space-y-4">
                 <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider">
                   Thông tin chung (Được phép sửa)
@@ -207,7 +197,7 @@ const EditGoalModal = ({ goal, onClose, onSave }) => {
                 </div>
               </div>
 
-              {/* 🔴 NHÓM READ-ONLY: Không được sửa */}
+              {/* NHÓM READ-ONLY: Không được sửa */}
               <div className="space-y-6 opacity-80">
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">
                   Dữ liệu tài chính (Chỉ xem)
@@ -224,7 +214,7 @@ const EditGoalModal = ({ goal, onClose, onSave }) => {
                         type="number"
                         name="targetBaseAmount"
                         value={formData.targetBaseAmount}
-                        disabled // 🚫 DISABLED
+                        disabled
                         className={`w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 outline-none ${disabledInputClass}`}
                       />
                       <DollarSign
@@ -252,7 +242,7 @@ const EditGoalModal = ({ goal, onClose, onSave }) => {
                         type="number"
                         name="currentBaseAmount"
                         value={formData.currentBaseAmount}
-                        disabled // 🚫 DISABLED
+                        disabled
                         className={`w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 outline-none ${disabledInputClass}`}
                       />
                       <DollarSign
@@ -281,7 +271,7 @@ const EditGoalModal = ({ goal, onClose, onSave }) => {
                       <select
                         name="status"
                         value={formData.status}
-                        disabled // 🚫 DISABLED
+                        disabled
                         className={`w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 appearance-none outline-none ${disabledInputClass}`}
                       >
                         <option value="in_progress">Đang tiến hành ⏳</option>
@@ -304,7 +294,7 @@ const EditGoalModal = ({ goal, onClose, onSave }) => {
                         type="date"
                         name="deadline"
                         value={formData.deadline}
-                        disabled // 🚫 DISABLED
+                        disabled
                         className={`w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 outline-none ${disabledInputClass}`}
                       />
                       <Calendar

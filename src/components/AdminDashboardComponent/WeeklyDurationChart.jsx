@@ -41,10 +41,10 @@ export default function WeeklyDurationChart({ data, mode, setMode }) {
             ? "Trung bình mỗi ngày (giờ)"
             : "Tổng thời lượng (giờ)",
         data: Object.keys(WEEK_DAYS).map(
-          (day) => (data.result[day] || 0) / 3600 // ← đổi từ giây sang giờ
+          (day) => (data.result[day] || 0) / 3600
         ),
-        backgroundColor: "rgba(96, 165, 250, 0.6)", // xanh dương nhạt
-        borderColor: "rgba(37, 99, 235, 1)", // xanh dương đậm
+        backgroundColor: "rgba(96, 165, 250, 0.6)",
+        borderColor: "rgba(37, 99, 235, 1)",
         borderWidth: 1,
         borderRadius: 6,
         hoverBackgroundColor: "rgba(37, 99, 235, 0.9)",
@@ -59,10 +59,6 @@ export default function WeeklyDurationChart({ data, mode, setMode }) {
     plugins: {
       title: {
         display: true,
-        // text:
-        //   data.mode === "avg4weeks"
-        //     ? "Trung bình thời lượng sử dụng 4 tuần gần nhất"
-        //     : "Thời lượng sử dụng tuần này",
         font: { size: 18 },
         color: "#111827",
       },

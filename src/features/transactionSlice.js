@@ -255,7 +255,6 @@ const transactionSlice = createSlice({
                 else if (newDate <= firstDate && newDate >= lastDate) {
                     state.shouldRefetch = true;
                 }
-                // Nếu không liên quan gì tới range hiện tại -> bỏ qua
             })
             .addCase(createTransaction.rejected, (state, action) => {
                 state.loading = false;
@@ -329,8 +328,7 @@ const transactionSlice = createSlice({
                 const index = state.transactions.findIndex(tx => tx._id === updated._id);
 
                 if (index !== -1) {
-                    const existingUser = state.transactions[index].user; // lưu user cũ
-                    // thay thế object transaction bằng updated, nhưng luôn gán user cũ
+                    const existingUser = state.transactions[index].user; 
                     state.transactions[index] = { ...updated, user: existingUser };
                 }
             })
@@ -343,24 +341,19 @@ const transactionSlice = createSlice({
             })
             .addCase(getRecurringTransactions.fulfilled, (state, action) => {
                 state.recurringLoading = false;
-                state.recurringTransactions = action.payload; // Lưu vào mảng riêng
+                state.recurringTransactions = action.payload; 
             })
             .addCase(getRecurringTransactions.rejected, (state) => {
                 state.recurringLoading = false;
             })
             
             .addCase(cancelRecurringTransaction.fulfilled, (state, action) => {
-                // 1. Lấy ID từ payload (Backend trả về { message, recurringId })
                 const { recurringId } = action.payload; 
 
-                // 2. Kiểm tra xem state có dữ liệu không để tránh crash
                 if (state.recurringTransactions && state.recurringTransactions.data) {
-                    
-                    // 3. Xóa key tương ứng khỏi object data
-                    // Vì data là object { "uuid": [...] }, ta dùng delete
+
                     delete state.recurringTransactions.data[recurringId];
 
-                    // 4. (Tùy chọn) Cập nhật số lượng nhóm
                     if (state.recurringTransactions.totalGroups > 0) {
                         state.recurringTransactions.totalGroups -= 1;
                     }

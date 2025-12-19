@@ -4,27 +4,19 @@ import { Bot, User } from "lucide-react";
 import WidgetRenderer from "./WidgetRenderer";
 import { gsap } from "gsap";
 
-// Thêm prop shouldAnimate (mặc định là true để an toàn)
 const ChatBubble = ({ message, isBot, isTyping, shouldAnimate = true }) => {
   const { reply, intent, data } = message;
   const replyRef = useRef(null);
 
-  // LOGIC QUAN TRỌNG:
-  // Nếu shouldAnimate = false (tin cũ), ta set animated = true ngay lập tức
-  // để Widget hiển thị luôn và Text không bị tách ra animate lại.
   const [animated, setAnimated] = useState(!shouldAnimate);
 
   useEffect(() => {
-    // 1. CHẶN ANIMATION:
-    // Nếu không phải Bot, hoặc đang gõ, hoặc ĐÃ animate rồi, hoặc KHÔNG ĐƯỢC animate
-    // -> Thì return ngay, không chạy logic tách DOM phía dưới.
     if (!isBot || isTyping || animated || !shouldAnimate || !replyRef.current) {
       return;
     }
 
     const allSpans = [];
 
-    // --- HÀM ĐỆ QUY: DUYỆT CÂY DOM (GIỮ NGUYÊN) ---
     const splitTextNodes = (node) => {
       if (node.nodeType === Node.TEXT_NODE) {
         const text = node.nodeValue;
@@ -45,7 +37,7 @@ const ChatBubble = ({ message, isBot, isTyping, shouldAnimate = true }) => {
         chars.forEach((char) => {
           const span = document.createElement("span");
           span.textContent = char;
-          span.style.opacity = "0"; // Ẩn để chờ GSAP
+          span.style.opacity = "0";
           span.className = "gsap-letter";
 
           if (char === " ") {
@@ -63,10 +55,8 @@ const ChatBubble = ({ message, isBot, isTyping, shouldAnimate = true }) => {
       }
     };
 
-    // Bắt đầu tách text
     splitTextNodes(replyRef.current);
 
-    // 2. CHẠY GSAP
     if (allSpans.length > 0) {
       gsap.to(allSpans, {
         opacity: 1,
@@ -80,7 +70,7 @@ const ChatBubble = ({ message, isBot, isTyping, shouldAnimate = true }) => {
     } else {
       setAnimated(true);
     }
-  }, [reply, isBot, isTyping, animated, shouldAnimate]); // Thêm shouldAnimate vào dependency
+  }, [reply, isBot, isTyping, animated, shouldAnimate]);
 
   return (
     <div className={`flex gap-3 ${isBot ? "justify-start" : "justify-end"}`}>

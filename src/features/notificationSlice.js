@@ -41,7 +41,6 @@ export const deleteAllNotifications = createAsyncThunk(
   'notification/deleteAllNotifications',
   async (_, { rejectWithValue }) => {
     try {
-      // Gọi đúng route bạn vừa tạo ở backend
       const res = await axiosInstance.delete('/api/notification/delete-all');
       return res.data;
     } catch (error) {
@@ -74,15 +73,11 @@ const notificationSlice = createSlice({
     reducers: {
         addNewNotification: (state, action) => {
             const newNotification = action.payload;
-            
-            // 1. Kiểm tra trùng lặp (Best Practice)
-            // Đôi khi mạng lag hoặc logic sai khiến socket gửi 2 lần, nên check trước
             const exists = state.notifications.some(
                 (n) => n._id === newNotification._id
             );
 
             if (!exists) {
-                // 2. Thêm vào ĐẦU mảng để nó hiện lên trên cùng
                 state.notifications.unshift(newNotification);
             }
         },
@@ -132,7 +127,7 @@ const notificationSlice = createSlice({
             })
             .addCase(deleteAllNotifications.fulfilled, (state) => {
                 state.loading = false;
-                state.notifications = []; // Xóa sạch mảng local để UI cập nhật ngay lập tức
+                state.notifications = []; 
             })
             .addCase(deleteAllNotifications.rejected, (state, action) => {
                 state.loading = false;

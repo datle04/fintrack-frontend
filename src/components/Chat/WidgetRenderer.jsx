@@ -1,4 +1,3 @@
-// components/chatbot/WidgetRenderer.jsx
 import React from "react";
 import {
   PieChart,
@@ -25,9 +24,7 @@ import { useTranslation } from "react-i18next";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
 
-// --- 1. Component con: Thẻ hiển thị giao dịch đã xóa ---
 const DeletedTransactionCard = ({ data }) => {
-  // data chính là object transaction trả về từ backend
   return (
     <div className="mt-2 bg-red-50 border border-red-100 rounded-xl p-4 shadow-sm">
       <div className="flex items-center gap-2 mb-2 text-red-600 font-medium text-sm">
@@ -55,7 +52,6 @@ const DeletedTransactionCard = ({ data }) => {
   );
 };
 
-// --- 2. Component con: Thẻ hiển thị gói định kỳ đã hủy ---
 const CancelledRecurringCard = ({ data }) => {
   return (
     <div className="mt-2 bg-orange-50 border border-orange-100 rounded-xl p-4 shadow-sm">
@@ -90,7 +86,6 @@ const WidgetRenderer = ({ intent, data }) => {
   const { t, i18n } = useTranslation();
 
   switch (intent) {
-    // 1. HIỂN THỊ DANH SÁCH (List Transactions / Recurring)
     case "list_transactions":
     case "list_recurring":
     case "list_overspent_budgets":
@@ -113,7 +108,6 @@ const WidgetRenderer = ({ intent, data }) => {
                   item.type === "income" ? "text-green-500" : "text-red-500"
                 }`}
               >
-                {/* Xử lý hiển thị số tiền tùy vào cấu trúc data của từng intent */}
                 {(
                   item.amount ||
                   item.overAmount ||
@@ -132,7 +126,6 @@ const WidgetRenderer = ({ intent, data }) => {
         </div>
       );
 
-    // 2. HIỂN THỊ BIỂU ĐỒ TRÒN (Category Stats)
     case "spending_by_category":
     case "top_spending_category":
     case "top_income_category":
@@ -165,7 +158,6 @@ const WidgetRenderer = ({ intent, data }) => {
         </div>
       );
 
-    // 3. HIỂN THỊ BIỂU ĐỒ CỘT (Trend)
     case "spending_trend":
     case "income_trend":
       const trendData = data.trend || [];
@@ -181,7 +173,6 @@ const WidgetRenderer = ({ intent, data }) => {
         </div>
       );
 
-    // 4. THẺ XÁC NHẬN (Add Transaction/Budget/Goal)
     case "add_transaction":
     case "add_budget":
     case "add_goal":
@@ -201,14 +192,12 @@ const WidgetRenderer = ({ intent, data }) => {
         </div>
       );
 
-    // --- CÁC CASE MỚI ---
     case "delete_last_transaction":
       return <DeletedTransactionCard data={data} />;
 
     case "cancel_recurring":
       return <CancelledRecurringCard data={data} />;
 
-    // Thêm case
     case "financial_advice":
       return (
         <div className="mt-2 bg-indigo-50 border border-indigo-100 rounded-xl p-3 grid grid-cols-2 gap-2 text-xs">

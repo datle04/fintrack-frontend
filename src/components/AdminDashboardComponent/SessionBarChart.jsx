@@ -20,7 +20,6 @@ ChartJS.register(
   Legend
 );
 
-// Map 0-6 to Mon–Sun labels
 const WEEK_DAYS = {
   1: "T2",
   2: "T3",
@@ -34,18 +33,17 @@ const WEEK_DAYS = {
 function getDurationInHours(session) {
   const start = parseISO(session.loginAt);
   const end = parseISO(session.logoutAt);
-  return (end - start) / (1000 * 60 * 60); // giờ
+  return (end - start) / (1000 * 60 * 60);
 }
 
 export default function SessionDurationChart({ sessions = [] }) {
-  const [mode, setMode] = useState("week"); // "week" | "month"
+  const [mode, setMode] = useState("week");
 
   const weeklyDurations = useMemo(() => {
     const now = new Date();
 
-    // Khởi tạo: [CN, T2, ..., T7]
     const durations = Array(7).fill(0);
-    const counts = Array(7).fill(0); // đếm số lần để tính trung bình tháng
+    const counts = Array(7).fill(0);
 
     sessions.forEach((session) => {
       if (!session.loginAt || !session.logoutAt) return;
@@ -57,15 +55,14 @@ export default function SessionDurationChart({ sessions = [] }) {
         return;
       if (mode === "month" && !isSameMonth(loginDate, now)) return;
 
-      const duration = getDurationInHours(session); // số giờ
-      const day = getDay(loginDate); // 0 (CN) → 6 (T7)
+      const duration = getDurationInHours(session);
+      const day = getDay(loginDate);
 
       durations[day] += duration;
       counts[day]++;
     });
 
     if (mode === "month") {
-      // Tính trung bình
       for (let i = 0; i < 7; i++) {
         durations[i] = counts[i] ? durations[i] / counts[i] : 0;
       }
@@ -83,7 +80,7 @@ export default function SessionDurationChart({ sessions = [] }) {
             ? "Tổng thời lượng (giờ)"
             : "Trung bình mỗi ngày (giờ)",
         data: weeklyDurations,
-        backgroundColor: "rgba(16, 185, 129, 0.6)", // màu xanh lá
+        backgroundColor: "rgba(16, 185, 129, 0.6)",
         borderColor: "rgba(5, 150, 105, 1)",
         borderWidth: 1,
         borderRadius: 6,

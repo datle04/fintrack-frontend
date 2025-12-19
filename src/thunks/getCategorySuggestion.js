@@ -13,7 +13,7 @@ export const getCategorySuggestion = async (type, note, token) => {
         },
       }
     );
-    return res.data.suggestedCategory; // cũng bị sai chỗ này, dưới tớ nói kỹ
+    return res.data.suggestedCategory;
   } catch (error) {
     console.error("Something went wrong getting category suggestion!", error);
   }

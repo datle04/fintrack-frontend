@@ -6,22 +6,18 @@ import {
   requestChangePassword,
   verifyAndChangePassword,
   logoutUser,
-} from "../../features/authSlice"; // Tái sử dụng action cũ
+} from "../../features/authSlice";
 import ChangePasswordSection from "../../components/ChangePasswordSection";
 import { LogOut } from "lucide-react";
-// Import các icon cần thiết...
 
 const AdminSettingPage = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
 
-  // State đơn giản hơn nhiều
   const [name, setName] = useState(user?.name || "");
   const [isChangePassMode, setIsChangePassMode] = useState(false);
-  // ... (State cho password flow giữ nguyên logic cũ)
 
   const handleUpdateInfo = () => {
-    // Chỉ update mỗi Name
     const formData = new FormData();
     formData.append("name", name);
     dispatch(updateUser(formData))

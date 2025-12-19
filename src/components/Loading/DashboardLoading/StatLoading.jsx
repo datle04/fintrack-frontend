@@ -12,7 +12,7 @@ const StatLoading = ({ className = "" }) => {
       setIsDarkMode(html.classList.contains("dark"));
     };
 
-    checkDark(); // initial check
+    checkDark();
 
     const observer = new MutationObserver(checkDark);
     observer.observe(html, { attributes: true, attributeFilter: ["class"] });

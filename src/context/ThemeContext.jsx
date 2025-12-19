@@ -16,14 +16,14 @@ function ThemeProvider({ children }) {
     const initialTheme = stored || (prefersDark ? "dark" : "light");
 
     setTheme(initialTheme);
-    updateHtmlClass(initialTheme); // ✅ gọi hàm gắn class vào HTML
+    updateHtmlClass(initialTheme);
   }, []);
 
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
     localStorage.setItem("theme", newTheme);
-    updateHtmlClass(newTheme); // ✅ toggle đúng class
+    updateHtmlClass(newTheme);
   };
 
   const updateHtmlClass = (theme) => {

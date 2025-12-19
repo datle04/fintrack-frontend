@@ -4,14 +4,13 @@ import { Chart } from "chart.js/auto";
 const DailyExpenseChart = ({ data, onRender }) => {
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
-  const hasRenderedImage = useRef(false); // ✅ Đảm bảo chỉ render 1 lần
+  const hasRenderedImage = useRef(false);
 
   useEffect(() => {
     if (!canvasRef.current || !data || data.length === 0) return;
 
     const ctx = canvasRef.current.getContext("2d");
 
-    // 🔁 Hủy chart cũ nếu có
     if (chartRef.current) {
       chartRef.current.destroy();
       hasRenderedImage.current = false;
@@ -32,10 +31,9 @@ const DailyExpenseChart = ({ data, onRender }) => {
       options: {
         animation: {
           onComplete: () => {
-            // ✅ Chỉ render khi chưa render trước đó
             if (!hasRenderedImage.current && canvasRef.current) {
               const imageUrl = canvasRef.current.toDataURL("image/png");
-              onRender?.(imageUrl); // 🔁 Gọi callback 1 lần duy nhất
+              onRender?.(imageUrl);
               hasRenderedImage.current = true;
             }
           },
@@ -52,7 +50,7 @@ const DailyExpenseChart = ({ data, onRender }) => {
     return () => {
       newChart.destroy();
     };
-  }, [data]); // ✅ Chỉ phụ thuộc vào data
+  }, [data]);
 
   return <canvas ref={canvasRef} className="w-full h-64" />;
 };

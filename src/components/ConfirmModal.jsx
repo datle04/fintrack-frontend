@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Ban, Trash2, XCircle, CheckCircle } from "lucide-react";
 import { FaUnlockKeyhole } from "react-icons/fa6";
 
-// Định nghĩa các biến thể giao diện (Variant) để dễ tái sử dụng
 const VARIANTS = {
   danger: {
     icon: <Trash2 className="text-red-500 w-12 h-12" />,
@@ -18,7 +17,7 @@ const VARIANTS = {
     confirmClass: "bg-green-600 hover:bg-green-700 focus:ring-green-500",
   },
   info: {
-    icon: <AlertTriangle className="text-blue-500 w-12 h-12" />, // Dùng tạm icon alert hoặc thay icon info
+    icon: <AlertTriangle className="text-blue-500 w-12 h-12" />,
     confirmClass: "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500",
   },
 };
@@ -26,19 +25,18 @@ const VARIANTS = {
 const ConfirmModal = ({
   isOpen,
   onClose,
-  onConfirm, // Hàm xử lý logic (Promise)
-  title, // Tiêu đề tùy chỉnh
-  message, // Nội dung tùy chỉnh
+  onConfirm,
+  title,
+  message,
   variant = "danger", // 'danger' | 'warning' | 'success' | 'info'
   confirmText = "Xác nhận",
   cancelText = "Hủy",
-  requireReason = false, // Có bắt buộc nhập lý do không?
-  isLoading = false, // Trạng thái loading từ bên ngoài truyền vào (hoặc tự xử lý)
+  requireReason = false,
+  isLoading = false,
 }) => {
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
 
-  // Reset state khi mở/đóng modal
   useEffect(() => {
     if (isOpen) {
       setReason("");
@@ -52,7 +50,6 @@ const ConfirmModal = ({
       return;
     }
 
-    // Gọi hàm onConfirm từ cha, truyền kèm reason
     if (onConfirm) {
       await onConfirm(reason);
     }
@@ -70,7 +67,7 @@ const ConfirmModal = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={!isLoading ? onClose : undefined} // Chặn click overlay khi đang loading
+            onClick={!isLoading ? onClose : undefined}
           />
 
           {/* Modal Content */}
@@ -82,7 +79,6 @@ const ConfirmModal = ({
             transition={{ type: "spring", duration: 0.3 }}
           >
             <div className="flex flex-col items-center text-center space-y-4">
-              {/* Icon Wrapper với animation nhẹ */}
               <div className="p-3 bg-slate-100 dark:bg-white/5 rounded-full">
                 {style.icon}
               </div>

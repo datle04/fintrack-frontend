@@ -39,7 +39,6 @@ const SettingPage = () => {
   const [isHovering, setIsHovering] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // --- 1. CLEANUP MEMORY LEAK (AVATAR) ---
   useEffect(() => {
     return () => {
       if (avatarPreview) {
@@ -48,14 +47,13 @@ const SettingPage = () => {
     };
   }, [avatarPreview]);
 
-  // Đồng bộ User từ Redux vào State
   useEffect(() => {
     if (user) {
       const newProfileState = {
         name: user.name || "",
         phone: user.phone || "",
         currency: user.currency || "VND",
-        dob: user.dob ? new Date(user.dob).toISOString().split("T")[0] : "", // Format lại date cho input type="date"
+        dob: user.dob ? new Date(user.dob).toISOString().split("T")[0] : "",
         address: user.address || "",
       };
       setProfile(newProfileState);
@@ -81,7 +79,6 @@ const SettingPage = () => {
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate ảnh (Option)
       if (file.size > 5 * 1024 * 1024) {
         toast.error("Ảnh đại diện không được quá 5MB");
         return;
@@ -89,7 +86,6 @@ const SettingPage = () => {
       setAvatarFile(file);
       setAvatarPreview(URL.createObjectURL(file));
     }
-    // --- 2. RESET INPUT VALUE ĐỂ CHỌN LẠI ĐƯỢC ẢNH CŨ ---
     e.target.value = null;
   };
 
@@ -184,7 +180,6 @@ const SettingPage = () => {
     [t]
   );
 
-  // --- HÀM HELPER ĐỂ RENDER INPUT (Tránh lặp code & Xử lý xóa lỗi) ---
   const renderField = (key, label, type = "text") => (
     <div>
       <EditableField
@@ -193,7 +188,6 @@ const SettingPage = () => {
         type={type}
         onChange={(e) => {
           setProfile({ ...profile, [key]: e.target.value });
-          // --- 3. XÓA LỖI KHI NGƯỜI DÙNG NHẬP LẠI ---
           if (errors[key]) setErrors((prev) => ({ ...prev, [key]: null }));
         }}
       />

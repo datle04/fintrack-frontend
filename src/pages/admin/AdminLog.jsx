@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { format } from "date-fns"; // Đảm bảo đã cài: npm install date-fns
+import { format } from "date-fns";
 import {
   Calendar,
   ChevronLeft,
@@ -12,7 +12,6 @@ import { adminGetLogs } from "../../features/logSlice";
 import Pagination from "../../components/Pagination";
 import toast from "react-hot-toast";
 
-// --- CONSTANTS & HELPERS ---
 const getStatusClass = (code) =>
   code < 300
     ? "bg-green-100 text-green-700"
@@ -70,15 +69,12 @@ const LEVELS = ["All", "info", "warning", "error", "critical"];
 
 const AdminLog = () => {
   const dispatch = useDispatch();
-  // Fallback [] để tránh crash nếu API lỗi
   const logs = useSelector((state) => state.log.logs) || [];
   const totalPages = useSelector((state) => state.log.totalPages);
-  const loading = useSelector((state) => state.log.loading); // Nếu có state loading
+  const loading = useSelector((state) => state.log.loading);
 
-  // --- STATE ---
-  // Date State
-  const [startDate, setStartDate] = useState(new Date(new Date().setDate(1))); // Đầu tháng
-  const [endDate, setEndDate] = useState(new Date()); // Hôm nay
+  const [startDate, setStartDate] = useState(new Date(new Date().setDate(1)));
+  const [endDate, setEndDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -89,7 +85,7 @@ const AdminLog = () => {
   const [selectedAction, setSelectedAction] = useState("All");
   const [selectedMethod, setSelectedMethod] = useState("All");
   const [selectedLevel, setSelectedLevel] = useState("All");
-  const [searchTerm, setSearchTerm] = useState(""); // Thêm state tìm kiếm
+  const [searchTerm, setSearchTerm] = useState("");
 
   const datePickerRef = useRef(null);
 
@@ -99,8 +95,8 @@ const AdminLog = () => {
       action: selectedAction === "All" ? "" : selectedAction.toLowerCase(),
       method: selectedMethod === "All" ? "" : selectedMethod,
       level: selectedLevel === "All" ? "" : selectedLevel,
-      search: searchTerm.trim(), // Gửi thêm từ khóa tìm kiếm
-      startDate: format(startDate, "yyyy-MM-dd"), // Format đúng chuẩn YYYY-MM-DD
+      search: searchTerm.trim(),
+      startDate: format(startDate, "yyyy-MM-dd"),
       endDate: format(endDate, "yyyy-MM-dd"),
     }),
     [
@@ -114,25 +110,22 @@ const AdminLog = () => {
   );
 
   // --- EFFECT: FETCH DATA ---
-  // Chỉ gọi API khi filter hoặc page thay đổi.
-  // Không cần useEffect reset page riêng lẻ nữa.
   useEffect(() => {
     dispatch(adminGetLogs({ ...filter, page }));
   }, [filter, page, dispatch]);
 
-  // --- HANDLERS (Kèm Logic Reset Page) ---
   const handleFilterChange = (setter, value) => {
     setter(value);
-    setPage(1); // Reset về trang 1 mỗi khi đổi filter
+    setPage(1);
   };
 
   const handleDateSelectionComplete = () => {
     setShowDatePicker(false);
     setSelectingStartDate(true);
-    setPage(1); // Reset trang khi chọn xong ngày
+    setPage(1);
   };
 
-  // --- CALENDAR LOGIC (Giữ nguyên nhưng tối ưu event) ---
+  // --- CALENDAR LOGIC ---
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (datePickerRef.current && !datePickerRef.current.contains(e.target)) {
@@ -181,7 +174,7 @@ const AdminLog = () => {
         setEndDate(startDate);
         setStartDate(selectedDate);
       }
-      handleDateSelectionComplete(); // Gọi hàm đóng và reset page
+      handleDateSelectionComplete();
     }
   };
 
@@ -225,7 +218,7 @@ const AdminLog = () => {
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-800">Nhật ký hoạt động</h1>
 
-        {/* Search Input Mới */}
+        {/* Search Input */}
         <div className="relative w-full md:w-auto md:min-w-[300px]">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-4 w-4 text-gray-400" />

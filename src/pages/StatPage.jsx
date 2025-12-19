@@ -13,7 +13,7 @@ const StatPage = () => {
   const now = new Date();
   const { t, i18n } = useTranslation();
   const currentLang = i18n.language;
-  const [month, setMonth] = useState(now.getMonth() + 1); // UI: 1-12
+  const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [selectedDate, setSelectedDate] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -31,11 +31,11 @@ const StatPage = () => {
 
   const getDaysInMonth = (month, year) => {
     const totalDays = new Date(year, month, 0).getDate();
-    const firstDay = new Date(year, month - 1, 1).getDay(); // 0 (Sun) – 6 (Sat)
+    const firstDay = new Date(year, month - 1, 1).getDay();
     const days = Array.from({ length: totalDays }, (_, i) => i + 1);
     return {
       days,
-      firstDay: (firstDay + 6) % 7, // convert to Mon–Sun
+      firstDay: (firstDay + 6) % 7,
       totalDays,
     };
   };
@@ -65,7 +65,7 @@ const StatPage = () => {
     for (let i = 1; i <= totalDays; i++) {
       const expense =
         transactionsByDayMap[i]
-          ?.filter((t) => t.type === "expense") // SỬA LỖI: Thêm (t.exchangeRate || 1)
+          ?.filter((t) => t.type === "expense")
           .reduce((s, t) => s + t.amount * (t.exchangeRate || 1), 0) || 0;
       if (expense > max) max = expense;
     }
@@ -77,8 +77,6 @@ const StatPage = () => {
     : [];
 
   const getHeatmapColor = (percent) => {
-    // console.log(percent);
-
     if (percent >= 70) return "bg-[#5D43DB] text-white";
     if (percent >= 40) return "bg-[#A596E7] text-white";
     if (percent >= 20) return "bg-[#B8A9F0] text-purple-900";
@@ -99,13 +97,11 @@ const StatPage = () => {
 
   return (
     <div className="w-full min-h-screen bg-[#F5F6FA] dark:bg-[#35363A] p-4 md:p-6 xl:p-8">
-      {/* --- 1. HEADER & FILTER (Trải dài trên cùng) --- */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
           {t("statPage.title")}
         </h1>
 
-        {/* Bộ chọn Tháng/Năm (Gom gọn lại) */}
         <div className="flex items-center bg-white dark:bg-[#2E2E33] p-1 rounded-lg shadow-sm border border-gray-200 dark:border-slate-600">
           <div className="px-2 border-r border-gray-200 dark:border-gray-600">
             <select
@@ -140,9 +136,7 @@ const StatPage = () => {
         </div>
       </div>
 
-      {/* --- 2. MAIN GRID LAYOUT (3 Cột) --- */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto lg:h-[600px]">
-        {/* === CỘT TRÁI: BIỂU ĐỒ (Chiếm 3 phần) === */}
         <div className="lg:col-span-3 bg-white dark:bg-[#2E2E33] rounded-2xl shadow-sm p-4 flex flex-col border border-gray-100 dark:border-slate-700">
           <h3 className="text-base font-semibold mb-4 text-center text-gray-700 dark:text-white">
             {t("statByCat")}
@@ -151,7 +145,6 @@ const StatPage = () => {
           <div className="flex-1 flex items-center justify-center relative">
             {budget.totalBudget > 0 ? (
               <div className="scale-90">
-                {/* Thu nhỏ chart một chút */}
                 <DonutChart
                   categoryStats={budget.categoryStats}
                   totalBudget={budget.totalBudget}
@@ -165,15 +158,12 @@ const StatPage = () => {
             )}
           </div>
 
-          {/* Nút xuất báo cáo (Đặt ở dưới cùng cột trái) */}
           <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
             {shouldShowReport && <ReportExport month={month} year={year} />}
           </div>
         </div>
 
-        {/* === CỘT GIỮA: LỊCH HEATMAP (Chiếm 6 phần - Rộng nhất) === */}
         <div className="lg:col-span-6 bg-white dark:bg-[#2E2E33] rounded-2xl shadow-sm p-6 flex flex-col border border-gray-100 dark:border-slate-700">
-          {/* Calendar Header */}
           <div className="grid grid-cols-7 mb-2">
             {["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((d, i) => (
               <div
@@ -187,12 +177,10 @@ const StatPage = () => {
 
           {/* Calendar Grid */}
           <div className="flex-1 grid grid-cols-7 gap-2 auto-rows-fr">
-            {/* auto-rows-fr giúp ô vuông đều nhau */}
             {Array.from({ length: firstDay }).map((_, i) => (
               <div key={`empty-${i}`} />
             ))}
             {days.map((day) => {
-              // ... (Logic tính toán cũ của bạn giữ nguyên)
               const dailyTx = transactionsByDayMap[day] || [];
               const income = dailyTx
                 .filter((t) => t.type === "income")
@@ -203,7 +191,6 @@ const StatPage = () => {
               const hasData = expense > 0 || income > 0;
               const isSelected = selectedDate === day;
 
-              // Tính opacity cho Heatmap
               const opacity =
                 maxExpenseInMonth > 0
                   ? Math.min(expense / maxExpenseInMonth + 0.2, 1)
@@ -224,7 +211,7 @@ const StatPage = () => {
                   style={
                     expense > 0
                       ? {
-                          backgroundColor: `rgba(99, 102, 241, ${opacity})`, // Indigo
+                          backgroundColor: `rgba(99, 102, 241, ${opacity})`,
                           color: opacity > 0.6 ? "white" : "inherit",
                         }
                       : {}
@@ -250,7 +237,7 @@ const StatPage = () => {
           </div>
         </div>
 
-        {/* === CỘT PHẢI: CHI TIẾT GIAO DỊCH (Chiếm 3 phần) === */}
+        {/* === CỘT PHẢI: CHI TIẾT GIAO DỊCH=== */}
         <div className="lg:col-span-3 bg-white dark:bg-[#2E2E33] rounded-2xl shadow-sm p-4 flex flex-col h-full border border-gray-100 dark:border-slate-700 overflow-hidden">
           <h3 className="text-base font-semibold mb-3 text-gray-700 dark:text-white border-b pb-2 dark:border-slate-700">
             {selectedDate
