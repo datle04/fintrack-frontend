@@ -2,8 +2,7 @@
 
 > **Graduation Thesis Project** | **Full-stack Application**
 
-[![Live Demo](https://img.shields.io/badge/Demo-Live_App-brightgreen)](LINK_DEMO_CUA_BAN)
-[![Report](https://img.shields.io/badge/Document-Project_Report-blue)](LINK_BAO_CAO_NEU_CO)
+[![Live Demo](https://img.shields.io/badge/Demo-Live_App-brightgreen)](https://fintrack-frontend-pg3r.onrender.com)
 
 ## 📖 Overview
 **FinTrack** is a comprehensive financial management platform designed to help users track expenses, plan budgets, and receive personalized financial advice through an AI-powered Chatbot.
