@@ -28,7 +28,7 @@ This repository contains the **Frontend** source code. For other components, ple
 ## Screenshots
 | Dashboard View | AI Chatbot Interface |
 |:---:|:---:|
-| ![Dashboard](https://drive.google.com/file/d/13FVQd92TQuMDSsHep_kp6p5Dvz0AR3Kh/view?usp=drive_link) | ![Chatbot](https://drive.google.com/file/d/1mEUFxcFrbthU9dfeCbxe64Hezfn9ZUqt/view?usp=drive_link) |
+| ![Dashboard](./src/assets/img/dashboard-view.png) | ![Chatbot](./src/assets/img/ai-chatbot.jpg) |
 
 ## 🚀 Getting Started
 
